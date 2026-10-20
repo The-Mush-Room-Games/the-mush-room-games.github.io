@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shroom Snake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@700&family=Silkscreen&display=swap">
+<style>
+/* Shroom Snake: the Red Shroom (lime cap) runs the grid, eats mushrooms, and wears each one as a tail. */
+:root { color-scheme: dark; --bg: #0b0612; --ink: #f6efff; --soft: #bba8dc; --plum: #2a1245; --pink: #ff4fae; --lime: #c6ff3d; --cyan: #4fdcff; --violet-lo: #5a2bc4;
+  --px: "Pixelify Sans", monospace; --lab: "Silkscreen", "Courier New", monospace }
+html, body { margin: 0; height: 100% }
+body { display: grid; place-items: center; padding: 12px; box-sizing: border-box; background: var(--bg); color: var(--ink); font: 400 11px/1.4 var(--lab); user-select: none; -webkit-user-select: none }
+.game { --ar: 1; --fx: 262px; width: min(100%, 560px, calc((100vh - var(--fx)) * var(--ar) + 26px)); min-width: 200px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px }   /* --ar: canvas w/h (set from the scene size); --fx: height taken by HUD, pad, credit and frame */
+@media (pointer: fine) { .game { --fx: 151px } }   /* no pad on desktop */
+.hud { display: flex; justify-content: space-between; color: var(--lime); padding: 0 2px }
+.hud b { color: var(--pink); font-weight: 400 }
+.stage { position: relative; aspect-ratio: var(--ar); box-shadow: 0 0 0 4px #000, 0 0 0 9px var(--plum), 0 0 0 13px #000; margin: 13px; touch-action: none }
+canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated }
+.msg { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 16px; text-align: center; background: rgba(11, 6, 18, .78) }
+.msg[hidden] { display: none }
+.msg h1 { margin: 0; font: 700 clamp(30px, 9vw, 52px)/1 var(--px); color: var(--lime); text-shadow: 3px 3px 0 #000, 0 0 14px rgba(255, 79, 174, .6) }
+.msg p { margin: 0; color: var(--soft); max-width: 22rem }
+.btn { min-height: 44px; padding: 0 18px; font: 700 16px/1 var(--px); color: var(--bg); background: var(--lime); border: 0; cursor: pointer;
+  box-shadow: 0 -4px 0 #000, 0 4px 0 #000, -4px 0 0 #000, 4px 0 0 #000, 6px 8px 0 var(--violet-lo) }
+.btn:active { transform: translate(4px, 5px) }
+.pad { display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(2, 48px); gap: 10px; justify-content: center }
+.pad button { font: 700 20px/1 var(--px); color: var(--ink); background: var(--plum); border: 0; box-shadow: 0 0 0 3px #000; touch-action: manipulation }
+.pad button:active { background: var(--pink) }
+.credit { margin: 0; padding: 0 2px; text-align: center; font-size: 8px; line-height: 1.7; color: var(--soft); opacity: .7; text-wrap: balance }
+.pad .u { grid-column: 2 } .pad .l { grid-column: 1; grid-row: 2 } .pad .d { grid-column: 2; grid-row: 2 } .pad .r { grid-column: 3; grid-row: 2 }
+@media (pointer: fine) { .pad { display: none } }
+</style>
+
+<div class="game">
+  <div class="hud"><span>Shrooms <b id="score">0</b></span><span>Best <b id="best">0</b></span></div>
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Shroom Snake playfield"></canvas>
+    <div class="msg" id="msg">
+      <h1 id="title">Shroom Snake</h1>
+      <p id="note">Eat mushrooms, grow a tail of them, don't bite it. Arrow keys, WASD or swipe.</p>
+      <button class="btn" id="start">▶ Press start</button>
+    </div>
+  </div>
+  <div class="pad" aria-label="Direction pad"><button class="u" data-d="0,-1" aria-label="Up">▲</button><button class="l" data-d="-1,0" aria-label="Left">◀</button><button class="d" data-d="0,1" aria-label="Down">▼</button><button class="r" data-d="1,0" aria-label="Right">▶</button></div>
+  <p class="credit">Grass, props and sheep: Tiny Swords by Pixel Frog · Mushroom icons by Filwarka · Runner: Red Shroom by CazBee · Mushrooms: Kami</p>
+</div>
+
+<script>
+// 12 x 12 cells of 32 art px; every sprite is drawn at 1x so it all sits on one pixel grid
+const N = 12, C = 32, cv = document.getElementById('cv'); let x = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+const KINDS = ['kami0_violet', 'kami1_cyan', 'kami3_pink', 'kami5_cyan', 'kami6_violet', 'kami8_pink', 'kami9_lime', 'bud_cyan'];
+const load = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = s; });
+let runner, grass, field, shrooms = [], pos, kinds, dir, queue, food, score, step, face, frame = 0, state = 'ready', timer;
+let best = 0; try { best = +localStorage.getItem('shroomsnake-best') || 0 } catch (e) {}
+$('best').textContent = best;
+
+function reset() {
+  pos = [{ x: 4, y: 6 }, { x: 3, y: 6 }, { x: 2, y: 6 }]; kinds = [2, 6];    // head + a two-mushroom tail
+  dir = { x: 1, y: 0 }; queue = []; score = 0; step = 170; face = 1; place(); $('score').textContent = 0;
+}
+function place() {
+  const free = [];
+  for (let yy = 0; yy < N; yy++) for (let xx = 0; xx < N; xx++) if (!pos.some(p => p.x === xx && p.y === yy)) free.push({ x: xx, y: yy });
+  food = free[Math.floor(Math.random() * free.length)]; food.k = Math.floor(Math.random() * shrooms.length);
+}
+function tick() {
+  if (queue.length) dir = queue.shift();
+  const h = { x: pos[0].x + dir.x, y: pos[0].y + dir.y }, eat = food && h.x === food.x && h.y === food.y;
+  const body = eat ? pos : pos.slice(0, -1);                                 // the tail end moves away unless we grow
+  if (h.x < 0 || h.y < 0 || h.x >= N || h.y >= N || body.some(p => p.x === h.x && p.y === h.y)) return over();
+  pos.unshift(h);
+  if (eat) { kinds.push(food.k); score++; $('score').textContent = score; step = Math.max(85, step - 5); place(); } else pos.pop();
+  if (dir.x) face = dir.x;
+  frame ^= 1; draw(); timer = setTimeout(tick, step);
+}
+function start() { clearTimeout(timer); reset(); state = 'play'; $('msg').hidden = true; draw(); timer = setTimeout(tick, step); }
+function over() {
+  state = 'over'; if (score > best) { best = score; try { localStorage.setItem('shroomsnake-best', best) } catch (e) {} }
+  $('best').textContent = best; $('title').textContent = 'Game over';
+  $('note').textContent = score === 1 ? 'You grew 1 mushroom.' : `You grew ${score} mushrooms.`; $('start').textContent = '▶ Play again';
+  $('msg').hidden = false; $('start').focus();
+}
+function turn(dx, dy) {
+  if (state !== 'play') return;
+  const last = queue.length ? queue[queue.length - 1] : dir;
+  if ((last.x === -dx && last.y === -dy) || (last.x === dx && last.y === dy)) return;   // no reversing into yourself
+  if (queue.length < 2) queue.push({ x: dx, y: dy });
+}
+
+function sprite(img, cx, cy, s, flip, lift = 0) {    // bottom-centred in a cell, whole art pixels only
+  if (!img) return;
+  const w = img.width * s, h = img.height * s, px = cx * C + Math.floor((C - w) / 2), py = cy * C + C - h - 2 - lift;
+  if (!flip) return x.drawImage(img, px, py, w, h);
+  x.save(); x.translate(px + w, py); x.scale(-1, 1); x.drawImage(img, 0, 0, w, h); x.restore();
+}
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;   // reduced motion holds frame 0 of every animation
+const clock = () => still ? 0 : Math.floor(performance.now() / 110);        // one clock: foam/fire/rocks 110ms a frame, trees and sheep slower
+const I = {};                                                               // loaded Tiny Swords images by name
+// Tiny Swords sprites: [image, frame size, frames per row, feet x, feet y inside the frame, scale]. 0.5x only for the 192px frames (tree) and the 128px fire.
+const SPR = { tree: ['tree', 192, 4, 98, 178, .5], sheep: ['sheep', 128, 8, 64, 86, 1], fire: ['fire', 128, 7, 65, 108, .5],
+  rock1: ['rock1', 128, 8, 62, 73, 1], rock2: ['rock2', 128, 8, 63, 84, 1],
+  toad1: ['d01', 64, 1, 34, 43, 1], toad2: ['d02', 64, 1, 34, 47, 1],
+  stone: ['d04', 64, 1, 34, 37, 1] };
+function put(d, i, cx, by, flip) {    // frame i of a sprite with its feet on (cx, by), whole art pixels only
+  const img = I[d[0]]; if (!img) return;
+  const [, fw, cols, ax, ay, s] = d, w = fw * s, dx = Math.round(cx - ax * s), dy = Math.round(by - ay * s), sx = (i % cols) * fw, sy = Math.floor(i / cols) * fw;
+  if (!flip) return x.drawImage(img, sx, sy, fw, fw, dx, dy, w, w);
+  x.save(); x.translate(dx + w, dy); x.scale(-1, 1); x.drawImage(img, sx, sy, fw, fw, 0, 0, w, w); x.restore();
+}
+const tree = (k, i, cx, by) => put(SPR.tree, (Math.floor(k / 3) + i) % 4, cx, by);   // 4 idle-sway frames, each tree out of step with its neighbour
+const sheepAt = (k, cx, by) => put(SPR.sheep, Math.floor(k / 2) % 8, cx, by);
+const fireAt = (k, cx, by) => { put(SPR.stone, 0, cx - 15, by - 1); put(SPR.stone, 0, cx + 15, by - 1); put(SPR.fire, k % 7, cx, by); };   // two stones flank the flame and ground it
+const tile = (sx, sy, dx, dy) => x.drawImage(I.grass, sx, sy, 64, 64, dx, dy, 64, 64);   // one 64px Tilemap_Flat tile
+const foam = (k, tx, ty) => x.drawImage(I.foam, (k % 8) * 192, 0, 192, 192, tx - 64, ty - 64, 192, 192);   // 192px frame centred on a 64px tile: a 9px rim shows past the shore
+const BG = '#0b0612', B = N * C;   // B = the 12 x 12 grid in art px
+
+// Island scene, drawn around the 384px board on the same canvas: sceneBack() before the board, sceneFront() after it (never on the grid), then the game on top.
+// The board is a grass island in water: cliff below, foam all round, two little pillar islets with trees off its left side, the camp on a shelf in front of the cliff.
+const ML = 100, MT = 32, W = 504, H = 521, ISLETS = [[12, 72], [8, 256]], SX = ML + 160, SY = MT + B + 24;   // ML/MT: where the board sits; ISLETS: the grass tile of each islet; SX/SY: the camp shelf
+cv.width = W; cv.height = H;
+document.querySelector('.game').style.setProperty('--ar', W / H);
+let water;
+function sceneBack(k) {
+  x.fillStyle = water || (water = x.createPattern(I.water, 'repeat')); x.fillRect(0, 0, W, H);
+  for (let i = 0; i < 6; i++) { foam(k, ML + i * 64, MT); foam(k, ML + i * 64, MT + B); }                   // top edge and cliff foot
+  for (let j = 1; j < 6; j++) { foam(k, ML, MT + j * 64); foam(k, ML + B - 64, MT + j * 64); }             // both sides
+  for (const [ix, iy] of ISLETS) { foam(k, ix, iy); foam(k, ix, iy + 64); }                               // islets (grass and cliff foot)
+  for (let i = 0; i < 3; i++) foam(k, SX + i * 64, SY);                                                  // shelf
+  put(SPR.rock2, k % 8, 40, 470); put(SPR.rock1, (k + 3) % 8, 70, 496);                                   // two rocks in the water, lower left
+  for (let i = 0; i < 6; i++) x.drawImage(I.elev, i === 0 ? 0 : i === 5 ? 128 : 64, 192, 64, 64, ML + i * 64, MT + B, 64, 64);   // cliff face under the board
+  for (const [ix, iy] of ISLETS) { x.drawImage(I.elev, 192, 192, 64, 64, ix, iy + 64, 64, 64); tile(192, 192, ix, iy); }   // each islet: one grass tile on its own 1-wide cliff
+  put(SPR.toad1, 0, 28, 126); tree(k, 0, 50, 112);                                                        // upper islet: tree and a toadstool
+  put(SPR.stone, 0, 54, 312); tree(k, 2, 36, 304);                                                        // lower islet: tree and a stone
+}
+function sceneFront(k) {
+  for (let i = 0; i < 3; i++) tile(i * 64, 192, SX + i * 64, SY);                                         // grass shelf (Tilemap_Flat's 1-tall strip)
+  sheepAt(k, SX + 50, SY + 40); fireAt(k, SX + 104, SY + 36);
+  put(SPR.toad2, 0, SX + 140, SY + 42); put(SPR.toad1, 0, SX + 158, SY + 36);
+}
+function buildField() {          // Tiny Swords grass (Pixel Frog): 6 x 6 tiles from its 3 x 3 block, so the patch keeps its outlined edge
+  field = document.createElement('canvas'); field.width = field.height = B; const f = field.getContext('2d'), T = 64, n = B / T;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const sx = i === 0 ? 0 : i === n - 1 ? 2 : 1, sy = j === 0 ? 0 : j === n - 1 ? 2 : 1;
+    f.drawImage(I.grass, sx * T, sy * T, T, T, i * T, j * T, T, T);
+  }
+}
+function draw() {
+  x.imageSmoothingEnabled = false;
+  const k = clock();
+  if (I.grass) { sceneBack(k); x.drawImage(field, ML, MT); sceneFront(k); } else { x.fillStyle = BG; x.fillRect(0, 0, cv.width, cv.height); }
+  x.save(); x.translate(ML, MT);                       // the game layer sits on the board
+  if (food) sprite(shrooms[food.k], food.x, food.y, 1, false, frame + 6);
+  for (let i = kinds.length - 1; i >= 0; i--) if (pos[i + 1]) sprite(shrooms[kinds[i]], pos[i + 1].x, pos[i + 1].y, 1, false, 6 + (i + frame) % 2);
+  if (runner) {                                          // the runner's two frames, flipped when heading left
+    const px = pos[0].x * C, py = pos[0].y * C;
+    x.save(); if (face < 0) { x.translate(px + C, py); x.scale(-1, 1); } else x.translate(px, py);
+    x.drawImage(runner, frame * 32, 0, 32, 32, 0, 0, 32, 32); x.restore();
+  }
+  x.restore();
+}
+
+addEventListener('keydown', e => {
+  const k = { ArrowUp: [0, -1], w: [0, -1], W: [0, -1], ArrowDown: [0, 1], s: [0, 1], S: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], A: [-1, 0], ArrowRight: [1, 0], d: [1, 0], D: [1, 0] }[e.key];
+  if (k) { e.preventDefault(); turn(...k); }
+  else if ((e.key === ' ' || e.key === 'Enter') && state !== 'play') { e.preventDefault(); start(); }
+});
+let sx, sy;
+$('stage').addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; });
+$('stage').addEventListener('pointerup', e => {
+  const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+  Math.abs(dx) > Math.abs(dy) ? turn(Math.sign(dx), 0) : turn(0, Math.sign(dy));
+});
+document.querySelectorAll('.pad button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); turn(...b.dataset.d.split(',').map(Number)); }));
+$('start').addEventListener('click', start);
+
+const TS = n => load('../../img/tinyswords/' + n + '.png');
+const ART = { grass: 'Tilemap_Flat', elev: 'Terrain/Ground/Tilemap_Elevation', water: 'Terrain/Water/Water', foam: 'Terrain/Water/Foam/Foam',
+  rock1: 'Terrain/Water/Rocks/Rocks_01', rock2: 'Terrain/Water/Rocks/Rocks_02', tree: 'Resources/Trees/Tree',
+  sheep: 'Resources/Sheep/HappySheep_Idle', fire: 'fire', d01: 'Deco/01', d02: 'Deco/02', d04: 'Deco/04' };
+Promise.all([load('../../img/forest/runner.png'), load('../../img/filwarka/mushrooms.png'), ...KINDS.map(k => load('../../img/sprites/' + k + '.png')),
+  ...Object.values(ART).map(TS)]).then(([r, m, ...rest]) => {
+  runner = r; shrooms = rest.slice(0, KINDS.length); Object.keys(ART).forEach((n, i) => I[n] = rest[KINDS.length + i]);
+  for (let i = 0; m && i < 10; i++) {                    // Filwarka's ten 16px icons, sliced from the strip
+    const c = document.createElement('canvas'); c.width = c.height = 16; c.getContext('2d').drawImage(m, i * 16, 0, 16, 16, 0, 0, 16, 16); shrooms.push(c);
+  }
+  if (I.grass) buildField(); reset();
+  draw();
+  let last = -1; (function loop() { const k = clock(); if (k !== last) { last = k; draw(); } requestAnimationFrame(loop); })();
+});
+</script>
+</html>

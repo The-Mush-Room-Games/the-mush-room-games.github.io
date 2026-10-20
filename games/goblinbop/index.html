@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goblin Bop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@700&family=Silkscreen&display=swap">
+<style>
+/* Goblin Bop: torch goblins pop out of the bushes; bop them before they light the fire. */
+:root { color-scheme: dark; --bg: #0b0612; --ink: #f6efff; --soft: #bba8dc; --plum: #2a1245; --pink: #ff4fae; --lime: #c6ff3d; --cyan: #4fdcff; --violet-lo: #5a2bc4;
+  --px: "Pixelify Sans", monospace; --lab: "Silkscreen", "Courier New", monospace }
+html, body { margin: 0; height: 100% }
+body { display: grid; place-items: center; padding: 12px; box-sizing: border-box; background: var(--bg); color: var(--ink); font: 400 11px/1.4 var(--lab); user-select: none; -webkit-user-select: none }
+.game { width: min(100%, 560px, calc(100vh - 125px)); min-width: 240px; display: grid; gap: 12px }
+.hud { display: flex; justify-content: space-between; gap: 8px; color: var(--lime); padding: 0 2px; white-space: nowrap }
+.hud b { color: var(--pink); font-weight: 400 }
+.stage { position: relative; aspect-ratio: 1; box-shadow: 0 0 0 4px #000, 0 0 0 9px var(--plum), 0 0 0 13px #000; margin: 13px; touch-action: none }
+canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated }
+.msg { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 16px; text-align: center; background: rgba(11, 6, 18, .78) }
+.msg[hidden] { display: none }
+.msg h1 { margin: 0; font: 700 clamp(30px, 9vw, 52px)/1 var(--px); color: var(--lime); text-shadow: 3px 3px 0 #000, 0 0 14px rgba(255, 79, 174, .6) }
+.msg p { margin: 0; color: var(--soft); max-width: 22rem }
+.btn { min-height: 44px; padding: 0 18px; font: 700 16px/1 var(--px); color: var(--bg); background: var(--lime); border: 0; cursor: pointer;
+  box-shadow: 0 -4px 0 #000, 0 4px 0 #000, -4px 0 0 #000, 4px 0 0 #000, 6px 8px 0 var(--violet-lo) }
+.btn:active { transform: translate(4px, 5px) }
+.credit { margin: 0; text-align: center; font-size: 9px; color: var(--soft) }
+</style>
+
+<div class="game">
+  <div class="hud"><span>Bops <b id="score">0</b></span><span>Time <b id="time">30</b></span><span id="lives" aria-label="Lives"><b>♥♥♥</b></span><span>Best <b id="best">0</b></span></div>
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Goblin Bop playfield"></canvas>
+    <div class="msg" id="msg">
+      <h1 id="title">Goblin Bop</h1>
+      <p id="note">Goblins pop out of the bushes. Bop them before they light the fire! 30 seconds, 3 lives. Click, tap or keys 1-9.</p>
+      <button class="btn" id="start">▶ Press start</button>
+    </div>
+  </div>
+  <p class="credit">Art: Tiny Swords by Pixel Frog</p>
+</div>
+
+<script>
+// 256 x 256 art px canvas = 4 x 4 grass tiles; every sprite is drawn at 1x (the big goblin frames at exactly 0.5x) on one pixel grid
+const W = 256, ROUND = 30000, LIVES = 3, cv = document.getElementById('cv'), x = cv.getContext('2d');
+cv.width = cv.height = W;
+const $ = id => document.getElementById(id);
+const COLORS = ['Red', 'Blue', 'Purple', 'Yellow'];
+const COLX = [42, 128, 214], BASE = [84, 158, 232];     // hole centres and the bush base line (bush bottom) per column / row
+const load = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = s; });
+let grass, field, bush, fire, boom, torch = [], holes, score, lives, t0, next, state = 'ready', dieAt, now = 0;
+let best = 0; try { best = +localStorage.getItem('goblinbop-best') || 0 } catch (e) {}
+$('best').textContent = best;
+const keys = matchMedia('(pointer: fine)').matches;
+
+function reset() { holes = Array(9).fill(null); score = 0; lives = LIVES; hud(); }
+function hud() {
+  $('score').textContent = score; $('lives').firstChild.textContent = '♥'.repeat(Math.max(0, lives)) + '·'.repeat(LIVES - Math.max(0, lives));
+  $('time').textContent = state === 'play' ? Math.max(0, Math.ceil((ROUND - (now - t0)) / 1000)) : ROUND / 1000;
+}
+function pace() { const p = Math.min(1, (now - t0) / ROUND); return { gap: 950 - 550 * p, up: 1400 - 700 * p, max: p < .25 ? 1 : p < .65 ? 2 : 3 }; }
+function spawn() {
+  const free = holes.map((h, i) => h ? -1 : i).filter(i => i >= 0), p = pace();
+  if (!free.length || holes.filter(h => h && h.k === 'pop').length >= p.max) return;
+  holes[free[Math.floor(Math.random() * free.length)]] = { k: 'pop', t: now, up: p.up, c: Math.floor(Math.random() * 4), flip: Math.random() < .5 };
+}
+function update() {
+  if (state === 'dying' && now >= dieAt) return over();
+  if (state !== 'play') return;
+  if (now - t0 >= ROUND) return over();
+  if (now >= next) { spawn(); next = now + pace().gap * (.7 + Math.random() * .6); }
+  holes.forEach((h, i) => {
+    if (!h) return;
+    if (h.k === 'pop' && now - h.t > h.up) { h.k = 'fire'; h.t = now; lives--; if (lives <= 0) { state = 'dying'; dieAt = now + 700; } }
+    else if (h.k !== 'pop' && now - h.t > (h.k === 'hit' ? 450 : 700)) holes[i] = null;
+  });
+  hud();
+}
+function start() { reset(); state = 'play'; t0 = performance.now(); now = t0; next = now + 500; $('msg').hidden = true; hud(); }
+function over() {
+  state = 'over'; if (score > best) { best = score; try { localStorage.setItem('goblinbop-best', best) } catch (e) {} }
+  $('best').textContent = best; $('title').textContent = 'Game over'; hud();
+  $('note').textContent = (lives <= 0 ? 'The fire got lit! ' : 'Time is up! ') + (score === 1 ? 'You bopped 1 goblin.' : `You bopped ${score} goblins.`);
+  $('start').textContent = '▶ Play again'; $('msg').hidden = false; $('start').focus();
+}
+function bop(i) {
+  const h = holes[i]; if (state !== 'play' || !h || h.k !== 'pop') return;
+  h.k = 'hit'; h.t = now; score++; hud();
+}
+
+function buildField() {          // Tiny Swords grass (Pixel Frog): 4 x 4 tiles from its 3 x 3 block, so the patch keeps its outlined edge
+  field = document.createElement('canvas'); field.width = field.height = W; const f = field.getContext('2d'), T = 64, n = W / T;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++)
+    f.drawImage(grass, (i === 0 ? 0 : i === n - 1 ? 2 : 1) * T, (j === 0 ? 0 : j === n - 1 ? 2 : 1) * T, T, T, i * T, j * T, T, T);
+}
+function drawHole(h, i) {
+  const cx = COLX[i % 3], b = BASE[Math.floor(i / 3)], age = now - (h ? h.t : 0);
+  if (h && h.k === 'pop') {                                // goblin rises behind the bush: clip at the bush base so it never draws on the grass
+    const p = Math.min(1, age / 140), shake = h.up - age < 300 ? (Math.floor(now / 60) % 2 * 2 - 1) : 0, g = torch[h.c];
+    if (g) {
+      x.save(); x.beginPath(); x.rect(cx - 48, 0, 96, b); x.clip();
+      const fx = cx - 48 + shake, fy = b - 22 + Math.round((1 - p) * 40) - 66;
+      if (h.flip) { x.translate(fx + 96, fy); x.scale(-1, 1); x.drawImage(g, Math.floor(now / 100) % 7 * 192, 0, 192, 192, 0, 0, 96, 96); }
+      else x.drawImage(g, Math.floor(now / 100) % 7 * 192, 0, 192, 192, fx, fy, 96, 96);
+      x.restore();
+    }
+  }
+  if (bush) x.drawImage(bush, cx - 32, b - 49);
+  if (keys) { x.font = '8px Silkscreen, monospace'; x.textAlign = 'center'; x.fillStyle = '#000'; x.fillText(i + 1, cx + 1, b + 15); x.fillStyle = '#f6efff'; x.fillText(i + 1, cx, b + 14); }
+  if (!h) return;
+  if (h.k === 'hit') {                                     // smoke puff + a lime +1 floating up
+    if (boom) x.drawImage(boom, Math.min(8, Math.floor(age / 50)) * 192, 0, 192, 192, cx - 48, b - 24 - 48, 96, 96);
+    x.font = '700 14px "Pixelify Sans", monospace'; x.textAlign = 'center'; x.fillStyle = '#000'; x.fillText('+1', cx + 1, b - 56 - age * .015 + 1); x.fillStyle = '#c6ff3d'; x.fillText('+1', cx, b - 57 - age * .015);
+  } else if (h.k === 'fire' && fire) x.drawImage(fire, Math.floor(age / 90) % 7 * 128, 0, 128, 128, cx - 32, b - 4 - 52, 64, 64);
+}
+function draw() {
+  x.imageSmoothingEnabled = false;
+  if (field) x.drawImage(field, 0, 0); else { x.fillStyle = '#285a28'; x.fillRect(0, 0, W, W); }
+  for (let i = 0; i < 9; i++) drawHole(holes && holes[i], i);
+}
+function frame() { now = performance.now(); update(); draw(); requestAnimationFrame(frame); }
+
+addEventListener('keydown', e => {
+  if (/^[1-9]$/.test(e.key)) bop(+e.key - 1);
+  else if ((e.key === ' ' || e.key === 'Enter') && state !== 'play' && state !== 'dying') { e.preventDefault(); start(); }
+});
+$('stage').addEventListener('pointerdown', e => {
+  const r = cv.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width, py = (e.clientY - r.top) * W / r.height;
+  e.preventDefault(); bop((py < 91 ? 0 : py < 165 ? 1 : 2) * 3 + (px < 85 ? 0 : px < 171 ? 1 : 2));
+});
+$('start').addEventListener('click', start);
+
+Promise.all([load('../../img/tinyswords/Tilemap_Flat.png'), load('../../img/tinyswords/08.png'), load('../../img/tinyswords/fire.png'), load('../../img/tinyswords/Explosions.png'), ...COLORS.map(c => load('../../img/tinyswords/Torch_' + c + '.png'))])
+  .then(([g, b, f, e, ...t]) => { grass = g; bush = b; fire = f; boom = e; torch = t; if (g) buildField(); reset(); requestAnimationFrame(frame); });
+</script>
+</html>

@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Mush Room</title>
-<meta name="description" content="The Mush Room is an independent game studio. On Break comes to Steam in Q1 2027, and you can play Dog Mosh Festival free in our Arcade.">
-<meta property="og:title" content="The Mush Room"><meta property="og:description" content="We grow weird little games. On Break is coming to Steam, and Dog Mosh Festival is playable free in the Arcade.">
+<meta name="description" content="The Mush Room is an independent game studio. On Break is on Steam (wishlist now, out Q1 2027), and our web games are free to play in the Arcade.">
+<meta property="og:title" content="The Mush Room"><meta property="og:description" content="We grow weird little games. Wishlist On Break on Steam and play our web games free in the Arcade.">
 <meta property="og:image" content="https://themushroomstudio.com/img/keyart.jpg"><meta property="og:url" content="https://themushroomstudio.com/">
 <meta name="theme-color" content="#0b0612">
 <link rel="icon" href="img/themushroom_white.png">
@@ -13,45 +13,426 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Silkscreen&family=Space+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="style.css">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
+<style>
+/* =====================================================================================================
+   Studio site, unified mockup. One world: Candy Noir neon windows + chrome titles, Tiny Swords ribbons/buttons/
+   pointer/terrain (always 1x, never rotated or recoloured), the night forest banner, and the A2 arcade.
+   Three switches on the page (bottom-left pill, or hash tokens: day, edges, asis, nopill; the default is Night + Ground + Restyled):
+     A  palette   day | night      -> html.night      (JS swaps the ONE art prefix, TS, in the script below)
+     B  scenes    ground | edges   -> html.edges      (default "ground": a tree + pawns on the Games window, nothing under Get in touch,
+                                                       the footer is THE ground; edges: props stand on every frame)
+     C  arcade    as is | restyled -> html.restyled   (default restyled)
+   CSS groups: 0 BASE  1 TS SHARED  2 A2 ARCADE  3 FOOTER  4 B1 GROUND  5 B2 EDGES  6 C RESTYLED  7 MOCKUP PILL
+   ===================================================================================================== */
+
+/* ============================================ 0 BASE (neon core) ============================================ */
+:root { color-scheme: dark;
+  --sky: #0b0612; --sky-lo: #2a1245; --plum-2: #1a0e2a; --night: #000000;
+  --win: #150a24; --win-2: #26133d; --ink: #f6efff; --soft: #bba8dc; --line: #000000; --white: #ffffff;
+  --pink: #ff4fae; --pink-lo: #c4157a; --cyan: #4fdcff; --cyan-lo: #0f8fb8; --lime: #c6ff3d; --lime-lo: #5fa800; --violet: #9a6bff; --violet-lo: #5a2bc4;
+  --ground: radial-gradient(circle at 100% 0%, rgba(255,95,176,.32), transparent 38%), radial-gradient(circle at 104% 70%, rgba(79,220,255,.22), transparent 34%), radial-gradient(circle at 0% 108%, rgba(154,107,255,.34), transparent 42%), #0b0612;
+  --tile: none; --on-sky: #ffffff; --on-sky-soft: #e6d8ff; --on-night: #ffffff; --on-night-soft: #b9a6d9; --hl: #c6ff3d; --hl2: #ff7cc8; --btn-ink: #0b0612; --link: #ff7cc8; --link2: #c6ff3d;
+  --tsink: #0b1a2a;
+  --px: "Pixelify Sans", "Silkscreen", monospace; --lab: "Silkscreen", "Courier New", monospace; --mono: "Space Mono", ui-monospace, monospace }
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+html, body { margin: 0 }
+body { position: relative; background: radial-gradient(900px 700px at 100% 6%, rgba(255,95,176,.22), transparent), radial-gradient(800px 800px at 0% 34%, rgba(154,107,255,.24), transparent), radial-gradient(900px 700px at 100% 62%, rgba(79,220,255,.14), transparent), radial-gradient(900px 800px at 0% 92%, rgba(255,95,176,.16), transparent), var(--sky); color: var(--on-sky); font: 14px/1.65 var(--mono); overflow-x: hidden }
+img { max-width: 100% }
+h1, h2, h3, p { margin: 0 }
+h2 { text-wrap: balance }
+.spr, .pixelated { image-rendering: pixelated }
+.spr { display: block }
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.wrap { max-width: 960px; margin-inline: auto }
+/* ONE continuous sky for the whole page: a single star field canvas (#sky, no tiling) over one set of glows on body; sections are see-through */
+.starry { background: none }
+#sky { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; image-rendering: pixelated }
+.toy { box-shadow: 0 -4px 0 var(--line), 0 4px 0 var(--line), -4px 0 0 var(--line), 4px 0 0 var(--line), 8px 10px 0 color-mix(in srgb, var(--line) 45%, transparent) }
+.copy { font: 400 11px/1 var(--lab); background: none; border: 0; color: var(--link2); cursor: pointer; padding: 8px 0; margin-left: 12px; text-decoration: underline }
+.lab { font: 400 11px/1 var(--lab); letter-spacing: .08em }
+.metal { font-family: var(--px) !important; font-weight: 700 !important; letter-spacing: .01em; color: transparent; text-shadow: none !important;
+  background: linear-gradient(180deg, #ffffff 0 36%, #d9ccff 36% 50%, #ff7cc8 50% 66%, #ffffff 66% 74%, #9a6bff 74%); -webkit-background-clip: text; background-clip: text; background-size: 100% 1em; line-height: 1 !important;
+  filter: drop-shadow(3px 3px 0 #000) drop-shadow(0 0 12px rgba(255,79,174,.6)) }
+.metal b { color: transparent; background: linear-gradient(180deg, #f4ffd1 0 38%, #c6ff3d 38% 68%, #5fa800 68%) 0 0 / 100% 1em; -webkit-background-clip: text; background-clip: text }
+section { padding-block: 56px }
+@media (prefers-reduced-motion: no-preference) { .bob { animation: bob 2.4s steps(4) infinite alternate } .twinkle { animation: tw 1.6s steps(2) infinite } .blink { animation: blink 1.1s steps(1) infinite } }
+@keyframes bob { to { transform: translateY(-10px) } }
+@keyframes tw { 50% { opacity: .2 } }
+@keyframes blink { 50% { opacity: 0 } }
+@keyframes scroll { to { background-position-x: -960px } }
+@keyframes run { to { background-position-x: -96px } }
+@keyframes chase { 50% { background-position-x: 14px } }
+@keyframes crawl { to { transform: translateX(-100%) } }
+
+/* top bar */
+.bar { position: relative; background: var(--night); padding-block: 8px 22px }   /* slim (owner, 2026-10-20): plain pixel-font links, no button art */
+.bar::after { content: ""; position: absolute; left: 0; right: 0; bottom: 8px; height: 4px;
+  background: linear-gradient(90deg, var(--pink) 0 4px, transparent 4px 14px, var(--cyan) 14px 18px, transparent 18px) 0 0 / 28px 4px repeat-x }
+@media (prefers-reduced-motion: no-preference) { .bar::after { animation: chase .5s steps(1) infinite } }
+.bar .wrap { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 12px 24px }
+.home { display: flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; text-decoration: none; font-size: 20px }
+.home img { width: 36px; height: 36px; flex: none }
+.bar nav { display: flex; align-items: center; gap: 4px; flex: none }
+.bar nav .nl { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 10px; font: 700 16px/1 var(--px); color: var(--on-night); text-decoration: none }
+.bar nav .nl:hover, .bar nav .nl:focus-visible { color: var(--lime) } .bar nav .nl.pink:hover, .bar nav .nl.pink:focus-visible { color: var(--hl2) }
+@media (max-width: 1040px) { .bar nav .spr { display: none } }
+@media (max-width: 720px) { .home span { display: none } }
+@media (max-width: 460px) { .bar nav .nl { padding: 0 7px; font-size: 14px } }
+
+/* hero + the night forest banner (Spore Nocturne: three parallax layers + the Red Shroom, shown at 1.5x, still under reduced motion) */
+.intro { position: relative; padding-block: 48px 0; overflow-x: clip }
+.intro .wrap { position: relative; display: grid; gap: 28px; align-items: center }
+@media (min-width: 820px) { .intro .wrap { grid-template-columns: auto 1fr } }
+.intro .logo { width: 200px; height: 200px; filter: drop-shadow(2px 0 0 var(--line)) drop-shadow(-2px 0 0 var(--line)) drop-shadow(0 2px 0 var(--line)) drop-shadow(0 -2px 0 var(--line)) drop-shadow(6px 6px 0 var(--line)) }
+.intro .txt { position: relative; display: grid; gap: 18px; min-width: 0 }
+.intro h1 { font-size: clamp(40px, 8vw, 72px); line-height: .95; max-width: 12ch }
+.intro p { max-width: 36rem; color: var(--on-sky-soft); text-shadow: 0 1px 0 #000, 0 0 8px #000 }
+.intro .btnrow { display: flex; flex-wrap: wrap; gap: 18px 22px; padding-top: 8px }
+.floaty { position: absolute; pointer-events: none }
+.forest { position: relative; height: 306px; overflow: hidden; image-rendering: pixelated; margin-top: 44px;
+  margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px))) }
+.forest i { position: absolute; display: block }
+.forest .ly { inset: 0; background: 0 0 / 960px 306px repeat-x }
+.forest .back { background-image: url(img/forest/back.png) } .forest .mid { background-image: url(img/forest/mid.png) } .forest .front { background-image: url(img/forest/front.png) }
+.forest .runner { left: 30%; bottom: 16.5px; width: 48px; height: 48px; background: url(img/forest/runner.png) 0 0 / 96px 48px no-repeat }
+@media (prefers-reduced-motion: no-preference) {
+  .forest .back { animation: scroll 64s steps(640) infinite } .forest .mid { animation: scroll 32s steps(640) infinite } .forest .front { animation: scroll 12s steps(640) infinite }
+  .forest .runner { animation: run .28s steps(2) infinite } }
+.marquee { overflow: hidden; white-space: nowrap; font: 400 12px/1 var(--lab); color: var(--lime); padding-block: 13px; background: #000; box-shadow: inset 0 -3px 0 var(--pink) }
+.marquee span { display: inline-block; padding-left: 100% }
+@media (prefers-reduced-motion: no-preference) { .marquee span { animation: crawl 28s linear infinite; animation-delay: -10s } }
+
+/* ============================================ 1 TS SHARED (Pixel Frog art at 1x) ============================================
+   Every Tiny Swords file below is referenced through a custom property that the script fills from the single art prefix TS. */
+* , *::before, *::after { cursor: var(--ptr) 22 17, auto !important }
+canvas.scn { image-rendering: pixelated }
+.env canvas { display: block }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 64px; padding: 0 0 18px; font: 700 16px/1 var(--px); text-decoration: none; cursor: pointer; white-space: nowrap;
+  color: var(--btn-ink); background: none; box-shadow: none; box-sizing: border-box; border-style: solid; border-color: transparent; border-width: 0 32px; image-rendering: pixelated;
+  border-image: var(--b3b) 0 32 fill / 0 32px / 0 repeat }
+.btn.pink { border-image-source: var(--b3r) }
+.btn:active { padding: 4px 0 14px; border-image-source: var(--b3bp) }
+.btn.pink:active { border-image-source: var(--b3rp) }
+.btn.big { flex-direction: column; height: auto; padding: 0 0 10px; border-width: 20px; align-items: center; gap: 4px; font-size: 18px; border-image: var(--b9b) 20 fill / 20px / 0 repeat }
+.btn.big small { font: 400 10px/1 var(--lab); letter-spacing: .08em }
+.btn .dcl { display: inline-flex; align-items: center; gap: 8px } .btn .dc { width: 22px; height: 22px; flex: none }   /* Discord mark (official glyph, linking to the server) */
+.btn.big.pink { border-image-source: var(--b9r) }
+.btn.big:active { padding: 4px 0 6px; border-image-source: var(--b9bp) }
+.btn.big.pink:active { border-image-source: var(--b9rp) }
+
+/* windows: dark violet body, toy frame, the ribbon IS the title bar (blue / red only) */
+.win { position: relative; background: var(--win); color: var(--ink); min-width: 0; display: flow-root; margin-top: 40px }
+.win .tb, .cabwin > .tb { position: relative; z-index: 3; box-sizing: border-box; height: 64px; margin: -34px -45px 0; padding: 0 0 22px; display: flex; justify-content: center; align-items: center;
+  font: 700 18px/1 var(--px); color: #fff; text-shadow: 2px 2px 0 var(--tsink); image-rendering: pixelated;
+  border-style: solid; border-color: transparent; border-width: 0 64px; border-image: var(--rib, var(--rb-blue)) 0 64 fill / 0 64px / 0 repeat }
+.win .wc { padding: 26px 20px 20px; display: grid; gap: 14px }
+.win h3 { font: 700 24px/1.05 var(--px) }
+.win p { color: var(--soft) }
+.win a { color: var(--link) } .win a.btn { color: var(--btn-ink) }
+.w-people, .product { --rib: var(--rb-blue) } .w-news { --rib: var(--rb-red) } .w-hello { --rib: var(--rb-blue) } .product { --rib: var(--rb-red) }
+.product .tb { margin-bottom: -26px }
+.product .art { display: block; width: 100%; aspect-ratio: 616 / 353; object-fit: cover; object-position: left center }   /* the ON BREAK sign is on the left and always stays whole */
+@media (min-width: 960px) { .product .inner { display: grid; grid-template-columns: 1.3fr 1fr } .product .art { height: 100%; aspect-ratio: auto } }
+.product h3 { font-size: 36px; color: var(--link) }
+/* Games shelf: every other game as a small window under the featured one, centred, closed until opened */
+.more { margin-top: 48px; text-align: center }
+.more > summary { list-style: none; margin-inline: auto } .more > summary::-webkit-details-marker { display: none }
+.more:not([open]) .o, .more[open] .c { display: none }
+.shelf { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 300px)); justify-content: center; gap: 40px; margin-top: 40px; text-align: left }
+.gcard { margin-top: 0 }
+.gcard .wc { padding: 16px 18px 20px; align-content: start }
+.gcard h3 { font-size: 22px; margin: 0; color: var(--link) }
+.gcard p { margin: 0 }
+.tags { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none }
+.tags li { font: 400 10px/1 var(--lab); padding: 7px 8px; background: var(--win-2); color: var(--ink) }
+.submenu { display: flex; flex-wrap: wrap; font: 400 11px/1 var(--lab); padding: 0; margin: 0; list-style: none }
+.submenu li + li::before { content: "·"; color: var(--soft); padding: 0 10px }
+.submenu a { display: inline-block; padding: 8px 0; text-decoration: none }
+.submenu a:hover { text-decoration: underline }
+.member { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center }
+.member .ava { width: 64px; height: 64px; display: grid; place-items: center; background: var(--sky); box-shadow: inset 0 0 0 3px var(--line) }
+.member b { font: 700 17px/1.1 var(--px); display: block }
+.member span { font: 400 10px/1.4 var(--lab); color: var(--soft) }
+.member a { font: 400 11px/1 var(--lab); display: inline-block; padding: 8px 0 0 }
+.news { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px }
+.news time { display: block; font: 400 10px/1 var(--lab); color: var(--link2); margin-bottom: 6px }
+.new { font: 400 9px/1 var(--lab); color: var(--white); background: var(--pink); padding: 3px 5px; margin-left: 8px; vertical-align: 2px }
+@media (prefers-reduced-motion: no-preference) { .new { animation: tw 1.2s steps(1) infinite } }
+.board { position: relative; display: grid; gap: 30px 60px }
+@media (min-width: 820px) { .board { grid-template-columns: 1fr 1fr; column-gap: 112px; align-items: end } .board.solo { grid-template-columns: minmax(0, 520px); justify-content: center } }
+
+/* section heads: the ribbon is the label, the chase-bulb rule runs from it */
+.sechead { position: relative; display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 52px; min-height: 64px }
+.sechead h2 { font-size: 30px; line-height: 1; margin: 0 }
+.sechead .spr { display: none }
+/* no dotted rule beside section headings (owner, 2026-10-20) */
+.sechead .rb { display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; box-sizing: border-box; height: 64px; min-width: 192px; padding: 0 0 22px;
+  image-rendering: pixelated; border-style: solid; border-color: transparent; border-width: 0 64px; border-image: var(--rib, var(--rb-blue)) 0 64 fill / 0 64px / 0 repeat }
+@media (max-width: 819px) { .win { margin-inline: 29px } .win .tb, .cabwin > .tb { margin-inline: -37px } }
+
+.construct { position: relative; display: flex; align-items: center; gap: 14px; justify-content: center; padding: 26px 14px 0; font: 400 11px/1.4 var(--lab); color: var(--lime); background: #000 }
+.construct::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: repeating-linear-gradient(-45deg, var(--pink) 0 8px, #000 8px 16px) }
+footer { padding: 18px 16px 44px; text-align: center; font: 400 10px/1.8 var(--lab); color: var(--on-night-soft); background: var(--night) }
+footer a { color: var(--link) }
+
+/* ============================================ 2 A2 ARCADE ("Overgrown screen") ============================================ */
+.arcade { background: none }
+.tc { position: relative; display: block; width: 100%; aspect-ratio: 616 / 353; overflow: hidden; background: #000; container-type: inline-size }
+.tc > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.tc .scan, .scan { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(transparent 0 3px, rgba(0,0,0,.28) 3px 4px) }
+.tc.th img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated }
+.tc.th img.ph { image-rendering: auto }   /* Dog Mosh is a photo, the other two are 1:1 game frames (nearest-neighbour only) */
+.tc.th::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,6,18,.3), rgba(11,6,18,.55)) }   /* slight dark scrim */
+.tc.th .t { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 4cqw; text-align: center }
+.tc.th .t b { display: block; font-size: 12cqw; line-height: 1.02 }
+.tc.th .t b.two { font-size: 15cqw }
+.tc.soon { display: grid; place-content: center; justify-items: center; gap: 2.4cqw; background: repeating-linear-gradient(0deg, rgba(255,255,255,.07) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(79,220,255,.06) 0 2px, transparent 2px 5px), var(--plum-2) }
+@media (prefers-reduced-motion: no-preference) { .tc.soon { animation: noise .3s steps(3) infinite } }
+@keyframes noise { 33% { background-position: 0 1px, 2px 0, 0 0 } 66% { background-position: 0 2px, 1px 0, 0 0 } }
+.tc.soon b { font: 700 9cqw/1 var(--px); color: var(--soft) }
+.tc.soon small { font: 400 max(9px, 4cqw)/1 var(--lab); color: var(--soft); letter-spacing: .14em; text-transform: uppercase }
+.crt { position: relative; margin: 14px 4px; padding: 16px; background: #05020a; border-radius: 22px;
+  box-shadow: inset 0 0 0 3px #000, inset 0 0 70px rgba(79,220,255,.16), 0 0 0 12px var(--plum-2), 0 0 0 16px #000, 0 0 44px 16px rgba(154,107,255,.3) }
+.crt::after { content: ""; position: absolute; inset: 0; border-radius: 22px; pointer-events: none;
+  background: repeating-linear-gradient(transparent 0 3px, rgba(0,0,0,.22) 3px 4px), radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(0,0,0,.55)) }
+.hud { display: flex; justify-content: space-between; gap: 10px; font: 400 11px/1 var(--lab); color: var(--lime); padding: 4px 6px 16px; flex-wrap: wrap }
+.hud .mid { color: var(--pink) }
+.crt .sel { display: grid; gap: 22px; padding-top: 26px }
+@media (min-width: 820px) { .crt { padding: 26px 30px } .crt .sel { grid-template-columns: 1.5fr 1fr; align-items: center } }
+.crt .sel .tc { box-shadow: 0 0 0 4px #000, 0 0 0 7px var(--pink), 0 0 26px 7px rgba(255,79,174,.5) }
+.crt .info { display: grid; gap: 14px; min-width: 0 }
+.crt .info b { font: 700 26px/1 var(--px) }
+.crt .info p { color: var(--soft) }
+/* the carousel of games: Tiny Swords arrows either side, a scroll-snap row of cards, the picked card centred and ringed */
+.car { --cw: min(308px, calc(100cqw - 88px)); container-type: inline-size; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "p t n"; align-items: center; gap: 6px; padding: 30px 0 0 }
+.car > .cprev { grid-area: p } .car > .cnext { grid-area: n } .car > .track { grid-area: t }
+.cpos { display: none; grid-area: c; font: 400 10px/1 var(--lab); color: var(--soft); letter-spacing: .1em; text-align: center }
+.track { position: relative; display: flex; gap: 8px; margin: 0; padding: 6px calc(50% - (var(--cw) + 40px) / 2); overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none }
+.track::-webkit-scrollbar { display: none }
+/* desktop: no centring pad, so the row starts at the left arrow with no dead space; smaller cards fit about three across */
+@media (min-width: 820px) { .car { --cw: 220px } .track { padding: 6px 4px } .track .card { scroll-snap-align: start } }
+.track { -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent) }
+.card { flex: none; display: block; width: calc(var(--cw) + 40px); margin: 0; padding: 0; border: 20px solid transparent; background: none; color: inherit; font: inherit; text-align: center; cursor: pointer; scroll-snap-align: center; image-rendering: pixelated }
+.card .tc { box-shadow: 0 0 0 3px #000 }
+.card:not(.on):hover .tc { filter: brightness(1.2) }
+.card.on { cursor: default }
+.card:focus-visible { outline: 3px solid var(--lime); outline-offset: 0 }
+.card.soon { cursor: default }
+.cbtn { display: grid; place-items: center; width: 72px; height: 72px; padding: 0 0 10px; border: 20px solid transparent; border-image: var(--b9b) 20 fill / 20px / 0 repeat; background: none; color: var(--btn-ink); font: 700 18px/1 var(--px); cursor: pointer; image-rendering: pixelated }
+.cbtn:active { padding: 4px 0 6px; border-image-source: var(--b9bp) }
+.cbtn:disabled { opacity: .4; cursor: default }
+.cbtn:focus-visible { outline: 3px solid var(--lime); outline-offset: 2px }
+@media (max-width: 819px) { .track { -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent) } .car { grid-template-columns: auto 1fr auto; grid-template-areas: "t t t" "p c n"; row-gap: 4px } .cpos { display: block } .cbtn { width: 64px; height: 64px } }
+/* as is: A2's neon look (lime ring on the picked card, lime buttons) */
+html:not(.restyled) .card.on .tc { box-shadow: 0 0 0 3px #000, 0 0 0 6px var(--lime) }
+html:not(.restyled) .cbtn { width: 52px; height: 52px; padding: 0; border: 0; border-image: none; color: var(--sky); background: var(--lime); box-shadow: 0 -4px 0 #000, 0 4px 0 #000, -4px 0 0 #000, 4px 0 0 #000, 6px 8px 0 var(--violet-lo) }
+html:not(.restyled) .cbtn:active { transform: translate(4px, 5px); padding: 0 }
+html:not(.restyled) .car { gap: 14px }
+html.restyled .card.on { border-image: var(--b9b) 20 / 20px / 0 repeat }
+.press { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 26px 0 16px; font: 400 11px/1 var(--lab); color: var(--cyan) }
+.sp { position: absolute; image-rendering: pixelated; pointer-events: none; z-index: 2 }
+.on-bezel { bottom: calc(100% + 16px) }
+.crt.grown { margin-top: 16px }
+.feat { position: relative }
+.crt .ground { position: relative; height: 96px; margin: 22px -16px -16px; overflow: hidden; border-radius: 0 0 20px 20px; image-rendering: pixelated }
+@media (min-width: 820px) { .crt .ground { margin: 22px -30px -26px } }
+.ground .ly { position: absolute; inset: 0; background: url(img/forest/strip.png) 0 0 / 960px 96px repeat-x }
+.ground .runner { position: absolute; left: 30%; bottom: 13.5px; width: 48px; height: 48px; background: url(img/forest/runner.png) 0 0 / 96px 48px no-repeat }
+@media (prefers-reduced-motion: no-preference) { .ground .ly { animation: scroll 12s steps(640) infinite } .ground .runner { animation: run .28s steps(2) infinite } }
+/* the in-screen player: a vaporwave Windows 95 window */
+.w95 { position: relative; z-index: 3; margin-top: 26px; padding: 4px; background: #eadcff; box-shadow: inset -3px -3px 0 #7a4fd6, inset 3px 3px 0 #fff, 0 0 0 3px #000, 0 0 30px rgba(255,113,206,.45) }
+.w95 .tb { display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 5px 0 10px; font: 700 16px/1 var(--px); color: #fff; text-shadow: 2px 2px 0 #2a1245; background: linear-gradient(90deg, #ff71ce, #b967ff 55%, #01cdfe) }
+.w95 .tb img { width: 15px; image-rendering: pixelated }
+.w95 .ttl { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-left: 2px }
+.w95 .tb button { width: 32px; height: 28px; display: grid; place-items: center; padding: 0 0 2px; border: 0; cursor: pointer; font: 700 18px/1 var(--mono); color: #2a1245; background: #eadcff;
+  box-shadow: inset -2px -2px 0 #7a4fd6, inset 2px 2px 0 #fff, 0 0 0 1px #2a1245 }
+.w95 .tb button:active { box-shadow: inset 2px 2px 0 #7a4fd6, inset -2px -2px 0 #fff, 0 0 0 1px #2a1245 }
+.w95 .scr95 { display: grid; margin-top: 4px; padding: 3px; background: var(--sky); box-shadow: inset 3px 3px 0 #7a4fd6, inset -3px -3px 0 #fff }
+.w95 iframe { display: block; width: 100%; aspect-ratio: 4 / 5; border: 0; background: var(--sky) }
+@media (pointer: coarse) { .w95 iframe { aspect-ratio: 3 / 5 } }
+@media (min-width: 820px) { .w95 iframe { aspect-ratio: auto; height: 600px } }
+.w95 .note { display: grid; gap: 14px; justify-items: center; text-align: center; padding: 30px 18px }
+.w95 .note b { font: 700 22px/1.1 var(--px); color: #2a1245 }
+.w95 .note p { color: #4b2b80; max-width: 26rem }
+.w95.full { position: fixed; inset: 0; z-index: 40; margin: 0; display: grid; grid-template-rows: auto 1fr;
+  padding: max(4px, env(safe-area-inset-top, 0px)) max(4px, env(safe-area-inset-right, 0px)) max(4px, env(safe-area-inset-bottom, 0px)) max(4px, env(safe-area-inset-left, 0px)) }
+.w95.full .scr95 { min-height: 0 }
+.w95.full iframe { height: 100%; aspect-ratio: auto }
+.ctrls { position: relative; z-index: 3; display: grid; gap: 12px; margin-top: 22px; padding: 16px; background: var(--win); box-shadow: 0 0 0 3px #000, inset 0 0 0 2px var(--sky-lo) }
+.ctrls .lab { color: var(--lime) }
+.ctrls dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: center }
+.ctrls dt { display: flex; flex-wrap: wrap; gap: 6px }
+.ctrls dd { margin: 0; color: var(--soft); font-size: 13px }
+.ctrls kbd { min-width: 26px; padding: 5px 7px 6px; text-align: center; font: 400 10px/1 var(--lab); color: var(--ink); background: var(--sky-lo); box-shadow: inset -2px -2px 0 #120a1e, inset 2px 2px 0 #4d2b80, 0 0 0 2px #000 }
+/* "as is" keeps A2's own neon lime button; Tiny Swords buttons take over in the restyled arcade (group 6) */
+html:not(.restyled) .crt .btn, html:not(.restyled) .w95 .btn { display: inline-flex; height: auto; min-height: 44px; padding: 0 18px; border: 0; border-image: none; font: 700 16px/1 var(--px); color: var(--sky); background: var(--lime);
+  box-shadow: 0 -4px 0 #000, 0 4px 0 #000, -4px 0 0 #000, 4px 0 0 #000, 6px 8px 0 var(--violet-lo) }
+html:not(.restyled) .crt .btn:active, html:not(.restyled) .w95 .btn:active { transform: translate(4px, 5px); padding: 0 18px; border-image: none }
+.cabwin { display: contents }
+
+/* ---- ARCADE heading: no banner (owner, 2026-10-20). The window frame wraps only the cabinet; the chrome ARCADE lettering, the little
+   mushrooms and an idle torch goblin all stand on the frame's top edge. ---- */
+#arcade { padding-top: 132px }
+.arctop { position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); height: 0; pointer-events: none }
+.arctop .sp.on-bezel { bottom: 0 }
+.archead { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); margin: 0; white-space: nowrap; font-size: clamp(38px, 9vw, 64px); letter-spacing: .08em; padding-left: .08em }
+.gob { position: absolute; left: calc(50% + clamp(108px, 23vw, 168px)); bottom: -62px; width: 192px; height: 192px; transform: translateX(-50%) scaleX(-1);
+  background: url(img/tinyswords_night/Factions/Goblins/Troops/Torch/Red/Torch_Red.png) 0 0 / 1344px 960px no-repeat; image-rendering: pixelated }   /* 1x, row 0 = idle, 7 frames; faces the lettering */
+@media (prefers-reduced-motion: no-preference) { .gob { animation: gobidle .8s steps(7) infinite } }
+@keyframes gobidle { to { background-position-x: -1344px } }
+@media (max-width: 819px) { .gob, .arctop .sp:nth-child(3), .arctop .sp:nth-child(4), .arctop .sp:nth-child(7) { display: none } }   /* phone: the lettering needs the middle, so only the outer mushrooms stay */
+/* Press start: a chunky neon plate whose label is the hero title's chrome lettering (.metal) */
+.psb { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 64px; padding: 14px 34px 16px; margin-bottom: 10px; border: 0; cursor: pointer; font-size: 28px; color: #fff;
+  background: linear-gradient(180deg, #2a1245, #150a24);
+  box-shadow: inset 0 0 0 3px var(--pink), inset 0 0 26px rgba(255,79,174,.38), 0 8px 0 0 var(--violet-lo), 0 8px 0 4px #000, 0 0 0 4px #000, 0 0 26px 6px rgba(255,79,174,.4) }
+.psb:hover { background: linear-gradient(180deg, #38195c, #1d0e33) }
+.psb:active { transform: translateY(6px); box-shadow: inset 0 0 0 3px var(--lime), inset 0 0 26px rgba(198,255,61,.3), 0 2px 0 0 var(--violet-lo), 0 2px 0 4px #000, 0 0 0 4px #000, 0 0 20px 4px rgba(255,79,174,.3) }
+.psb:focus-visible { outline: 3px solid var(--lime); outline-offset: 12px }
+.psb .metal { display: block }
+@media (max-width: 819px) { .psb { padding: 14px 22px 16px; font-size: 24px } }
+
+/* ============================================ 3 FOOTER (THE ground: the starry page continues down into it, the land rises out of the bottom) ============================================ */
+.env { position: relative; overflow: hidden; line-height: 0 }
+.env canvas { max-width: none }
+
+/* ============================================ 4 GROUND (default) ============================================
+   No landscape strips between the panels. The Games window grows a tree out of its top edge (pawns chop it), the cabinet has its small
+   nothing else. The footer (group 3) is THE ground of the page. */
+.tier { position: relative; overflow-x: clip }
+.tier > .wrap { position: relative; z-index: 1 }
+html:not(.edges) #touch { padding-top: 20px; padding-bottom: 136px }
+.w-hello { z-index: 1 }
+html:not(.edges) .board { align-items: end }
+/* Games: the tree grows out of the ribbon, so the head row stops short of it and leaves it headroom */
+#games { padding-top: 216px }   /* the Games lettering, mushrooms and the tree all stand on the window's ribbon */
+.gtop { bottom: calc(100% - 12px); z-index: 1; padding: 0 }
+@media (max-width: 819px) { .gtop .sp:nth-child(n+2) { display: none } .gtop .sp:first-child { left: -30px !important } .gtop .archead { left: 8px; transform: none; font-size: 30px } }   /* phone: the tree takes the right, so the lettering sits left beside one mushroom */
+
+/* ============================================ 5 B2 PANEL EDGES ============================================
+   No terrain strips. Props and characters stand on the ribbon's top edge; small ledges hang off the lower corners. */
+.eg { display: none; position: absolute; pointer-events: none }
+html.edges .eg, .eg.on { display: block }
+.eg-top { left: 0; bottom: calc(100% - 12px) }
+.eg-bot { z-index: -1 }
+html.edges .win { margin-top: 130px }
+html.edges .w-news { margin-top: 190px }
+html.edges .board { align-items: start }
+html.edges #touch { padding-top: 0 }
+html.edges #collage, html.edges #touch { padding-bottom: 110px }
+@media (min-width: 820px) {
+  .eg-bot.l { left: -132px; bottom: -60px } .eg-bot.r { right: -132px; bottom: -60px }
+}
+@media (max-width: 819px) { .eg-bot { display: none !important } }
+
+/* ============================================ 6 C RESTYLED ARCADE ============================================
+   Same A2 function. The frame becomes a unified window (red ribbon title bar "Arcade", toy frame), buttons are Tiny Swords,
+   the picked slot gets a Tiny Swords frame. The cabinet has no base. Neon CRT + mushrooms stay. */
+html.restyled .cabwin { display: flow-root; position: relative; z-index: 1; background: var(--sky-lo); margin-top: 0; padding: 20px 20px 26px;
+  box-shadow: 0 -4px 0 var(--line), 0 4px 0 var(--line), -4px 0 0 var(--line), 4px 0 0 var(--line), 8px 10px 0 color-mix(in srgb, var(--line) 45%, transparent) }
+html.restyled .crt { margin: 0; box-shadow: inset 0 0 0 3px #000, inset 0 0 70px rgba(79,220,255,.16), 0 0 0 4px #000 }
+html.restyled .crt.grown { margin-top: 0 }
+html.restyled .on-bezel { bottom: calc(100% + 4px) }
+html.restyled .crt .btn, html.restyled .w95 .btn { border-image-source: var(--b3r) }
+@media (max-width: 819px) { html.restyled .cabwin { margin-inline: 8px; padding-inline: 12px } }
+}
+
+/* ============================================ 9 SKY EXTRAS (JS 9; every piece removable there) ============================================ */
+.skyfx { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden }
+.skyfx i, i.trail { position: absolute; display: block; image-rendering: pixelated; pointer-events: none }
+.tw, i.trail { width: 20px; height: 20px; background: url(img/space/stars_w.png) 0 0 / 220px 20px no-repeat }
+.tw.p, i.trail.p { background-image: url(img/space/stars_p.png) } .tw.c, i.trail.c { background-image: url(img/space/stars_c.png) }
+i.trail { position: fixed; z-index: 40; animation: twk .66s steps(11, jump-none) forwards }
+@keyframes twk { to { background-position-x: -200px } }
+.ast { position: absolute; z-index: 0; pointer-events: none; image-rendering: pixelated; width: 60px; height: 50px; background: url(img/space/ast1.png) center / contain no-repeat } .ast.ast2 { width: 36px; height: 32px; background-image: url(img/space/ast2.png) } .ast.planet { width: 32px; height: 32px; background-image: url(img/space/planet.png) }
+.comet { left: 0; top: 0; width: 114px; height: 36px; background: url(img/space/comet.png) 0 0 / 114px 36px no-repeat }
+.meteor { left: 0; top: 0; width: 68px; height: 52px; background: url(img/space/meteor.png) 0 0 / 204px 52px no-repeat; animation: met .3s steps(3) infinite }
+.shoot { left: 0; top: 0; width: 2px; height: 2px; background: #fff;   /* tiny shooting star: one pixel pair with a fading pixel tail (4px back, 1px up per step) */
+  box-shadow: -4px -1px 0 rgba(255,255,255,.75), -8px -2px 0 rgba(255,214,239,.55), -12px -3px 0 rgba(255,124,200,.4), -16px -4px 0 rgba(255,124,200,.25), -20px -5px 0 rgba(154,107,255,.15) }
+@keyframes met { to { background-position-x: -204px } }
+@keyframes drift { 0% { transform: translate(0, 0) } 100% { transform: translate(14px, -10px) } }
+@media (prefers-reduced-motion: no-preference) { .tw { animation: twk 2s steps(11, jump-none) infinite alternate } .ast { animation: drift 22s steps(22) infinite alternate } }
+@media (max-width: 899px) { .ast { display: none } }
+
+/* ============================================ 7 MOCKUP PILL (not part of the design) ============================================ */
+.mx { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: 16px; z-index: 50; display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px 10px; max-width: calc(100vw - 32px); padding: 8px 10px; background: var(--night); color: var(--on-night); font: 400 9px/1 var(--lab);
+  box-shadow: 0 -4px 0 var(--line), 0 4px 0 var(--line), -4px 0 0 var(--line), 4px 0 0 var(--line), 6px 8px 0 color-mix(in srgb, var(--line) 45%, transparent) }
+.mx .g { display: flex; align-items: center; gap: 0 } .mx .g span { padding-right: 8px; color: var(--on-night-soft); letter-spacing: .08em }
+.mx button { font: 700 12px/1 var(--px); min-height: 32px; min-width: 40px; padding: 0 9px; border: 0; background: var(--sky-lo); color: var(--on-night); cursor: pointer }
+.mx button[aria-pressed="true"] { background: var(--lime); color: var(--btn-ink) }
+@media (max-width: 600px) { .mx { gap: 6px; padding: 6px 8px } .mx .g span { display: none } .mx button { padding: 0 6px; min-width: 0; font-size: 11px; min-height: 30px } }
+html.nopill .mx, html.gfull .mx { display: none }
+</style>
+<script>
+/* ---- early: variant state from the hash + the ONE Tiny Swords art prefix (TS). Runs before the body paints. ---- */
+const TSDIR = { day: 'img/tinyswords/', night: 'img/tinyswords_night/' };   // swap the folder = swap the palette
+const MODES = ['night', 'edges', 'restyled', 'nopill'];
+const mode = { night: true, edges: false, restyled: true, nopill: true };   // defaults: Night + Ground + Restyled
+const TOKENS = { day: ['night', false], night: ['night', true], ground: ['edges', false], edges: ['edges', true], asis: ['restyled', false], restyled: ['restyled', true], nopill: ['nopill', true] };
+location.hash.slice(1).split(/[-,+&]/).forEach(t => { if (t in TOKENS) mode[TOKENS[t][0]] = TOKENS[t][1]; });
+const root = document.documentElement;
+MODES.forEach(m => root.classList.toggle(m, mode[m]));
+let TS = mode.night ? TSDIR.night : TSDIR.day;
+const TSVARS = { ptr: 'UI/Pointers/01.png', 'rb-blue': 'UI/Ribbons/Ribbon_Blue_3Slides.png', 'rb-red': 'UI/Ribbons/Ribbon_Red_3Slides.png',
+  b3b: 'UI/Buttons/Button_Blue_3Slides.png', b3bp: 'UI/Buttons/Button_Blue_3Slides_Pressed.png', b3r: 'UI/Buttons/Button_Red_3Slides.png', b3rp: 'UI/Buttons/Button_Red_3Slides_Pressed.png',
+  b9b: 'UI/Buttons/Button_Blue_9Slides.png', b9bp: 'UI/Buttons/Button_Blue_9Slides_Pressed.png', b9r: 'UI/Buttons/Button_Red_9Slides.png', b9rp: 'UI/Buttons/Button_Red_9Slides_Pressed.png' };
+function applyTSVars() {
+  for (const k in TSVARS) root.style.setProperty('--' + k, 'url(' + TS + TSVARS[k] + ')');
+  document.querySelectorAll('img[data-ts]').forEach(i => { i.src = TS + i.dataset.ts; });
+}
+applyTSVars();
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+(function () {   // one star field the size of the whole page, never tiled: seeded, so the same page gets the same sky
+  const cv = document.createElement('canvas'); cv.id = 'sky'; cv.setAttribute('aria-hidden', 'true'); const stars = ['#ffffff', '#ff7cc8', '#4fdcff', '#ffffff'];
+  function paint() {
+    const W = document.documentElement.clientWidth, H = document.documentElement.scrollHeight; if (cv.width === W && cv.height === H) return;
+    cv.width = W; cv.height = H; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    const t = cv.getContext('2d');
+    for (let y0 = 0, band = 0; y0 < H; y0 += 512, band++) { const r = rng(9 + band * 7919);   // seeded per 512px band: a taller page adds stars below, never reshuffles the ones above
+      for (let i = 0, n = Math.round(W * 512 / 1400); i < n; i++) { const big = r() < .06; t.fillStyle = stars[i % 4]; t.globalAlpha = big ? .55 + r() * .4 : .15 + r() * .35;
+        t.fillRect(Math.floor(r() * W / 2) * 2, y0 + Math.floor(r() * 256) * 2, big ? 2 : 1, big ? 2 : 1); } }
+  }
+  addEventListener('DOMContentLoaded', () => { document.body.prepend(cv); paint(); });
+  addEventListener('load', paint); let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(paint, 150); });
+  new ResizeObserver(() => paint()).observe(document.documentElement);
+})();
+</script>
+
 <div class="bar gut">
   <div class="wrap">
-    <a class="home" href="#top"><img src="img/themushroom_white.png" alt="">The Mush Room</a>
-    <nav aria-label="Sections"><a href="#games">Games</a><a href="#arcade">Arcade</a><a href="#people">Portfolios</a><a href="#news">News</a></nav>
+    <a class="home" href="#top"><img src="img/themushroom_white.png" alt=""><span class="metal">The Mush Room</span></a>
+    <nav aria-label="Sections"><a class="nl" href="#games"><img class="spr" src="img/tinyswords_night/Icons/deco02.png" data-ts="Icons/deco02.png" width="26" height="27" alt="">Games</a><a class="nl pink" href="#arcade"><img class="spr" src="img/tinyswords_night/Icons/deco15.png" data-ts="Icons/deco15.png" width="24" height="24" alt="">Arcade</a><a class="nl" href="#people"><img class="spr" src="img/tinyswords_night/Icons/deco01.png" data-ts="Icons/deco01.png" width="17" height="19" alt="">Portfolios</a><a class="nl pink" href="#news"><img class="spr" src="img/tinyswords_night/Icons/deco10.png" data-ts="Icons/deco10.png" width="22" height="23" alt="">News</a></nav>
   </div>
 </div>
 
 <header class="intro gut starry" id="top">
   <i class="floaty bob" data-s="star" data-t="P" data-z="5" style="left:6%;top:24px"></i>
   <i class="floaty twinkle" data-s="spark" data-z="4" style="left:46%;top:20px"></i>
-  <i class="floaty bob" data-s="skull" data-t="P" data-z="6" style="right:5%;bottom:356px;animation-delay:-1s"></i>
   <i class="floaty twinkle" data-s="spark" data-t="P" data-z="5" style="left:3%;bottom:370px;animation-delay:-.8s"></i>
   <div class="wrap">
     <img class="logo" src="img/themushroom_white.png" alt="The Mush Room logo: a white mushroom with a little door">
     <div class="txt">
-      <a class="nowplaying" href="#arcade">Now playing<small>Dog Mosh Festival ▶</small></a>
       <span class="lab" style="color:var(--hl2)">Independent game studio</span>
       <h1 class="metal">We grow <b>weird little</b> games.</h1>
-      <p>The Mush Room makes games for Steam and for your browser. On Break comes to Steam in Q1 2027, and you can play Dog Mosh Festival right here in the Arcade today.</p>
-      <div class="btnrow"><a class="btn" href="https://store.steampowered.com/app/4739760/On_Break/">Wishlist On Break</a><a class="btn pink" href="#arcade">Play in the Arcade</a></div>
+      <p>On purpose. We think the world is more interesting with more strange, funny, surprising things in it, so we make them, and we hope each one leaves it a little better than we found it.</p>
+      <div class="btnrow"><a class="btn big" href="https://store.steampowered.com/app/4739760/On_Break/"><small>On Steam · Q1 2027</small>Wishlist On Break</a><a class="btn big pink" href="https://discord.gg/v4pTnjqYbq"><small>Studio community</small><span class="dcl"><svg class="dc" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>Join our Discord</span></a></div>
     </div>
   </div>
   <div class="forest" aria-hidden="true"><i class="ly back"></i><i class="ly mid"></i><i class="ly front"></i><i class="runner"></i></div>
 </header>
 
-<div class="marquee" aria-hidden="true"><span>★ NEW IN THE ARCADE: DOG MOSH FESTIVAL ★ ON BREAK is on Steam, wishlist it now ★ new website online ★ more web games growing in the cellar ★</span></div>
+<div class="marquee" aria-hidden="true"><span>★ NEW: ON BREAK'S STEAM PAGE IS LIVE, wishlist it now ★ more web games growing in the cellar ★ Dog Mosh Festival is in the arcade ★ new website online ★</span></div>
 
-<section class="gut starry has-strip" id="games">
+<section class="gut starry tier" id="games">
   <div class="wrap">
-    <div class="sechead"><i data-s="skull" data-z="5"></i><h2 class="metal">Games</h2></div>
-    <article class="win product toy" style="--tb1:var(--cyan-lo);--tb2:var(--violet)">
-      <div class="tb">on_break.exe <i><b></b><b></b></i></div>
+    <article class="win product toy">
+      <div class="tb">Coming Q1 2027 · Steam<div class="arctop gtop"><img class="sp on-bezel" src="img/sprites/kami6_violet.png" style="left:28px;width:30px" alt=""><img class="sp on-bezel" src="img/sprites/kami5_cyan.png" style="left:64px;width:26px" alt=""><img class="sp on-bezel" src="img/sprites/sprout_lime.png" style="left:96px;width:10px" alt=""><img class="sp on-bezel" src="img/sprites/kami1_cyan.png" style="left:calc(50% - 190px);width:24px" alt=""><img class="sp on-bezel" src="img/sprites/kami0_violet.png" style="left:calc(50% - 166px);width:30px" alt=""><h2 class="metal archead">GAMES</h2></div><canvas class="scn eg eg-top on" data-scene="et-games"></canvas></div>
       <div class="inner">
-        <img class="art" src="img/keyart.jpg" alt="On Break: a tall stack of colored boxes in a cel-shaded office">
+        <img class="art" src="img/onbreak_capsule.jpg" alt="On Break title card: the ON BREAK sign beside a tall stack of colored boxes">
         <div class="wc">
-          <span class="lab" style="color:var(--link2)">Coming Q1 2027 · Steam</span>
           <h3>On Break</h3>
           <p>Fresnel Labs is hiring Box Stacking Technicians. Time each drop, match colors and spend your pay on strange office decorations that rewrite the rules of the job.</p>
           <ul class="tags"><li>Box stacking</li><li>Roguelite</li><li>Windows · Mac</li></ul>
@@ -60,49 +441,90 @@
         </div>
       </div>
     </article>
+    <!-- the shelf: every other game is one more .gcard (newest game takes the big window above). Closed until the visitor opens it. -->
+    <details class="more">
+      <summary class="btn pink"><span class="c">More games</span><span class="o">Fewer games</span></summary>
+      <div class="shelf">
+        <article class="win toy gcard">
+          <div class="tc th"><img class="ph" src="img/dogmosh.jpg" alt="Dog Mosh Festival: dogs dancing at a festival stage"></div>
+          <div class="wc"><h3>Dog Mosh Festival</h3><p>Make a dog and hang out at a daytime music festival in the park, with 28 minigames.</p><div><a class="btn" href="#arcade">Play in the arcade</a></div></div>
+        </article>
+        <article class="win toy gcard">
+          <div class="tc th"><img src="img/thumbs/shroomsnake.png" alt="Shroom Snake: the mushroom guy and his tail on a little island"></div>
+          <div class="wc"><h3>Shroom Snake</h3><p>Our little test game: eat mushrooms and wear every one as a tail. Don't bite it.</p><div><a class="btn" href="#arcade">Play in the arcade</a></div></div>
+        </article>
+        <article class="win toy gcard">
+          <div class="tc th"><img src="img/thumbs/goblinbop.png" alt="Goblin Bop: torch goblins popping out of bushes"></div>
+          <div class="wc"><h3>Goblin Bop</h3><p>Bop the torch goblins before they light the fire. 30-second rounds, three lives.</p><div><a class="btn" href="#arcade">Play in the arcade</a></div></div>
+        </article>
+        <article class="win toy gcard">
+          <div class="tc soon"><b>???</b><small>Growing in the cellar</small></div>
+          <div class="wc"><h3>Next game</h3><p>Something new is sprouting. Follow along on <a href="https://discord.gg/v4pTnjqYbq">Discord</a>.</p></div>
+        </article>
+      </div>
+    </details>
   </div>
-  <div class="strip" aria-hidden="true"><i class="ly"></i><i class="runner"></i></div>
 </section>
 
-<section class="gut arcade has-strip" id="arcade">
+<section class="gut arcade tier" id="arcade">
   <div class="wrap">
-    <div class="sechead"><i data-s="joy" data-z="4"></i><h2 class="metal">Arcade</h2></div>
-    <div class="cab toy">
-      <div class="marq"><span class="metal">Dog Mosh Festival</span></div>
-      <div class="screen"><img src="img/dogmosh.jpg" alt="Dog Mosh Festival: dogs dance in front of a giant festival main stage with psychedelic screens"></div>
-      <div class="info">
-        <span class="live"><i></i>Playable now · free · in your browser</span>
-        <p>Make a dog and hang out at a daytime music festival in the park. Dance at the main stage, chat, and jump into 28 minigames for Bones and things to wear.</p>
-        <ul class="tags"><li>Multiplayer</li><li>3D</li><li>Desktop + phone</li><li class="age">21+</li></ul>
-        <div><button class="btn" data-play>▶ Play now</button></div>
+    <div class="cabwin">
+      <div class="arctop"><img class="sp on-bezel" src="img/sprites/kami3_pink.png" style="left:24px;width:30px" alt=""><img class="sp on-bezel" src="img/sprites/kami0_violet.png" style="left:58px;width:30px" alt=""><img class="sp on-bezel" src="img/sprites/bud_cyan.png" style="left:92px;width:16px" alt=""><img class="sp on-bezel" src="img/sprites/sprout_lime.png" style="left:112px;width:10px" alt=""><img class="sp on-bezel" src="img/sprites/kami8_pink.png" style="right:30px;width:30px" alt=""><img class="sp on-bezel" src="img/sprites/kami1_cyan.png" style="right:64px;width:24px" alt=""><img class="sp on-bezel" src="img/sprites/kami9_lime.png" style="right:92px;width:14px" alt=""><h2 class="metal archead">ARCADE</h2><i class="gob" aria-hidden="true"></i></div>
+      <!-- ===== A2 "Overgrown screen" (kept as built) ===== -->
+      <div class="crt grown">
+        <div class="hud"><span>1UP 000000</span><span class="mid blink">Select game</span><span>Credit 00</span></div>
+        <div class="sel" data-pane="dm">
+          <div class="feat"><div class="tc th"><img class="ph" src="img/dogmosh.jpg" alt=""><div class="t"><b class="metal two">Dog Mosh<br>Festival</b></div></div></div>
+          <div class="info"><b>Dog Mosh Festival</b><p>Make a dog and hang out at a daytime music festival in the park. Dance at the main stage, chat, and jump into 28 minigames for Bones and things to wear.</p>
+            <ul class="tags"><li>Multiplayer</li><li>3D</li><li>Desktop + phone</li><li class="age">21+</li></ul></div>
+        </div>
+        <div class="sel" data-pane="ss" hidden>
+          <div class="feat"><div class="tc th"><img src="img/thumbs/shroomsnake.png" alt=""><div class="t"><b class="metal">Shroom Snake</b></div></div></div>
+          <div class="info"><b>Shroom Snake</b><p>Our little test game: steer the mushroom guy around the grid, eat mushrooms and wear every one as a tail. Don't bite it.</p>
+            <ul class="tags"><li>Snake</li><li>Desktop + phone</li><li>Free</li></ul></div>
+        </div>
+        <div class="sel" data-pane="gb" hidden>
+          <div class="feat"><div class="tc th"><img src="img/thumbs/goblinbop.png" alt=""><div class="t"><b class="metal">Goblin Bop</b></div></div></div>
+          <div class="info"><b>Goblin Bop</b><p>Our second test game: torch goblins pop out of the bushes, bop them before they light the fire. 30-second rounds, three lives, and the goblins get faster as you go.</p>
+            <ul class="tags"><li>Whack-a-goblin</li><li>Desktop + phone</li><li>Free</li></ul></div>
+        </div>
+        <div class="w95" id="w95" hidden role="region" aria-label="Game player">
+          <div class="tb"><img src="img/sprites/kami3_pink.png" alt=""><span class="ttl" id="w95name">Game</span><button id="w95full" aria-label="Full screen" title="Full screen">▢</button><button id="w95close" aria-label="Close the game" title="Close">×</button></div>
+          <div class="scr95" id="w95stage"></div>
+        </div>
+        <div class="ctrls" id="ctrls" hidden><span class="lab">Controls</span><dl id="ctrlist"></dl></div>
+        <div class="car" role="group" aria-roledescription="carousel" aria-label="Choose a game">
+          <button class="cbtn cprev" id="cprev" type="button" aria-label="Previous game"><span aria-hidden="true">◀</span></button>
+          <div class="track" id="track">
+            <button class="card on" type="button" data-pick="dm" aria-pressed="true"><span class="tc th"><img class="ph" src="img/dogmosh.jpg" alt=""><span class="t"><b class="metal two">Dog Mosh<br>Festival</b></span></span></button>
+            <button class="card" type="button" data-pick="ss" aria-pressed="false"><span class="tc th"><img src="img/thumbs/shroomsnake.png" alt=""><span class="t"><b class="metal">Shroom Snake</b></span></span></button>
+            <button class="card" type="button" data-pick="gb" aria-pressed="false"><span class="tc th"><img src="img/thumbs/goblinbop.png" alt=""><span class="t"><b class="metal">Goblin Bop</b></span></span></button>
+            <div class="card soon" role="group" aria-label="Jam vault, coming soon"><span class="tc soon"><b>Jam vault</b><small>Coming soon</small></span></div>
+          </div>
+          <span class="cpos" id="cpos" aria-live="polite">1 / 4</span>
+          <button class="cbtn cnext" id="cnext" type="button" aria-label="Next game"><span aria-hidden="true">▶</span></button>
+        </div>
+        <div class="press"><button class="psb" id="a2start" type="button"><span class="metal"><b>▶</b> Press start</span></button><span class="blink">Insert coin</span></div>
+        <div class="ground"><i class="ly"></i><i class="runner"></i></div>
       </div>
     </div>
-
-    <div class="rowhead">All web games <span>free · no install</span></div>
-    <div class="icons">
-      <button class="icon" data-play><div class="tile toy"><img src="img/dogmosh.jpg" alt=""><span class="badge">Play</span></div>Dog Mosh Festival<small>Multiplayer · 21+</small></button>
-      <div class="icon empty"><div class="tile toy"><i data-s="cart" data-t="C" data-z="5"></i></div>Insert coin<small>Next game</small></div>
-      <div class="icon empty"><div class="tile toy"><i data-s="cart" data-t="P" data-z="5"></i></div>Insert coin<small>Growing…</small></div>
-      <div class="icon empty"><div class="tile toy"><i data-s="cart" data-t="V" data-z="5"></i></div>Jam vault<small>Old jam games</small></div>
-    </div>
   </div>
-  <div class="strip b" aria-hidden="true"><i class="ly"></i><i class="runner"></i></div>
 </section>
 
-<section class="gut starry" id="collage">
+<section class="gut starry tier" id="collage">
   <div class="wrap board">
     <div class="win w-people toy" id="people">
-      <div class="tb">portfolios.html <i><b></b><b></b></i></div>
+      <canvas class="scn eg eg-bot l" data-scene="eb-people"></canvas>
+      <div class="tb">Portfolios<canvas class="scn eg eg-top" data-scene="et-people"></canvas></div>
       <div class="wc">
-        <h3>Portfolios</h3>
-        <div class="member"><div class="ava"><i data-s="shroom" data-z="4"></i></div><div><b>Developer</b><span>Code, design and games</span><br><a href="portfolio/">/portfolio →</a></div></div>
-        <div class="member"><div class="ava" style="background:var(--violet)"><i data-s="shroom" data-t="P" data-z="4"></i></div><div><b>More soon</b><span>Every mushroom gets a portfolio page</span></div></div>
+        <div class="member"><div class="ava"><img class="spr" src="img/sprites/kami9_lime.png" style="width:42px" alt=""></div><div><b>Developer</b><span>Code, design and games</span><br><a href="portfolio/">/portfolio →</a></div></div>
+        <div class="member"><div class="ava" style="background:var(--violet)"><img class="spr" src="img/sprites/kami8_pink.png" style="width:45px" alt=""></div><div><b>More soon</b><span>Every mushroom gets a portfolio page</span></div></div>
       </div>
     </div>
     <div class="win w-news toy" id="news">
-      <div class="tb">spore_log.txt <i><b></b><b></b></i></div>
+      <canvas class="scn eg eg-bot r" data-scene="eb-news"></canvas>
+      <div class="tb">News<canvas class="scn eg eg-top" data-scene="et-news"></canvas></div>
       <div class="wc">
-        <h3>News</h3>
         <ul class="news">
           <li><time>2026.10.19<span class="new">NEW</span></time>Dog Mosh Festival is in the Arcade.</li>
           <li><time>2026.10.19</time>The On Break Steam page is live.</li>
@@ -110,137 +532,366 @@
         </ul>
       </div>
     </div>
+  </div>
+</section>
+
+<div class="starry">   <!-- Get in touch and the footer share ONE starry sky, so the page background simply continues down into the land -->
+<section class="gut tier" id="touch">
+  <div class="wrap board solo">
     <div class="win w-hello toy">
-      <div class="tb">contact.exe <i><b></b><b></b></i></div>
+      <canvas class="scn eg eg-bot r" data-scene="eb-hello"></canvas>
+      <div class="tb">Get in touch<canvas class="scn eg eg-top" data-scene="et-hello"></canvas></div>
       <div class="wc">
-        <h3>Get in touch</h3>
         <p><span id="mail" style="color:var(--ink)">themushroomdevs@gmail.com</span><button class="copy" data-copy="mail">Copy</button></p>
         <p>Press, business or just a hello. We're quickest on <a href="https://discord.gg/v4pTnjqYbq">Discord</a>.</p>
       </div>
     </div>
-    <div class="w-badges"><div class="badges" id="badges"></div></div>
   </div>
 </section>
 
-<div class="construct"><i data-s="shroom" data-t="C" data-z="3"></i><span>This site is always under construction. More rooms coming.</span><i data-s="shroom" data-t="P" data-z="3"></i></div>
-<footer class="gut">© 2026 The Mush Room · made with mushrooms · best viewed with the lights off<br>Mushroom sprites: <a href="https://opengameart.org/content/platshrooms">Platshrooms by surt</a> · <a href="https://caz-bee.itch.io/red-shroom">Red Shroom by CazBee</a> · <a href="https://kamioo.itch.io/pixel-mushrooms">Pixel Mushrooms by Kami</a></footer>
-
-<!-- the game plays big, right on the page -->
-<div class="ov" id="ov" hidden role="dialog" aria-label="Dog Mosh Festival">
-  <div class="tb">Dog Mosh Festival <a class="tab" href="https://dogmosh.com/p-beabbe1793cd/dev/" target="_blank" rel="noopener">New tab ↗</a><button class="x" id="ovclose" aria-label="Close the game">✕</button></div>
-  <div class="stage">
-    <iframe id="game" title="Dog Mosh Festival" allow="autoplay; fullscreen; gamepad; clipboard-write" allowfullscreen></iframe>
-  </div>
+<div class="env" aria-hidden="true"><canvas class="scn" data-scene="foot"></canvas></div>
 </div>
+<div class="construct"><img class="spr" src="img/sprites/kami5_cyan.png" style="width:26px" alt=""><span>This site is always under construction. More rooms coming.</span><img class="spr" src="img/sprites/kami8_pink.png" style="width:30px" alt=""></div>
+<footer>© 2026 The Mush Room · made with mushrooms · best viewed with the lights off<br>Mushroom sprites: <a href="https://opengameart.org/content/platshrooms">Platshrooms by surt</a> · <a href="https://caz-bee.itch.io/red-shroom">Red Shroom by CazBee</a> · <a href="https://kamioo.itch.io/pixel-mushrooms">Pixel Mushrooms by Kami</a> · Mushroom icons by Filwarka<br>UI, terrain, props, characters and sheep: <a href="https://pixelfrog-assets.itch.io/tiny-swords">Tiny Swords by Pixel Frog</a><br>Sky (stars, comets, meteors, asteroids): <a href="https://s-a-t-u-r-n.itch.io/2d-pixelart-stars">2d PixelArt Stars by S a t u r n</a> · <a href="https://ansimuz.itch.io/gothicvania-patreon-collection">Legacy Collection by ansimuz</a></footer>
 
+<!-- mockup switches (not part of the design) -->
+<div class="mx" role="group" aria-label="Mockup switches">
+  <div class="g" data-k="night"><span>Palette</span><button type="button" data-v="0">Day</button><button type="button" data-v="1">Night</button></div>
+  <div class="g" data-k="edges"><span>Scenes</span><button type="button" data-v="0">Ground</button><button type="button" data-v="1">Edges</button></div>
+  <div class="g" data-k="restyled"><span>Arcade</span><button type="button" data-v="0">As is</button><button type="button" data-v="1">Restyled</button></div>
+</div>
 <script>
-// ---- our own pixel sprites ----
-const PAL = { G:'#7dff4f', g:'#2fae1f', W:'#ffffff', S:'#f1eaff', s:'#b8a9f0', P:'#ff4fb8', p:'#c21f86', C:'#34e6ff', c:'#0aa6c9', V:'#9b5cff', v:'#6a2fd6', K:'#120c45', k:'#2a2380' };
+/* ================================ JS 0 BASE: neon sprites, sparkle trail, copy button ================================ */
+/* the mushroom icons are pack art (img/sprites, Tiny Swords); the space bits (stars, sparkles, cursor trail) stay drawn here */
+const PAL = { G:'#c6ff3d', g:'#5fa800', W:'#ffffff', P:'#ff4fae', p:'#c4157a', C:'#4fdcff', c:'#0f8fb8' };
 const SPR = {
-  shroom: ['...KKKKK...','..KGGWGGK..','.KGGGGGWGK.','KGWGGGGGGGK','KGGGGGGWGGK','Kgggggggggk'.replace('k','K'),'...KSSSK...','...KSSSK...','..KSSSSK...','...KSSsK...','..KKKKKKK..'],
-  cart: ['.KKKKKKKK.','KGGGGGGGGK','KGWWWWWWGK','KGWkkkkWGK','KGWkGGkWGK','KGWkkkkWGK','KGWWWWWWGK','KGGGGGGGGK','KGGgGGgGGK','KGGGGGGGGK','.KSKSKSKK.','..S.S.S...'],
   star: ['....G....','...GWG...','GGGGWGGGG','.GGWWWGG.','..GWWWG..','.GG.G.GG.','GG.....GG'],
   spark: ['..W..','..W..','WWGWW','..W..','..W..'],
-  skull: ['....KKKKK....','..KKGGWGGKK..','.KGGGGGGGWGK.','KGWGGGGGGGGGK','KGGGGGWGGGGGK','KgggggggggggK','.KKKKKKKKKKK.','..KSSSSSSSK..','..KSKKSKKSK..','..KSKKSKKSK..','..KSSSKSSSK..','...KSSSSSK...','...KSKSKSK...','....KKKKK....'],
-  joy: ['....PP.....','...PWPP....','...PPPP....','....KK.....','....KK.....','.KKKKKKKKK.','KCCCCCCCCCK','KCWCCCCPCCK','KCCCCCCCCCK','.KKKKKKKKK.'],
 };
 const tintOf = (ch, t) => !t ? ch : ch === 'G' ? t : ch === 'g' ? t.toLowerCase() : ch;
-function paint(x, rows, ox, oy, t) {
-  rows.forEach((r, j) => [...r].forEach((ch, i) => { ch = tintOf(ch, t); if (PAL[ch]) { x.fillStyle = PAL[ch]; x.fillRect(ox + i, oy + j, 1, 1); } }));
-}
 function sprite(name, t, z) {
-  const rows = SPR[name], c = document.createElement('canvas');
-  c.width = Math.max(...rows.map(r => r.length)); c.height = rows.length; paint(c.getContext('2d'), rows, 0, 0, t);
-  c.style.width = c.width * z + 'px'; c.style.height = c.height * z + 'px'; c.setAttribute('aria-hidden', 'true');
-  return c;
+  const rows = SPR[name], c = document.createElement('canvas'), x = c.getContext('2d');
+  c.width = Math.max(...rows.map(r => r.length)); c.height = rows.length;
+  rows.forEach((r, j) => [...r].forEach((ch, i) => { ch = tintOf(ch, t); if (PAL[ch]) { x.fillStyle = PAL[ch]; x.fillRect(i, j, 1, 1); } }));
+  c.style.width = c.width * z + 'px'; c.style.height = c.height * z + 'px'; c.setAttribute('aria-hidden', 'true'); return c;
 }
 document.querySelectorAll('i[data-s]').forEach(el => {
   const c = sprite(el.dataset.s, el.dataset.t, +el.dataset.z);
-  c.className = 'spr ' + el.className; c.style.cssText += ';' + (el.getAttribute('style') || '');
-  Object.assign(c.dataset, el.dataset); el.replaceWith(c);
+  c.className = 'spr ' + el.className; c.style.cssText += ';' + (el.getAttribute('style') || ''); el.replaceWith(c);
 });
-function redrawSprites() {
-  document.querySelectorAll('canvas[data-s]').forEach(c => { const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); paint(x, SPR[c.dataset.s], 0, 0, c.dataset.t); });
-}
-function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
-
-// ---- starry tile for the blue sections ----
-function texTile(P) {
-  const c = document.createElement('canvas'); c.width = c.height = 32; const t = c.getContext('2d'), r = rng(9);
-  if (P.tex === 'grain') { for (let i = 0; i < 22; i++) { t.fillStyle = P.stars[i % 3]; t.globalAlpha = .2 + r() * .35; t.fillRect(Math.floor(r() * 32), Math.floor(r() * 32), 1, 1); } }
-  else if (P.tex === 'dither') { t.fillStyle = P.cross; t.globalAlpha = .16; for (let y = 0; y < 32; y += 2) for (let x = (y / 2) % 2 * 2; x < 32; x += 4) t.fillRect(x, y, 1, 1);
-    t.globalAlpha = 1; for (let i = 0; i < 6; i++) { t.fillStyle = P.stars[i % 3]; t.fillRect(Math.floor(r() * 32), Math.floor(r() * 32), 1, 1); } }
-  else if (P.tex === 'halftone') { t.fillStyle = P.cross; t.globalAlpha = .22; [[4, 4], [20, 4], [12, 12], [28, 12], [4, 20], [20, 20], [12, 28], [28, 28]].forEach(([x, y], i) => t.fillRect(x - (i % 2), y - (i % 2), 2 + (i % 2), 2 + (i % 2))); }
-  else { for (let i = 0; i < 9; i++) { t.fillStyle = P.stars[i % 3]; t.fillRect(Math.floor(r() * 32), Math.floor(r() * 32), 1, 1); }
-    t.fillStyle = P.cross; t.fillRect(15, 14, 1, 5); t.fillRect(13, 16, 5, 1); }
-  return `url(${c.toDataURL()})`;
-}
-
-// ---- in-page player ----
-const ov = document.getElementById('ov');
-// the game only loads when someone presses Play, and unloads on close so its music stops
-const game = document.getElementById('game'), GAME_URL = 'https://dogmosh.com/p-beabbe1793cd/dev/';
-function openGame() { ov.hidden = false; document.body.style.overflow = 'hidden'; game.src = GAME_URL; game.focus(); }
-function closeGame() { ov.hidden = true; document.body.style.overflow = ''; game.src = 'about:blank'; }
-document.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', openGame));
-document.getElementById('ovclose').addEventListener('click', closeGame);
-addEventListener('keydown', e => { if (e.key === 'Escape' && !ov.hidden) closeGame(); });
-
-// ---- 88x31-style badges ----
-const BADGES = [
-  { text: 'ON BREAK', sub: 'ON STEAM', c: 'g', href: 'https://store.steampowered.com/app/4739760/On_Break/' },
-  { text: 'DISCORD', sub: 'JOIN US', c: 'v', href: 'https://discord.gg/v4pTnjqYbq', t: 'V' },
-  { text: 'DOG MOSH', sub: 'PLAY FREE', c: 'p', t: 'P', play: true },
-  { text: 'MADE WITH', sub: 'MUSHROOMS', c: 'c', t: 'C' },
-];
-function buildBadges() { const box = document.getElementById('badges'); box.textContent = ''; BADGES.forEach(b => {
-  const c = document.createElement('canvas'); c.width = 88; c.height = 31; const t = c.getContext('2d');
-  const g = t.createLinearGradient(0, 0, 88, 0); g.addColorStop(0, PAL[b.c]); g.addColorStop(1, PAL.K);
-  t.fillStyle = g; t.fillRect(0, 0, 88, 31); t.fillStyle = 'rgba(255,255,255,.45)'; t.fillRect(0, 0, 88, 1); t.fillRect(0, 0, 1, 31);
-  t.fillStyle = 'rgba(0,0,0,.5)'; t.fillRect(0, 30, 88, 1); t.fillRect(87, 0, 1, 31);
-  paint(t, SPR.shroom, 5, 10, b.t);
-  t.fillStyle = '#fff'; t.font = '8px Silkscreen'; t.textBaseline = 'top'; t.fillText(b.text, 21, 7); t.globalAlpha = .8; t.fillText(b.sub, 21, 17);
-  c.className = 'pixelated'; c.setAttribute('role', 'img'); c.setAttribute('aria-label', b.text + ' ' + b.sub);
-  const w = document.createElement(b.href ? 'a' : 'span'); if (b.href) w.href = b.href;
-  if (b.play) { w.style.cursor = 'pointer'; w.addEventListener('click', openGame); }
-  w.appendChild(c); box.appendChild(w);
-}); }
-
-
-// ---- Candy Noir: the one look (glows kept to the edges so the text stays readable) ----
-const NOIR = { name: 'Candy Noir', note: 'Edgier: candy glows on black, acid lime, hard pink shadows', tex: 'grain',
-    sky: '#0b0612', ground: 'radial-gradient(circle at 100% 0%, rgba(255,95,176,.32), transparent 38%), radial-gradient(circle at 104% 70%, rgba(79,220,255,.22), transparent 34%), radial-gradient(circle at 0% 108%, rgba(154,107,255,.34), transparent 42%), #0b0612',
-    'sky-lo': '#2a1245', night: '#000000', 'on-sky': '#ffffff', 'on-sky-soft': '#e6d8ff', 'on-night': '#ffffff', 'on-night-soft': '#b9a6d9',
-    hl: '#c6ff3d', hl2: '#ff7cc8', tshadow: '#ff2f9a', line: '#000000', 'btn-ink': '#0b0612', win: '#150a24', 'win-2': '#26133d', ink: '#f6efff', soft: '#bba8dc', link: '#ff7cc8', link2: '#c6ff3d', cab: '#2a1245',
-    lime: '#c6ff3d', 'lime-lo': '#5fa800', pink: '#ff4fae', 'pink-lo': '#c4157a', cyan: '#4fdcff', 'cyan-lo': '#0f8fb8', violet: '#9a6bff', 'violet-lo': '#5a2bc4',
-    stars: ['#ffffff', '#ff7cc8', '#4fdcff'], cross: '#ffffff' };
-function applyPalette(P) {
-  const st = document.documentElement.style;
-  for (const k in P) if (!['name', 'note', 'stars', 'cross', 'tex'].includes(k)) st.setProperty('--' + k, P[k]);
-  st.setProperty('--tile', texTile(P));
-  Object.assign(PAL, { G: P.lime, g: P['lime-lo'], P: P.pink, p: P['pink-lo'], C: P.cyan, c: P['cyan-lo'], V: P.violet, v: P['violet-lo'], K: P.line, S: P['win-2'], s: P.soft, k: P.soft });
-  redrawSprites(); buildBadges();
-}
-document.fonts.load('8px Silkscreen').finally(() => applyPalette(NOIR));
-
-// ---- sparkle trail behind the mouse (desktop only, off with reduced motion) ----
-if (matchMedia('(pointer: fine) and (prefers-reduced-motion: no-preference)').matches) {
-  let last = 0;
-  addEventListener('pointermove', e => {
-    if (e.timeStamp - last < 45) return; last = e.timeStamp;
-    const s = sprite('spark', ['P', 'C', 'G'][Math.floor(Math.random() * 3)], 2);
-    s.className = 'spr'; Object.assign(s.style, { position: 'fixed', left: e.clientX + 6 + 'px', top: e.clientY + 6 + 'px', pointerEvents: 'none', zIndex: 40, transition: 'opacity .6s steps(3), transform .6s steps(3)' });
-    document.body.appendChild(s);
-    requestAnimationFrame(() => { s.style.opacity = 0; s.style.transform = 'translateY(10px)'; });
-    setTimeout(() => s.remove(), 650);
-  });
-}
-
+// the cursor sparkle trail lives in JS 9 SKY EXTRAS below
 document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
   const el = document.getElementById(b.dataset.copy);
   navigator.clipboard.writeText(el.textContent).then(() => { b.textContent = 'Copied!'; },
     () => { const r = document.createRange(); r.selectNodeContents(el); getSelection().removeAllRanges(); getSelection().addRange(r); });
 }));
 </script>
+
+<script>
+/* ================================ JS 1 A2 ARCADE (as built: slots, in-screen Win95 player, fullscreen, controls) ================================ */
+document.querySelectorAll('img.sp').forEach(i => { const f = () => i.style.width = i.naturalWidth * 1.5 + 'px'; i.complete ? f() : i.addEventListener('load', f); });   // forest sprites at 1.5x like the banner
+const w95 = document.getElementById('w95'), stage = document.getElementById('w95stage'), fullBtn = document.getElementById('w95full');
+const ctrls = document.getElementById('ctrls'), CONTROLS = {
+  ss: [[['↑', '↓', '←', '→'], 'Steer'], [['W', 'A', 'S', 'D'], 'Steer'], [['Swipe', 'Pad'], 'Steer on a phone'], [['Space', 'Enter'], 'Start or play again'], [['▢'], 'Full screen'], [['Esc', '×'], 'Leave full screen, then close']],
+  gb: [[['Click', 'Tap'], 'Bop a goblin'], [['1', '–', '9'], 'Bop that bush (1 is top left)'], [['Space', 'Enter'], 'Start or play again'], [['▢'], 'Full screen'], [['Esc', '×'], 'Leave full screen, then close']],
+  dm: [[['▢'], 'Full screen'], [['Esc', '×'], 'Leave full screen, then close'], [['?'], 'Game controls are listed in the game itself']] };
+const GAMES = { ss: { src: 'games/shroomsnake/index.html', name: 'Shroom Snake' }, gb: { src: 'games/goblinbop/index.html', name: 'Goblin Bop' }, dm: { name: 'Dog Mosh Festival' } };
+const a2 = w95.closest('.crt'), panes = a2.querySelectorAll('[data-pane]'), press = a2.querySelector('.press'); let picked = 'dm';
+/* the carousel: a scroll-snap row (swipe, wheel, arrows, arrow keys). ci = the card in the centre; picking a game card also centres it. */
+const car = a2.querySelector('.car'), track = car.querySelector('.track'), cards = [...track.children], cprev = document.getElementById('cprev'), cnext = document.getElementById('cnext'), cpos = document.getElementById('cpos');
+let ci = 0;
+const RMQ = matchMedia('(prefers-reduced-motion: reduce)');
+function centre(i, smooth) { const c = cards[i]; track.scrollTo({ left: c.offsetLeft - (track.clientWidth - c.offsetWidth) / 2, behavior: smooth && !RMQ.matches ? 'smooth' : 'auto' }); }
+function syncCar() {
+  cprev.disabled = ci <= 0; cnext.disabled = ci >= cards.length - 1; cpos.textContent = (ci + 1) + ' / ' + cards.length;
+  if (document.activeElement === cprev && cprev.disabled) cnext.focus(); else if (document.activeElement === cnext && cnext.disabled) cprev.focus();
+}
+function pick(b) {
+  picked = b.dataset.pick;
+  cards.forEach(o => { const on = o === b; o.classList.toggle('on', on); if (o.dataset.pick) o.setAttribute('aria-pressed', String(on)); });
+  if (!w95.hidden) return openGame();
+  panes.forEach(p => p.hidden = p.dataset.pane !== picked);
+}
+function go(i, focus) {   // step to card i: centre it, and if it is a game, pick it
+  ci = Math.max(0, Math.min(cards.length - 1, i)); centre(ci, true); syncCar();
+  const c = cards[ci]; if (c.dataset.pick) { pick(c); if (focus) c.focus({ preventScroll: true }); }
+}
+cards.forEach((c, i) => c.dataset.pick && c.addEventListener('click', () => { ci = i; centre(i, true); syncCar(); pick(c); }));
+cprev.addEventListener('click', () => go(ci - 1)); cnext.addEventListener('click', () => go(ci + 1));
+car.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); go(ci + (e.key === 'ArrowRight' ? 1 : -1), !e.target.classList.contains('cbtn')); } });
+let sc; track.addEventListener('scroll', () => { clearTimeout(sc); sc = setTimeout(() => {   // a swipe moves the centre card without picking it
+  const mid = track.scrollLeft + track.clientWidth / 2; let best = 0, d = 1e9;
+  cards.forEach((c, i) => { const k = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (k < d) { d = k; best = i; } });
+  if (best !== ci) { ci = best; syncCar(); } }, 90); });
+let cz; addEventListener('resize', () => { clearTimeout(cz); cz = setTimeout(() => centre(ci, false), 120); });
+syncCar();
+function openGame() {
+  stage.textContent = '';
+  const g = GAMES[picked];
+  if (g.src) { const f = document.createElement('iframe'); f.src = g.src; f.title = g.name; stage.appendChild(f); f.addEventListener('load', () => f.contentWindow.focus()); }
+  else stage.innerHTML = '<div class="note"><b>Dog Mosh plays here</b><p>On the real site the game runs right in this window. This preview can\'t run other sites inside it.</p><a class="btn" href="https://dogmosh.com/p-beabbe1793cd/dev/">Open Dog Mosh ↗</a></div>';
+  document.getElementById('w95name').textContent = g.name;
+  const dl = document.getElementById('ctrlist'); dl.textContent = '';
+  CONTROLS[picked].forEach(([keys, what]) => { const dt = document.createElement('dt'), dd = document.createElement('dd');
+    keys.forEach(k => { const b = document.createElement('kbd'); b.textContent = k; dt.appendChild(b); }); dd.textContent = what; dl.append(dt, dd); });
+  panes.forEach(p => p.hidden = true); press.hidden = true; w95.hidden = false; ctrls.hidden = false;
+  w95.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function setFull(on) { w95.classList.toggle('full', on); root.classList.toggle('gfull', on); document.body.style.overflow = on ? 'hidden' : ''; fullBtn.textContent = on ? '❐' : '▢'; fullBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen'); }
+function closeGame() { setFull(false); w95.hidden = true; ctrls.hidden = true; stage.textContent = ''; press.hidden = false; panes.forEach(p => p.hidden = p.dataset.pane !== picked); }
+document.getElementById('a2start').addEventListener('click', openGame);
+fullBtn.addEventListener('click', () => setFull(!w95.classList.contains('full')));
+document.getElementById('w95close').addEventListener('click', closeGame);
+addEventListener('keydown', e => { if (e.key === 'Escape' && !w95.hidden) w95.classList.contains('full') ? setFull(false) : closeGame(); });
+</script>
+
+<script>
+/* ================================ JS 2 TS WORLD ENGINE (Pixel Frog art drawn 1:1 on canvases; frame stepping, frame 0 under reduced motion) ================================ */
+(() => {
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FILES = { flat: 'Terrain/Ground/Tilemap_Flat.png', elev: 'Terrain/Ground/Tilemap_Elevation.png', shad: 'Terrain/Ground/Shadows.png', water: 'Terrain/Water/Water.png', foam: 'Terrain/Water/Foam/Foam.png',
+  rock1: 'Terrain/Water/Rocks/Rocks_01.png', rock2: 'Terrain/Water/Rocks/Rocks_02.png', rock3: 'Terrain/Water/Rocks/Rocks_03.png', rock4: 'Terrain/Water/Rocks/Rocks_04.png',
+  tree: 'Resources/Trees/Tree.png', sheep: 'Resources/Sheep/HappySheep_Idle.png', fire: 'Effects/Fire/Fire.png', pawn: 'Factions/Knights/Troops/Pawn/Blue/Pawn_Blue.png',
+  hb: 'Factions/Knights/Buildings/House/House_Blue.png', gh: 'Factions/Goblins/Buildings/Wood_House/Goblin_House.png',
+  tor: 'Factions/Goblins/Troops/Torch/Red/Torch_Red.png', rW: 'Resources/Resources/W_Idle.png', rM: 'Resources/Resources/M_Idle.png' };
+for (let n = 1; n <= 17; n++) FILES['d' + String(n).padStart(2, '0')] = 'Deco/' + String(n).padStart(2, '0') + '.png';
+let A = {};
+// our own art (not Tiny Swords, so never recoloured): the forest layers from the hero banner and the sprite pack
+const PLAIN = ['forest/back', 'forest/mid', 'forest/front', 'sprites/bud_cyan', 'sprites/kami0_violet', 'sprites/kami1_cyan', 'sprites/kami3_pink', 'sprites/kami5_cyan', 'sprites/kami6_violet', 'sprites/kami8_pink', 'sprites/kami9_lime',
+  'sprites/plat_a_cyan', 'sprites/plat_a_pink', 'sprites/plat_b_violet', 'sprites/plat_c_pink', 'sprites/sprout_lime', 'sprites/stack_pink', 'sprites/tiny_a_lime', 'sprites/tiny_b_cyan'];
+const PI = {};
+const plainReady = Promise.all(PLAIN.map(f => new Promise(res => { const i = new Image(); i.onload = i.onerror = res; i.src = 'img/' + f + '.png'; PI[f.split('/')[1]] = i; })));
+function loadArt(prefix) { const B = {}; return Promise.all(Object.entries(FILES).map(([k, f]) => new Promise(res => { const i = new Image(); i.onload = i.onerror = res; i.src = prefix + f; B[k] = i; }))).then(() => B); }
+
+// sprite table: image, frame size, foot anchor inside the frame, frames, fps
+const SP = {
+  tree:  { i: 'tree', w: 192, h: 192, ax: 97, ay: 175, n: 4, fps: 2.5 }, stump: { i: 'tree', w: 192, h: 192, ax: 97, ay: 175, n: 1, row: 2 },
+  hb: { i: 'hb', w: 128, h: 192, ax: 64, ay: 170 }, gh: { i: 'gh', w: 128, h: 192, ax: 64, ay: 169 },
+  sheep: { i: 'sheep', w: 128, h: 128, ax: 64, ay: 82, n: 8, fps: 5 }, fire: { i: 'fire', w: 128, h: 128, ax: 64, ay: 103, n: 7, fps: 10 },
+  tor: { i: 'tor', w: 192, h: 192, ax: 90, ay: 131, n: 7, fps: 8 }, chop: { i: 'pawn', w: 192, h: 192, ax: 96, ay: 124, n: 6, fps: 8, row: 2 },
+  rW: { i: 'rW', w: 128, h: 128, ax: 64, ay: 98 }, rM: { i: 'rM', w: 128, h: 128, ax: 66, ay: 97 } };
+const DECO_AY = { d01: 40, d02: 44, d03: 46, d04: 35, d05: 38, d06: 46, d07: 41, d08: 46, d09: 50, d10: 44, d11: 47, d12: 49, d13: 52, d14: 45, d15: 42 };
+for (const k in DECO_AY) SP[k] = { i: k, w: 64, h: 64, ax: 32, ay: DECO_AY[k] };
+SP.d16 = { i: 'd16', w: 64, h: 128, ax: 32, ay: 101 }; SP.d17 = { i: 'd17', w: 64, h: 128, ax: 32, ay: 102 };
+
+// scene items {l: layer, y: sort key, f: draw}; layers 1 foam, 2 ground, 3 cliff, 4 raised ground, 5 props (sorted by foot y)
+const P = (L, l, y, f) => L.push({ l, y, f });
+function land(L, x, y, w, h, ly = 2) {            // Tilemap_Flat (grass half only) cut into 32px quarters, any size in multiples of 32
+  const nx = w / 32, ny = h / 32;
+  P(L, ly, y, c => { for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const ci = i == 0 ? 0 : i == nx - 1 ? 2 : 1, sx = i == 0 ? 0 : i == nx - 1 ? 32 : (i & 1 ? 32 : 0);
+    const ri = j == 0 ? 0 : j == ny - 1 ? 2 : 1, sy = j == 0 ? 0 : j == ny - 1 ? 32 : (j & 1 ? 32 : 0);
+    c.drawImage(A.flat, ci * 64 + sx, ri * 64 + sy, 32, 32, x + i * 32, y + j * 32, 32, 32); } });
+}
+function foam(L, x, y, w, h) {
+  const pts = [];
+  for (let cx = x; cx <= x + w - 64; cx += 32) pts.push([cx, y], [cx, y + h - 64]);
+  for (let cy = y + 32; cy <= y + h - 96; cy += 32) pts.push([x, cy], [x + w - 64, cy]);
+  P(L, 1, 0, (c, k) => { const fr = k(8, 6); for (const [px, py] of pts) c.drawImage(A.foam, fr * 192, 0, 192, 192, px - 64, py - 64, 192, 192); });
+}
+function cliff(L, x, y, w) {                      // Tilemap_Elevation row 3: the stone face under a raised block
+  const nx = w / 32;
+  P(L, 3, y, c => { for (let i = 0; i < nx; i++) {
+    const ci = i == 0 ? 0 : i == nx - 1 ? 2 : 1, sx = i == 0 ? 0 : i == nx - 1 ? 32 : (i & 1 ? 32 : 0);
+    c.drawImage(A.elev, ci * 64 + sx, 192, 32, 64, x + i * 32, y, 32, 64); } });
+}
+function grass(L, x, y, w, h) {                   // the grass tilemap without its bottom edge: the land simply runs off the page bottom
+  const nx = w / 32, ny = h / 32;
+  P(L, 2, y, c => { for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const ci = i == 0 ? 0 : i == nx - 1 ? 2 : 1, sx = i == 0 ? 0 : i == nx - 1 ? 32 : (i & 1 ? 32 : 0), ri = j == 0 ? 0 : 1, sy = j == 0 ? 0 : (j & 1 ? 32 : 0);
+    c.drawImage(A.flat, ci * 64 + sx, ri * 64 + sy, 32, 32, x + i * 32, y + j * 32, 32, 32); } });
+}
+function ell(c, cx, cy, rx, ry, col) {            // a stepped (pixel) ellipse, 4px rows
+  c.fillStyle = col; for (let d = -ry; d < ry; d += 4) { const h = Math.round(rx * Math.sqrt(1 - ((d + 2) / ry) ** 2) / 4) * 4; c.fillRect(cx - h, cy + d, 2 * h, 4); }
+}
+function band(L, name, ox, fy, W, key, alpha) {    // a 640-wide forest layer as ONE band: every other tile mirrored, so no arrangement repeats within 1280px
+  P(L, 1, key, c => { const im = PI[name]; c.globalAlpha = alpha; for (let i = 0, x = ox; x < W; i++, x += 640) { if (x + 640 < 0) continue;
+    if (i & 1) { c.save(); c.translate(x + 640, 0); c.scale(-1, 1); c.drawImage(im, 0, fy - 200); c.restore(); } else c.drawImage(im, x, fy - 200); } c.globalAlpha = 1; });
+}
+function mushCatalog() {                            // every mushroom we can stand on the grass, all at 1x: cut from the banner layers or taken from the sprite pack
+  const cut = (l, sx, sy, sw, sh) => ({ w: sw, h: sh, draw: (c, x, fy) => c.drawImage(PI[l], sx, sy, sw, sh, Math.round(x - sw / 2), fy - sh, sw, sh) });
+  const sp = n => { const im = PI[n]; return { w: im.naturalWidth, h: im.naturalHeight, draw: (c, x, fy) => c.drawImage(im, Math.round(x - im.naturalWidth / 2), fy - im.naturalHeight) }; };
+  return {
+    tall:  { vioG: cut('mid', 50, 0, 100, 201), cyanN: cut('mid', 538, 0, 36, 201), cyanT: cut('mid', 298, 0, 68, 201) },
+    med:   { vioT: cut('mid', 450, 0, 68, 201), pinkP: cut('mid', 194, 0, 62, 201), platB: sp('plat_b_violet'), platA: sp('plat_a_cyan'), platC: sp('plat_c_pink'), platP: sp('plat_a_pink') },
+    small: { stack: sp('stack_pink'), tinyB: sp('tiny_b_cyan'), tinyA: sp('tiny_a_lime'), pinkM: cut('front', 404, 141, 26, 51) },
+    tiny:  { k0: sp('kami0_violet'), k1: sp('kami1_cyan'), k3: sp('kami3_pink'), k5: sp('kami5_cyan'), k6: sp('kami6_violet'), k8: sp('kami8_pink'), k9: sp('kami9_lime'), bud: sp('bud_cyan'), spr: sp('sprout_lime'),
+             f2: cut('front', 148, 177, 16, 15), f3: cut('front', 432, 178, 15, 14), f4: cut('front', 512, 178, 15, 14), f5: cut('front', 36, 179, 15, 13), f6: cut('front', 252, 179, 15, 13), f7: cut('front', 611, 181, 13, 11) } };
+}
+function shadow(L, x, y, w) {
+  const o = document.createElement('canvas'); o.width = w; o.height = 30; const g = o.getContext('2d');
+  P(L, 3, y, c => { if (!o.done) { for (let cx = -8; cx < w - 24; cx += 24) g.drawImage(A.shad, 64, 64, 64, 64, cx, -34, 64, 64); o.done = 1; } c.globalAlpha = .4; c.drawImage(o, x, y); c.globalAlpha = 1; });
+}
+function rock(L, n, x, y, ph = 0) { P(L, 1, y, (c, k) => c.drawImage(A['rock' + n], k(8, 8, ph) * 128, 0, 128, 128, x - 64, y - 64, 128, 128)); }
+function spr(L, name, fx, fy, o = {}) {            // sprite standing with its feet at (fx, fy)
+  const s = SP[name];
+  P(L, 5, fy + (o.dy || 0), (c, k) => {
+    const im = A[s.i], fr = s.n > 1 ? k(s.n, o.fps || s.fps, o.ph || 0) : 0, sx = fr * s.w, sy = (s.row || 0) * s.h;
+    if (o.flip) { c.save(); c.translate(fx, 0); c.scale(-1, 1); c.drawImage(im, sx, sy, s.w, s.h, -s.ax, fy - s.ay, s.w, s.h); c.restore(); }
+    else c.drawImage(im, sx, sy, s.w, s.h, fx - s.ax, fy - s.ay, s.w, s.h);
+  });
+}
+function chopTree(L, fx, fy) {                     // the tree reacts on the pawn's contact frames
+  const s = SP.tree, seq = [[0, 0], [0, 0], [0, 0], [1, 0], [1, 1], [0, 1]];
+  P(L, 5, fy, (c, k) => { const q = seq[k(6, 8)]; c.drawImage(A.tree, q[1] * 192, q[0] * 192, 192, 192, fx - s.ax, fy - s.ay, 192, 192); });
+}
+function chopTree2(L, fx, fy) {                    // two pawns, half a cycle apart: the tree shakes on each pawn's contact frames (frame 0 stays calm)
+  const s = SP.tree, seq = [[0, 0], [1, 0], [1, 1], [0, 1], [1, 0], [1, 1]];
+  P(L, 5, fy, (c, k) => { const q = seq[k(6, 8)]; c.drawImage(A.tree, q[1] * 192, q[0] * 192, 192, 192, fx - s.ax, fy - s.ay, 192, 192); });
+}
+// raised plateau: grass over a stone cliff that stands on the ground; (x, w) in 32s, `by` = y of the cliff's foot
+function plateau(L, x, w, by) { const cy = by - 64; cliff(L, x, cy, w); land(L, x, cy - 52, w, 64, 4); return cy - 52; }
+
+const SCENES = {
+  /* ---- B2 EDGES scenes: feet on the ribbon's top row (y = H); the canvas is the ribbon's flat middle ---- */
+  /* GAMES (always on): a tree grows out of the ribbon top, two pawns chop it from either side; the tree shakes on both contact frames */
+  'et-games': { size: cv => { const cw = cv.parentElement.clientWidth; return [cw < 420 ? cw + 60 : cw, 196]; },   // on a phone the canvas reaches 60px past the ribbon's flat part so the canopy isn't clipped
+    build(W, H, cv) { const L = []; H -= 6; const edges = root.classList.contains('edges'), cw = cv.parentElement.clientWidth;
+    if (cw < 420) { const x = cw - 20; spr(L, 'chop', x - 58, H, { ph: 2 }); chopTree2(L, x, H - 4); }   // phone: one pawn, the tree to the right of the title ribbon
+    else { const x = Math.round(Math.min(W * .8, W - 112));
+      spr(L, 'chop', x - 58, H, { ph: 2 }); chopTree2(L, x, H - 4); spr(L, 'chop', x + 58, H, { ph: 5, flip: 1 }); spr(L, 'd02', x - 112, H); spr(L, 'd10', x + 106, H); }
+    if (edges) { spr(L, 'd03', W * .07, H); spr(L, 'sheep', W * .07 + 44, H + 2, { ph: 0 }); spr(L, 'sheep', W * .07 + 92, H + 2, { ph: 3, flip: 1 }); spr(L, 'd01', W * .07 + 128, H); }
+    return L; } },
+  'et-people': { size: cv => [cv.parentElement.clientWidth, 124], build(W, H) { const L = []; H -= 6;
+    spr(L, 'sheep', W * .2, H + 2, { ph: 1 }); spr(L, 'sheep', W * .2 + 52, H + 2, { ph: 4, flip: 1 }); spr(L, 'd01', W * .2 + 92, H);
+    if (W < 330) return L;
+    spr(L, 'd03', W * .68, H); spr(L, 'd02', W * .68 + 30, H); spr(L, 'd01', W * .68 - 26, H); spr(L, 'd09', W * .68 + 66, H); return L; } },
+  'et-news': { size: cv => [cv.parentElement.clientWidth, 124], build(W, H) { const L = [], c = W * .5; H -= 6;
+    spr(L, 'd16', c - 76, H); spr(L, 'rW', c - 42, H); spr(L, 'fire', c, H, { ph: 0 }); spr(L, 'tor', c + 52, H, { ph: 2 }); spr(L, 'd14', c + 92, H); spr(L, 'd09', c + 128, H); return L; } },
+  'et-hello': { size: cv => [cv.parentElement.clientWidth, 124], build(W, H) { const L = []; H -= 6;
+    spr(L, 'd03', W * .22, H); spr(L, 'd02', W * .22 + 30, H); spr(L, 'd01', W * .22 - 26, H); spr(L, 'd10', W * .22 + 62, H);
+    spr(L, 'd17', W * .78, H); spr(L, 'd08', W * .78 + 44, H); return L; } },
+  // ledges hanging off a lower corner: grass over a stone cliff, joined (hidden) behind the window frame
+  'eb-people': { size: () => [128, 170], build(W, H) { const L = []; const top = plateau(L, 0, 160, 170); spr(L, 'sheep', 52, top + 44, { ph: 2 }); spr(L, 'd02', 92, top + 50); spr(L, 'd01', 20, top + 52); return L; } },
+  'eb-news': { size: () => [128, 170], build(W, H) { const L = []; const top = plateau(L, -32, 160, 170); spr(L, 'd09', 96, top + 48); spr(L, 'd14', 58, top + 52); spr(L, 'd05', 112, top + 58); return L; } },
+  'eb-hello': { size: () => [128, 170], build(W, H) { const L = []; const top = plateau(L, -32, 160, 170); spr(L, 'd03', 76, top + 46); spr(L, 'd02', 106, top + 50); spr(L, 'd01', 52, top + 52); return L; } },
+
+  /* ---- FOOTER: THE ground, a forest-edge scene around a campfire clearing. All 1x. Transparent sky (the starry page shows through),
+     the land rises out of the page bottom. Depth rows, each on its own baseline: far dim silhouettes (mirrored band) / back = a dense treeline of
+     tall and medium mushrooms with Tiny Swords trees / mid = small clumps, bushes and rocks / front = toadstools and rocks cut by the page bottom.
+     Every grove piece is placed by hand (SIDE table): tall at the edges, stepping down toward the clearing. ---- */
+  foot: { size: cv => [Math.ceil(cv.parentElement.clientWidth || innerWidth), 360], build(W, H) {
+    const L = [], GF = 160, y0 = H - GF, cx = W >> 1, desk = W >= 760, fy = y0 + 86, CAT = mushCatalog(), half = Math.max(cx, W - cx);
+    grass(L, -32, y0, (((W + 31) >> 5) << 5) + 64, GF);
+    // rocky mountains behind everything: two hand-shaped ridges [x as a fraction of the width, height above the grass], stepped to 4px like pixel art
+    const rk = Math.min(.85, .5 + .4 * W / 1280);   // narrow screens get lower mountains, so the peaks don't turn into spikes
+    const ridge = (pts, fill, lit) => P(L, 1, 0, c => { for (let x = 0; x < W; x += 4) {
+      const f = x / W; let i = 0; while (pts[i + 1][0] < f) i++;
+      const [f0, h0] = pts[i], [f1, h1] = pts[i + 1], top = Math.max(8, y0 + 8 - (Math.round(rk * (h0 + (h1 - h0) * (f - f0) / (f1 - f0)) / 4) * 4));
+      c.fillStyle = lit; c.fillRect(x, top, 4, 4); c.fillStyle = fill; c.fillRect(x, top + 4, 4, y0 + 8 - top); } });
+    ridge([[0, 150], [.05, 196], [.07, 184], [.1, 220], [.17, 140], [.21, 158], [.28, 196], [.31, 180], [.39, 104], [.5, 72], [.6, 112], [.68, 176], [.71, 212], [.74, 196], [.82, 136], [.88, 188], [.92, 232], [.95, 204], [1, 168]], '#1c1233', '#2a1c48');
+    ridge([[0, 96], [.06, 120], [.13, 152], [.16, 136], [.23, 84], [.33, 116], [.36, 104], [.43, 56], [.5, 40], [.57, 60], [.64, 120], [.67, 108], [.77, 76], [.85, 132], [.89, 160], [.93, 140], [1, 104]], '#2b1f4d', '#43336e');
+    // hand-placed groves: [what, distance from centre as a fraction of half the width, row, phone too?]
+    // a few pieces per side: tall at the edge, stepping down toward the clearing; pines and rocks at the foot of the mountains
+    const ROW = [y0 + 20, y0 + 40, y0 + 60], MUSH = Object.assign({}, CAT.tall, CAT.med, CAT.small, CAT.tiny);
+    const SIDE = {
+      '-1': [['tree', .96, 0, 1], ['tree', .82, 0, 0], ['d06', .66, 0, 0], ['vioG', .86, 1, 1], ['pinkP', .73, 1, 1], ['platP', .61, 2, 0], ['k3', .52, 2, 0]],
+      '1':  [['tree', .95, 0, 1], ['tree', .80, 0, 0], ['d05', .68, 0, 0], ['cyanN', .88, 1, 1], ['cyanT', .78, 1, 1], ['platB', .65, 2, 0], ['k1', .54, 2, 0]] };
+    for (const dir of [-1, 1]) for (const [n, f, row, ph] of SIDE[dir]) {
+      if (!desk && !ph) continue;
+      const x = Math.round(cx + dir * f * half), base = ROW[row] + (row === 2 ? 4 : 0);
+      if (n === 'tree') spr(L, 'tree', x, base, { ph: f * 10 }); else if (SP[n]) spr(L, n, x, base + 6);
+      else { const it = MUSH[n]; P(L, 5, base, c => it.draw(c, x, base)); }
+    }
+    // rocks and a toadstool only in the bottom corners
+    spr(L, 'd04', 26, y0 + 150); spr(L, 'd05', 62, y0 + 158); spr(L, 'd06', W - 30, y0 + 154); spr(L, 'd01', W - 72, y0 + 132);
+    // the clearing: soft shadow and warm glow on the grass, stones under the flame, sheep and goblin facing the fire
+    const sd = desk ? 1 : .75;
+    P(L, 2, y0 + 1, c => { ell(c, cx, fy + 6, 180 * sd, 40, 'rgba(255,79,174,.05)'); ell(c, cx, fy + 6, 120 * sd, 28, 'rgba(255,79,174,.07)'); ell(c, cx, fy + 6, 64, 16, 'rgba(0,0,0,.18)'); });
+    spr(L, 'd04', cx - 26, fy + 1); spr(L, 'd05', cx + 24, fy + 3); spr(L, 'd04', cx + 2, fy + 8);
+    spr(L, 'fire', cx, fy, { ph: 1 });
+    const gap = desk ? 94 : 66;
+    spr(L, 'sheep', cx - gap, fy + 8, { ph: 2 });                      // faces right, towards the fire
+    spr(L, 'tor', cx + gap, fy + 6, { ph: 2 });                        // faces left, towards the fire
+    return L; } },
+};
+
+// ---- painter ----
+const live = [];
+function mount(cv) {
+  const def = SCENES[cv.dataset.scene], ctx = cv.getContext('2d'); let W, H, L;
+  const s = { vis: true, draw(t) {
+    if (!L) return;
+    ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, W, H);
+    const k = (n, fps, ph = 0) => Math.floor(t / 1000 * fps + (RM ? 0 : ph)) % n;
+    for (const it of L) it.f(ctx, k);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }, layout() {
+    if (!cv.offsetParent && getComputedStyle(cv).position !== 'fixed') { L = null; return; }   // hidden in this variant
+    const sz = def.size(cv); if (!sz[0]) { L = null; return; }
+    W = sz[0]; H = sz[1]; cv.width = W; cv.height = H; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    L = def.build(W, H, cv).map((it, i) => (it.i = i, it)); L.sort((a, b) => a.l - b.l || a.y - b.y || a.i - b.i); s.draw(0);
+  } };
+  live.push(s);
+  if ('IntersectionObserver' in window) new IntersectionObserver(e => { s.vis = e[0].isIntersecting; }).observe(cv);
+}
+function layoutAll() { live.forEach(s => s.layout()); }
+
+// ---- the three switches ----
+function reflect() {
+  document.querySelectorAll('.mx .g').forEach(g => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v === '1') === mode[g.dataset.k]))));
+  const t = [!mode.night && 'day', mode.edges && 'edges', !mode.restyled && 'asis', false].filter(Boolean).join('-'); try { if (t) history.replaceState(null, '', '#' + t); } catch (e) {}
+}
+async function setMode(k, on) {
+  mode[k] = on; root.classList.toggle(k, on);
+  if (k === 'night') {   // A: swap the one art prefix, reload art, repaint
+    TS = on ? TSDIR.night : TSDIR.day; applyTSVars(); A = await loadArt(TS);
+  }
+  layoutAll(); reflect();
+}
+Promise.all([loadArt(TS), plainReady]).then(([B]) => {
+  A = B;
+  document.querySelectorAll('canvas.scn').forEach(mount);
+  layoutAll(); reflect();
+  document.fonts.ready.then(layoutAll);
+  addEventListener('load', layoutAll);
+  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(layoutAll, 120); });
+  if (!RM) setInterval(() => { const t = performance.now(); for (const s of live) if (s.vis) s.draw(t); }, 100);
+});
+document.querySelectorAll('.mx .g').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => setMode(g.dataset.k, b.dataset.v === '1'))));
+reflect();
+})();
+</script>
+
+<script>
+/* ================================ JS 9 SKY EXTRAS (owner, 2026-10-20) ================================
+   Pack art only: twinkle stars (S a t u r n, "2d PixelArt Stars"), comet = Warped spark shot, meteor = Grotto fireball recoloured
+   pink, asteroids + planet = Warped space background pack (ansimuz Legacy Collection). Files: img/space/ (built by space_work/prep.py).
+   Tiny shooting stars are drawn (one pixel pair + fading tail). Each piece is independent: set its flag to 0 here (or delete its section below + its CSS in "9 SKY EXTRAS") to remove it. */
+const SKYFX = { stars: 1, trail: 1, comets: 1, meteors: 1, asteroids: 1, shooting: 1 };
+(function () {
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches, el = (cls, css) => { const d = document.createElement('i'); d.className = cls; Object.assign(d.style, css || {}); return d; };
+  const layer = el('skyfx'); layer.setAttribute('aria-hidden', 'true'); document.body.prepend(layer);
+  let seed = 31; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;   // seeded: the same page gets the same sky
+
+  // ---- twinkle stars: scattered over the whole page sky, each on its own clock
+  if (SKYFX.stars) {
+    let bands = 0;   // seeded per 1024px band in page pixels: opening the games shelf (a taller page) only adds stars below
+    const place = () => { const H = document.body.scrollHeight;
+      for (; bands * 1024 < H; bands++) { seed = 31 + bands * 977;
+        for (let i = 0; i < 11; i++) layer.append(el('tw ' + ['w', 'p', 'c', 'w'][i % 4], { left: (rnd() * 98).toFixed(2) + '%', top: bands * 1024 + Math.round(rnd() * 1000) + 'px',
+          animationDuration: (1.4 + rnd() * 1.6).toFixed(2) + 's', animationDelay: (-rnd() * 3).toFixed(2) + 's' })); } };
+    addEventListener('load', place); new ResizeObserver(place).observe(document.body);
+  }
+  // ---- asteroids + a small planet drifting in the side gutters (hand placed)
+  if (SKYFX.asteroids) [['games', 'planet', 'right:4%;top:20px;animation-delay:-4s'], ['arcade', 'ast1', 'left:3%;top:150px'], ['arcade', 'ast2', 'left:9%;top:196px;animation-delay:-9s'],
+    ['collage', 'ast2', 'right:6%;top:80px;animation-delay:-15s']]   // pinned to their sections, so they travel with the content when the page grows
+    .forEach(([sec, k, pos]) => { const s = document.getElementById(sec); if (!s) return; const a = el('ast ' + k); a.setAttribute('aria-hidden', 'true'); a.style.cssText = pos; s.append(a); });
+  if (still) return;
+  // ---- cursor trail: one twinkle per move tick, plays once where the pointer was
+  if (SKYFX.trail && matchMedia('(pointer: fine)').matches) { let last = 0;
+    addEventListener('pointermove', e => { if (e.timeStamp - last < 45) return; last = e.timeStamp;
+      const s = el('trail ' + ['p', 'c', 'w'][Math.floor(Math.random() * 3)], { left: e.clientX + 2 + 'px', top: e.clientY + 2 + 'px' });
+      document.body.appendChild(s); setTimeout(() => s.remove(), 700); }); }
+  // ---- comets (left to right, shallow) and meteors (steep, falling): one at a time, only while the tab is visible
+  const shoot = (cls, x0, y0, dx, dy, ms) => { const f = el(cls); y0 += scrollY; layer.append(f);   // in the page-sized sky layer, so it scrolls with the stars
+    f.animate([{ transform: `translate(${x0}px, ${y0}px)` }, { transform: `translate(${x0 + dx}px, ${y0 + dy}px)` }], { duration: ms, easing: 'linear' }); setTimeout(() => f.remove(), ms + 200); };   // timer, not onfinish: a throttled tab never finishes
+  const every = (fn, lo, hi) => { const go = () => { if (!document.hidden) fn(); setTimeout(go, lo + Math.random() * (hi - lo)); }; setTimeout(go, lo * .4 + Math.random() * lo); };
+  if (SKYFX.comets) every(() => { const W = innerWidth, dx = W + 260; shoot('comet', -130, innerHeight * (.06 + Math.random() * .3), dx, dx * .249, 2400); }, 9000, 16000);    // tan 14°
+  if (SKYFX.shooting) every(() => { const dx = 160 + Math.random() * 140; shoot('shoot', Math.random() * innerWidth * .9, innerHeight * Math.random() * .7, dx, dx * .25, 650); }, 2500, 6000);   // tiny shooting stars, often
+  if (SKYFX.meteors) every(() => { const W = innerWidth, dx = W * .45; shoot('meteor', W * (.1 + Math.random() * .5), -60, dx, dx * .625, 1300); }, 13000, 24000);   // tan 32°
+})();
+</script>
+
 </body>
 </html>
