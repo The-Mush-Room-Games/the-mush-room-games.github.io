@@ -55,7 +55,7 @@ const ENEMIES = {
   // weights: how often each move is picked, near / far = the hero closer / farther than the swipe's range (p2w multiplies them in phase 2).
   // swipe: range (px, the hero must also be in front), tele = telegraph s, dmg, kb. charge: tele, speed, dist = longest rush, hitR, stun = s stunned after a wall.
   // slam: tele, then a ring grows at `speed` px/s to radius `r`, w = half its thickness; only a dash (or standing outside r) avoids it. rec = s of rest after the move.
-  bear: { hp: 110, speed: 0, sight: 14 * 64, lose: 1e9, reach: 0, hitRange: 0, hitFrame: 0, damage: 1, cooldown: 0, stun: 0, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 1.2,
+  bear: { hp: 100, speed: 0, sight: 14 * 64, lose: 1e9, reach: 0, hitRange: 0, hitFrame: 0, damage: 1, cooldown: 0, stun: 0, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 1.2,
     originY: 177 / 256, hurtbox: [-80, -112, 80, 2], drops: 'bear', idle: 'bear-idle', run: 'bear-run', attack: 'bear-attack',
     boss: { name: 'Bear', avatar: 'bear-avatar', scale: 1.6, r: 56, walk: 100, keep: 90, rest: 0.9, resist: 0.15, stunMul: 1.5, p2At: 0.5, p2: { speed: 1.3, tele: 0.65 }, roar: 1.0,
       weights: { near: { swipe: 6, slam: 3, charge: 1 }, far: { charge: 5, slam: 3, swipe: 0 } }, p2w: { swipe: 1, slam: 1.5, charge: 1.5 },
