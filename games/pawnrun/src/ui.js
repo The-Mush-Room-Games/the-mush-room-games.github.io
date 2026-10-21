@@ -106,14 +106,23 @@ function portrait(s, x, y, key, w = 64, h = 64, frame = true) {
   return c.set(key);
 }
 
-// round portrait: a d px disc cut out of the avatar around its head (drawn once to a canvas texture), thin dark outline, no frame
+// round portrait: a d px disc cut out of the avatar around its head, in a 10 px wood ring (the HP bar's colours, lit from the top left,
+// a few grain flecks); drawn once to a canvas texture 2R across
 function roundPortrait(s, x, y, key, d = 96) {
-  const k = key + '-round' + d;
+  const k = key + '-round' + d, R = d / 2 + 10;
   if (!s.textures.exists(k)) {
-    const [fx, fy] = PORTRAIT_FACE[key] || PORTRAIT_CENTRE[key] || [128, 124], t = s.textures.createCanvas(k, d, d), g = t.getContext();
-    g.save(); g.beginPath(); g.arc(d / 2, d / 2, d / 2 - 3, 0, 2 * Math.PI); g.clip();
-    g.drawImage(s.textures.get(key).getSourceImage(), d / 2 - fx, d / 2 - fy); g.restore();
-    g.lineWidth = 3; g.strokeStyle = '#161c2e'; g.beginPath(); g.arc(d / 2, d / 2, d / 2 - 1.5, 0, 2 * Math.PI); g.stroke(); t.refresh();
+    const [fx, fy] = PORTRAIT_FACE[key] || PORTRAIT_CENTRE[key] || [128, 124], t = s.textures.createCanvas(k, 2 * R, 2 * R), g = t.getContext();
+    g.save(); g.beginPath(); g.arc(R, R, d / 2 - 1, 0, 2 * Math.PI); g.clip();
+    g.drawImage(s.textures.get(key).getSourceImage(), R - fx, R - fy); g.restore();
+    const rnd = new Phaser.Math.RandomDataGenerator(['ring']), [NAVY, DK, MID, LT] = ['#161c2e', '#82564e', '#af7960', '#dfa166'];
+    for (let py = 0; py < 2 * R; py++) for (let px = 0; px < 2 * R; px++) {
+      const dx = px + 0.5 - R, dy = py + 0.5 - R, r = Math.hypot(dx, dy), lit = -(dx + dy) / (r * Math.SQRT2), band = R - 2 - r;
+      if (r < d / 2 - 2 || r >= R) continue;
+      let c = band > 6 || lit < -0.55 ? DK : band < 2 && lit > -0.2 ? LT : MID;
+      if (rnd.frac() < 0.06) c = c === DK ? MID : DK;
+      g.fillStyle = r >= R - 2 || r < d / 2 ? NAVY : c; g.fillRect(px, py, 1, 1);
+    }
+    t.refresh();
   }
   return s.add.image(x, y, k).setScrollFactor(0);
 }
@@ -142,9 +151,9 @@ class Hud {
     const A = (o, d = 0) => { o.setDepth(UI_D + d); o.icon?.setDepth(UI_D + d + 1); this.list.push(o); return o };
     const label = (x, y, str, size, ox = 0.5) => A(s.add.text(x, y, str, numTxt(size)).setOrigin(ox, 0.5).setScrollFactor(0), 3);   // HUD labels are all numbers
 
-    A(roundPortrait(s, 52, 52, 'avatar05'), 2);              // top left: hero portrait (Blue Pawn, no frame) and the HP bar beside it, the number on the bar
-    this.hp = A(bar(s, 170, 52, 240, 'big'), 1);              // the bar's wood starts 40 px into its art: x 170 tucks it just under the portrait's rim
-    this.hpText = label(170, 53, '', 20);
+    A(roundPortrait(s, 62, 62, 'avatar05'), 2);              // top left: hero portrait (Blue Pawn, wood ring) and the HP bar beside it, the number on the bar
+    this.hp = A(bar(s, 196, 62, 240, 'big'), 1);              // the bar's wood starts 40 px into its art: x 196 tucks it 4 px under the ring
+    this.hpText = label(196, 63, '', 20);
     this.coin = A(icon(s, W - 36, 32, 'icon03'));                      // top right: gold, ducks under it once you have one
     this.goldText = label(W - 68, 34, '', 24, 1);
     this.duck = A(icon(s, W - 36, 84, 'duck', 0).setScale(2));
