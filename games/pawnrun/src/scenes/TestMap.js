@@ -101,13 +101,13 @@ class TestMap extends Phaser.Scene {
     }
     // walkable(unit, b): the feet box at b must sit on the unit's own level and touch no object rect on that level
     this.rects = rects;
-    this.walkable = (u, bx, by) => {
-      if (!feetOk(m, wg, u.high, bx, by, stones)) return false;
+    this.solid = (u, bx, by) => {                                   // does the feet box at b touch an object rect on the unit's level? (thrown dynamite stops at these)
       const x0 = bx - FEET.x, x1 = bx + FEET.x, y0 = by - FEET.top, y1 = by + FEET.bottom;
       for (let cy = Math.floor(y0 / T); cy <= Math.floor(y1 / T); cy++) for (let cx = Math.floor(x0 / T); cx <= Math.floor(x1 / T); cx++)
-        for (const R of rectsAt.get(cy * m.w + cx) || []) if (!R.gone && R.high === !!u.high && x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return false;
-      return true;
+        for (const R of rectsAt.get(cy * m.w + cx) || []) if (!R.gone && R.high === !!u.high && x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return true;
+      return false;
     };
+    this.walkable = (u, bx, by) => feetOk(m, wg, u.high, bx, by, stones) && !this.solid(u, bx, by);
     this.depthOf = u => u.rail ? u.rail.r.depth : u.y + (u.high ? HIGH_DEPTH : 0);
     const ramps = rampsOf(m);
     this.moveFeet = (u, dx, dy) => moveFeet(ramps, this.walkable, u, dx, dy);   // ramps carry units along their centre line
@@ -162,13 +162,14 @@ class TestMap extends Phaser.Scene {
   initInput() {
     this.sig = null;                                                // syncHud refills the weapon slots
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,SHIFT,K,Q,H,E');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,SHIFT,K,Q,H,E,ONE,TWO,THREE');
     this.pend = { swing: false, dash: false, swap: false, pick: false };
     // presses come from keydown events, not JustDown polling, so a tap shorter than one frame is not lost
     const press = { SPACE: 'swing', J: 'swing', SHIFT: 'dash', K: 'dash', Q: 'swap', F: 'pick' };   // F swaps for the weapon on the ground
     for (const [key, act] of Object.entries(press))
       this.on(kb, 'keydown-' + key, e => { if (!e.repeat) this.pend[act] = true });
-    this.on(kb, 'keydown-E', e => { if (!e.repeat) eatMeat(this.hero, this.hero.items.indexOf('meat')) });
+    for (const [key, i] of [['E', 0], ['ONE', 0], ['TWO', 1], ['THREE', 2]])          // bag slots: E and 1 use the first
+      this.on(kb, 'keydown-' + key, e => { if (!e.repeat) useItem(this, i) });
     this.on(kb, 'keydown-H', e => { if (!e.repeat) this.hurtTest = true });
     this.move = new Phaser.Math.Vector2();
     this.on(this.input, 'pointerdown', p => { if (!p.wasTouch && p.leftButtonDown()) this.pend.swing = true });   // a click swings; the hero swings the way he faces
@@ -176,7 +177,7 @@ class TestMap extends Phaser.Scene {
     if (typeof Hud !== 'undefined') {                               // HUD glue: ui.js
       this.hud = new Hud(this);
       for (const [ev, k] of [['hud-swing', 'swing'], ['hud-dash', 'dash'], ['hud-swap', 'swap']]) this.on(this.events, ev, () => this.pend[k] = true);
-      this.on(this.events, 'hud-item', i => eatMeat(this.hero, i));       // a tap on a bag slot
+      this.on(this.events, 'hud-item', i => useItem(this, i));       // a tap on a bag slot
     }
   }
   // camera bounds for a W x H world: a world smaller than the screen sits in its middle (the screen is any size, Scale.EXPAND)
@@ -211,11 +212,11 @@ class TestMap extends Phaser.Scene {
       t.prop ? t.prop.hit(weapon, x, y) : puff(this, x, y);
     }
   }
-  // dynamite hook: breaks every rock pile whose hurtbox touches rect r = { x0, y0, x1, y1 } (what a blast covers)
-  blast(r) {
+  // dynamite hook: breaks every rock pile whose hurtbox touches rect r = { x0, y0, x1, y1 } (what a blast covers), and the circle c = { x, y, r } if given
+  blast(r, c) {
     for (const t of [...this.hittables]) {
       const b = t.hb;
-      if (t.prop && PROPS[t.prop.kind].blast && r.x1 > b.x0 && r.x0 < b.x1 && r.y1 > b.y0 && r.y0 < b.y1) t.prop.done();
+      if (t.prop && PROPS[t.prop.kind].blast && r.x1 > b.x0 && r.x0 < b.x1 && r.y1 > b.y0 && r.y0 < b.y1 && (!c || circleHitsBox(c.x, c.y, c.r, b))) t.prop.done();
     }
   }
   // this frame's hero input; zero while a fade is running

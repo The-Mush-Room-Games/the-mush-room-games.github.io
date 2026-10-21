@@ -52,11 +52,11 @@ function dropLoot(scene, table, x, y, high) {
     spawnLoot(scene, kind, tx, ty, high, n, [x, y - 16]);
   }
 }
-// Take pickup p: a weapon into a free slot, meat into the bag if it has room. Gold and ducks add to the registry.
+// Take pickup p: a weapon into a free slot, an item into the bag if it has room. Gold and ducks add to the registry.
 function collect(scene, p) {
   const h = scene.hero, reg = scene.registry;
   if (p.kind === 'weapon') { if (weaponAction(h, p.weapon) !== 'take') return false; giveWeapon(h, p.weapon, p.tier) }
-  else if (p.kind === 'meat') { if (h.items.length >= BAG) return false; h.items.push('meat') }
+  else if (ITEMS[p.kind]) { if (h.items.length >= BAG) return false; h.items.push(p.kind) }   // meat, dynamite, bomb: the bag, if it has room
   else { const k = p.kind === 'duck' ? 'ducks' : 'gold'; reg.set(k, (reg.get(k) || 0) + p.n) }
   scene.tweens.killTweensOf(p.c);
   scene.tweens.add({ targets: p.c, y: p.c.y - 14, scale: 1.5, alpha: 0, duration: 160, onComplete: () => p.c.destroy() });

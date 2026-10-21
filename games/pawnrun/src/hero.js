@@ -144,14 +144,14 @@ class Hero {
   }
 
   // true when the hit landed (not while invulnerable or dead)
-  hurt(dmg, fromX, fromY) {
+  hurt(dmg, fromX, fromY, kb = HERO.knockback) {      // kb = knockback distance in px (a blast pushes harder)
     if (this.dead || this.inv > 0) return false;
     this.hp = Math.max(0, this.hp - dmg);
     this.inv = this.hurtT = HERO.hurtInvuln; this.flashT = HERO.flashTime;
     this.swing = null; this.dashT = 0; this.buf = 0;
     this.kbV.set(this.x - fromX, this.y - fromY);
     if (this.kbV.lengthSq() < 1e-4) this.kbV.set(-(this.sprite.flipX ? -1 : 1), 0);
-    this.kbV.normalize().scale(HERO.knockback / HERO.knockbackTime);
+    this.kbV.normalize().scale(kb / HERO.knockbackTime);
     this.kbT = HERO.knockbackTime;
     this.scene.events.emit('hero-hurt', { hp: this.hp, dmg, x: this.x, y: this.y });
     if (this.hp <= 0) this.die();

@@ -69,13 +69,13 @@ class Enemy {
     if (!s.anims.isPlaying) { this.mode = 'chase'; this.cd = d.cooldown }
   }
 
-  hurt(dmg, fromX, fromY) {
+  hurt(dmg, fromX, fromY, kb = this.d.knockback) {      // kb = knockback distance in px (a blast pushes harder)
     if (this.dead) return;
     const d = this.d;
     this.hp -= dmg; this.flashT = d.flash; this.stunT = d.stun; this.mode = 'chase';
     this.kbV.set(this.x - fromX, this.y - fromY);
     if (this.kbV.lengthSq() < 1e-4) this.kbV.set(1, 0);
-    this.kbV.normalize().scale(d.knockback / d.kbTime); this.kbT = d.kbTime;
+    this.kbV.normalize().scale(kb / d.kbTime); this.kbT = d.kbTime;
     if (this.hp <= 0) this.die();
   }
   die() {                                            // the Tiny Swords gnome has no death art: a white fade, a dust puff, then loot

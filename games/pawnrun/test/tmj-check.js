@@ -47,9 +47,9 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   const gnome = one(tiles, o => o.cls === 'enemy', 'enemy');
   assert.strictEqual(gnome.key, 'gnome-idle');
   assert.deepStrictEqual(gnome.props, { kind: 'gnome-idle', count: 2 });
-  // secrets and resources: a choppable tree (north tip), the pocket's tree and a rock pile (2 rocks)
+  // secrets and resources: a choppable tree (north tip), the pocket's tree, a rock pile (2 rocks), a plug of 3 rocks and a rock on the tiny islet
   const secs = tiles.filter(o => o.cls === 'secret');
-  assert.deepStrictEqual(secs.map(o => o.props.kind + ':' + o.key.replace(/\d$/, '')).sort(), ['rock:rock', 'rock:rock', 'tree:tree', 'tree:tree']);
+  assert.deepStrictEqual(secs.map(o => o.props.kind + ':' + o.key.replace(/\d$/, '')).sort(), Array(6).fill('rock:rock').concat(['tree:tree', 'tree:tree']));
   assert.strictEqual(tiles.filter(o => /^gold-stone\d$/.test(o.key)).length, 3, 'three gold stones');
   assert.strictEqual(tiles.filter(o => o.cls === 'stepstone').length, 4, 'four stepping stones');
   assert(tiles.filter(o => o.cls === 'stepstone').every(o => /^water-rocks\d$/.test(o.key)), 'stepping stones are Water Rocks');
@@ -61,8 +61,18 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   assert(ent.w > 0 && ent.h > 0 && ent.x + ent.w === 20 * 64, 'entrance on the first island\'s east edge');
   const lootOf = k => shapes.filter(o => o.cls === 'loot' && o.props.kind === k);
   assert.strictEqual(lootOf('duck').length, 2, 'a duck in the open and one in the tree pocket');
-  assert.deepStrictEqual(lootOf('gold').map(o => o.props.n).sort((a, b) => a - b), [5, 10], 'gold behind the rocks and on the islet');
+  assert.deepStrictEqual(lootOf('gold').map(o => o.props.n).sort((a, b) => a - b), [5, 8, 10, 12], 'gold behind the rocks and on the islet');
   assert.strictEqual(lootOf('meat').length, 2);
+  // weapons (tier 1 axe, tier 2 hammer, a pickaxe the old Pawn can't use) and one-use items on the field
+  const ws = lootOf('weapon').map(o => o.props.weapon + o.props.tier).sort();
+  assert.deepStrictEqual(ws, ['axe1', 'hammer2', 'pickaxe0']);
+  assert.strictEqual(lootOf('dynamite').length, 2, '2 dynamite'); assert.strictEqual(lootOf('bomb').length, 1, '1 bomb');
+  const cellOf = o => [Math.floor(o.x / 64), Math.floor(o.y / 64)];
+  for (const o of [...lootOf('weapon'), ...lootOf('dynamite'), ...lootOf('bomb')]) assert(m.ground[cellOf(o)[1] * m.w + cellOf(o)[0]], 'pickup on land ' + o.props.kind + cellOf(o));
+  // the blast-only islet: land at cols 13-14, rows 24-25 with 2 water tiles (rows 22-23) between it and the field above, and a rock pile on it
+  const g = (x, y) => m.ground[y * m.w + x];
+  assert(g(13, 24) && g(14, 25) && !g(13, 22) && !g(13, 23) && g(13, 21), 'islet two tiles south of the field');
+  assert(tiles.some(o => o.cls === 'secret' && o.key === 'rock2' && o.x === 13 * 64 + 32 && o.y === 26 * 64), 'a rock pile on the islet');
 
   // each house has a door rect over its doorway (inside the house's art) naming an interior map that reads and is playable
   const doors = shapes.filter(o => o.cls === 'door');

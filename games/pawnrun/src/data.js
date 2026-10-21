@@ -20,6 +20,7 @@ const TIER = { names: ['blue', 'red', 'yellow', 'purple'], tint: [0x4a8fe0, 0xe0
 const HERO = {
   old: { hp: 5, speed: 140, idle: 'opawn-idle', run: 'opawn-run', roll: 'opawn-roll', texture: 'opawn', originY: 128 / 192, bodyY: 30 },
   new: { hp: 7, speed: 155, originY: 135 / 192, bodyY: 36 },                      // new Pawn anims are 'pawn-idle-<tool>' / 'pawn-run-<tool>'
+  box: [-12, -40, 12, 2],                          // hurtbox from the feet (what a blast overlaps)
   swingSlow: 0.35,                                 // movement multiplier while swinging
   knockback: 40, knockbackTime: 0.12, hurtInvuln: 0.6, flashTime: 0.1,
 };
@@ -35,7 +36,7 @@ const ENEMIES = {
 };
 // Drop tables: one pickup per row; p = chance (default always), min..max = amount (default 1).
 const DROPS = {
-  gnome: [{ kind: 'gold', min: 2, max: 4 }, { kind: 'meat', p: 0.25 }],
+  gnome: [{ kind: 'gold', min: 2, max: 4 }, { kind: 'meat', p: 0.25 }, { kind: 'dynamite', p: 0.08 }],
   bush: [{ kind: 'gold', p: 0.2 }],                 // rolled once per bush, on the first hit
   sheep: [{ kind: 'gold' }],                        // the first hit on a sheep
   stone: [{ kind: 'gold', min: 1, max: 2 }],        // every pickaxe hit on a gold stone
@@ -45,7 +46,18 @@ const LOOT = {
   gold: { tex: 'gold', glint: 'gold-highlight', dy: -12 },
   meat: { tex: 'meat', dy: -14 },
   duck: { tex: 'duck', anim: 'duck', tint: 0xffd34d, dy: -14 },
+  dynamite: { tex: 'odynamite', anim: 'odynamite', dy: -22 },
+  bomb: { tex: 'bomb-idle', dy: -22 },
   weapon: { dy: -16 },                              // art = the Tool icon of its weapon (ui.js TOOL_ICON) over a base in the tier colour
+};
+// One-use items in the bag (the key is what the bag holds; meat heals MEAT_HEAL). dynamite and bomb are blasts: a circle of `radius` px
+// around where they go off, `enemy` / `hero` = damage, `push` = knockback in px, `fuse` = seconds from landing (or being set down) to the
+// bang, `art` = the explosion sheet and `artR` = the radius of its drawn burst (the sheet is scaled so the burst fills the circle).
+// Dynamite is thrown the way the hero faces: `range` px away at most, in `fly` s on an arc `arc` px high; the bomb is set at his feet.
+const ITEMS = {
+  meat: {},
+  dynamite: { range: 192, fly: 0.45, arc: 40, fuse: 1.0, radius: 72, enemy: 3, hero: 1, push: 70, art: 'explosion1', artR: 38 },
+  bomb: { fuse: 2.0, radius: 112, enemy: 6, hero: 2, push: 110, art: 'explosion2', artR: 56 },
 };
 // Map props that react to weapons: hp, and damage per weapon (a weapon that is not listed clanks off). chips = debris colours.
 // tree = a `secret` tree (felled into a stump), rock = a `secret` rock (rock pile: broken for good; blast = dynamite breaks it),
@@ -63,4 +75,4 @@ const SHEEP = {                                     // acts: weight and seconds 
 const PICKUP = { r: 14, arc: 22, pop: 380, scatter: [18, 34] };   // r = reach around the ground point, arc/pop = drop arc height (px) and time (ms)
 const BAG = 3, MEAT_HEAL = 2;                        // item slots, hp one meat heals
 
-if (typeof module === 'object') module.exports = { WEAPONS, TIER, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };
+if (typeof module === 'object') module.exports = { WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };

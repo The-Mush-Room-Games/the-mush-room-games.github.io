@@ -10,10 +10,11 @@ const gidOf = key => C.FIRST.objects + findTile(key).id;
 const F = C.FIRST;
 
 // island: row -> [firstCol, lastCol] (or a list of those). Rows 2-13 are the first island; below it a field with:
-// a tree-walled pocket (rows 14-16, cols 19-20), a 1-tile dead end (col 10, rows 22-24) and an islet (cols 0-1) across the water
+// a tree-walled pocket (rows 14-16, cols 19-20), two 1-tile dead ends (cols 7 and 10, rows 22-24), an islet (cols 0-1) across the water
+// and a tiny islet (cols 13-14, rows 24-25) two water tiles south of the field: only a thrown dynamite reaches it
 const rows = { 2: [7, 12], 3: [5, 14], 4: [4, 15], 5: [4, 16], 6: [3, 16], 7: [3, 19], 8: [3, 19], 9: [4, 16], 10: [4, 15], 11: [5, 15], 12: [6, 14], 13: [7, 13],
   14: [[7, 13], [19, 20]], 15: [[5, 15], [19, 20]], 16: [[4, 16], [19, 20]], 17: [[0, 1], [4, 21]], 18: [[0, 1], [4, 21]], 19: [4, 17], 20: [5, 15], 21: [7, 13],
-  22: [10, 10], 23: [10, 10], 24: [10, 10] };
+  22: [[7, 7], [10, 10]], 23: [[7, 7], [10, 10]], 24: [[7, 7], [10, 10], [13, 14]], 25: [13, 14] };
 const idx = (x, y) => y * W + x;
 const ground = new Uint8Array(W * H), raised = new Uint8Array(W * H), water = new Uint8Array(W * H);
 for (const [y, r] of Object.entries(rows)) for (const [a, b] of typeof r[0] === 'number' ? [r] : r) for (let x = a; x <= b; x++) ground[idx(x, +y)] = 1;
@@ -98,6 +99,13 @@ objects.push(
   loot('gold', [44, 1140], 10), loot('meat', [84, 1170]),
   // weapons on the ground, row 16 (tier colours: 0 blue, 1 red, 2 yellow, 3 purple). The old Pawn takes the axe and hammer, not the pickaxe
   weapon('axe', 1, centre(6, 16)), weapon('hammer', 2, centre(8, 16)), weapon('pickaxe', 0, centre(10, 16)),
+  // one-use items, row 20: 2 dynamite and a bomb
+  loot('dynamite', centre(6, 20)), loot('dynamite', centre(7, 20)), loot('bomb', centre(9, 20)),
+  // a dead end (col 7) plugged with 3 rock piles in a row, gold behind: one blast clears them all (a hammer takes 3 swings)
+  tileObj('rock4', [480, 1436], 'secret', kind('rock')), tileObj('rock2', [480, 1461], 'secret', kind('rock')), tileObj('rock4', [480, 1486], 'secret', kind('rock')),
+  loot('gold', [480, 23 * T + 40], 12), loot('gold', [480, 24 * T + 32], 8),
+  // a rock pile on the tiny islet across 2 water tiles from the field's south shore (col 13, row 21): out of reach of any swing, a dynamite thrown south lands next to it
+  tileObj('rock2', bottom(13, 25), 'secret', kind('rock')),
 );
 // two enterable houses near the spawn. A door is a rect over the doorway in the art (house1.png: door x 51-77, y 126-162 in the
 // 128x192 frame) that reaches down past the base shadow, where the walking-up hero's feet stop. Its `interior` is a map path.
