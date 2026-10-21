@@ -1,8 +1,8 @@
-// Writes maps/test.tmj, a 40x26 test island. Run: node tiled/make-test-map.js (after make-rules.js and make-objects.js)
+// Writes maps/test.tmj, a 64x50 test island. Run: node tiled/make-test-map.js (after make-rules.js and make-objects.js)
 const fs = require('fs'), path = require('path');
 const C = require('./common.js'), TR = require('../src/terrain.js');
 const R = path.join(__dirname, '..');
-const W = 40, H = 26, T = 64;
+const W = 64, H = 50, T = 64;
 const objTs = JSON.parse(fs.readFileSync(path.join(R, 'maps/objects.tsj'), 'utf8'));
 const keyOf = t => (t.properties || []).find(p => p.name === 'key')?.value || t.image.split('/').pop().replace(/\.png$/i, '');
 const findTile = key => objTs.tiles.find(t => keyOf(t) === key);
@@ -19,6 +19,15 @@ const rows = { 2: [7, 12], 3: [5, 14], 4: [4, 15], 5: [4, 16], 6: [3, 16], 7: [3
 const idx = (x, y) => y * W + x;
 const ground = new Uint8Array(W * H), raised = new Uint8Array(W * H), water = new Uint8Array(W * H);
 for (const [y, r] of Object.entries(rows)) for (const [a, b] of typeof r[0] === 'number' ? [r] : r) for (let x = a; x <= b; x++) ground[idx(x, +y)] = 1;
+// East and south of the meadow, all reached from it (the camp is in the middle of the meadow: walk round it):
+// - a 2-tile corridor east (rows 17-18, cols 39-43) into the snake den (cols 44-56, rows 13-23);
+// - from the den a 3-wide corridor south (cols 49-51, rows 24-27) into the boss arena: ground cols 42-59, rows 28-43, the inside (the camp rect) is cols 43-58 x rows 29-42
+//   (16 x 14 flat tiles) and its fence ring is the outer row/column; water below row 43, where the dock and the boat are;
+// - a spider glade north of the meadow (cols 25-40, rows 2-7, joined by a 4-wide neck, rows 8-10, cols 30-33);
+// - a slingshot grove south of it (cols 26-37, rows 27-37, neck rows 24-26, cols 30-33).
+const land = (c0, r0, c1, r1) => { for (let y = r0; y <= r1; y++) for (let x = c0; x <= c1; x++) ground[idx(x, y)] = 1 };
+land(39, 17, 43, 18); land(44, 13, 56, 23); land(49, 24, 51, 27); land(42, 28, 59, 43);
+land(25, 2, 40, 7); land(30, 8, 33, 10); land(30, 24, 33, 26); land(26, 27, 37, 37);
 for (let y = 10; y <= 11; y++) for (let x = 9; x <= 11; x++) { ground[idx(x, y)] = 0; water[idx(x, y)] = 1; } // pond
 for (let y = 3; y <= 6; y++) for (let x = 6; x <= 11; x++) raised[idx(x, y)] = 1;                          // 6x4 plateau
 for (let x = 9; x <= 11; x++) raised[idx(x, 9)] = 1;                                                      // bump whose cliff stands in the pond
@@ -66,7 +75,7 @@ const tileObj = (key, [x, y], cls, props = []) => {
   const t = findTile(key);
   return { id: oid++, name: '', ...(cls && { class: cls }), gid: gidOf(key), x, y, width: t.width, height: t.height, rotation: 0, visible: true, properties: props };
 };
-const point = (cls, [x, y], props = []) => ({ id: oid++, name: cls, class: cls, x, y, width: 0, height: 0, point: true, rotation: 0, visible: true, properties: props });
+const point = (cls, [x, y], props = [], name = cls) => ({ id: oid++, name, class: cls, x, y, width: 0, height: 0, point: true, rotation: 0, visible: true, properties: props });
 const objects = [
   tileObj('tree1', bottom(8, 2), 'secret', [P('kind', 'tree', 'string', 'secretKind')]),
   tileObj('tree2', bottom(14, 4)), tileObj('tree4', bottom(4, 9)),
@@ -121,6 +130,33 @@ objects.push(
   tileObj('bush3', bottom(26, 12)), tileObj('bush2', bottom(37, 22)), tileObj('rock3', bottom(26, 21)), tileObj('tree3', bottom(37, 12)),
   loot('meat', centre(36, 21)),
 );
+// Enemy areas (a gnome stands with 64 px tiles: `gap` = transparent rows under the feet in the 192 / 256 px frame). `n` makes a pack in a ring.
+const foe = (key, gap, cx, cy, n) => tileObj(key + '-idle', [cx * T + T / 2, cy * T + T / 2 + gap], undefined, n > 1 ? [P('count', n, 'int')] : []);
+objects.push(
+  // snake den: slow, then a lunge. Rocks and a bush to dodge round.
+  foe('snake', 69, 47, 15, 2), foe('snake', 69, 54, 19, 2),
+  tileObj('rock1', bottom(46, 21)), tileObj('rock3', bottom(53, 14)), tileObj('bush1', bottom(51, 22)), tileObj('tree2', bottom(55, 22)),
+  // spider glade: three fast ones that skitter
+  foe('spider', 55, 31, 4, 3), foe('spider', 55, 37, 5, 2),
+  tileObj('tree1', bottom(27, 3)), tileObj('tree4', bottom(39, 3)), tileObj('bush2', bottom(34, 3)), tileObj('rock2', bottom(26, 6)),
+  // slingshot grove: three that keep their distance. A rock and a tree stand in the line of fire (an acorn stops at them)
+  foe('slingshot', 55, 29, 32), foe('slingshot', 55, 34, 34), foe('slingshot', 55, 31, 36),
+  tileObj('rock2', bottom(31, 30)), tileObj('tree3', bottom(35, 30)), tileObj('rock4', bottom(28, 35)), tileObj('bush3', bottom(36, 36)),
+  loot('meat', centre(27, 28)),
+);
+// The boss arena: a boss `camp` (the inside is 16 x 14 flat tiles, nothing in it but the Bear, which stands in the middle), a gate in the fence ring on the
+// north side (the way in, below the corridor) and on the south side (the dock). The dock is one plank section standing on the south shore, over the water
+// (a stepstone: feet may stand on it); the boat floats beside it. Standing in the `dock` rect shows the Board prompt, once the Bear is down.
+objects.push(
+  rect('camp', 43, 29, 58, 42, [P('kind', 'boss')]), rect('gate', 50, 28, 50, 28), rect('gate', 50, 43, 50, 43),
+  foe('bear', 79, 50, 35),
+  tileObj('dock', [50 * T + 32, 43 * T + 40 + 158], 'stepstone'),
+  tileObj('boat', [52 * T + 38, 44 * T + 210], 'boat'),
+  rect('dock', 50, 44, 50, 45),
+);
+// named spawn points for ?at=<name> (dev shortcut): the first `spawn` above is the default
+const at = (name, cx, cy) => point('spawn', centre(cx, cy), [], name);
+objects.push(at('field', 10, 17), at('camp', 36, 21), at('snakes', 45, 17), at('spiders', 29, 6), at('grove', 31, 28), at('arena', 50, 26), at('dock', 50, 44));
 // two enterable houses near the spawn. A door is a rect over the doorway in the art (house1.png: door x 51-77, y 126-162 in the
 // 128x192 frame) that reaches down past the base shadow, where the walking-up hero's feet stop. Its `interior` is a map path.
 const house2 = tileObj('house1', [416, 768]);

@@ -1,6 +1,7 @@
 // Camps: a Tiled `camp` rect (tile-aligned) holds a Gnome Hut / Tower and some gnomes; a Wooden Fence ring stands on the cells around it, with gaps
 // where `gate` rects lie on the ring. The hero's feet entering the rect close the gates (their pieces pop up, with dust, and block); when every enemy
-// that started inside is dead they open (the pieces sink) and the power-up choice opens (scene.openCards). Cleared is for good. Numbers: data.js (CAMP, FENCE).
+// that started inside is dead they open (the pieces sink) and the power-up choice opens (scene.openCards). A `camp` with kind=boss is a boss arena: the same, but the
+// boss bar (scene.hud) shows while it is closed and no cards open. Cleared is for good. Numbers: data.js (CAMP, FENCE).
 // Scene contract (TestMap): scene.hero, scene.enemies, scene.solid(unit, x, y), scene.depthOf, scene.openCards(), place(R) = the scene's way of adding a collision rect.
 
 // Pure. A camp's next state: open -> closed once the hero's feet are inside, closed -> cleared when no starting enemy is left. Cleared stays.
@@ -25,6 +26,7 @@ class Camp {
   // o = the camp rect (px, from readMap), gates = the gate rects, place = scene's collision-rect adder, T = tile size
   constructor(scene, o, gates, place, T = 64) {
     this.scene = scene; this.state = 'open'; this.foes = [];
+    this.boss = o.props && o.props.kind === 'boss';   // a boss arena: the boss bar shows while it is closed, and clearing it opens no cards
     this.rect = o;
     const c0 = Math.round(o.x / T), r0 = Math.round(o.y / T), c1 = Math.round((o.x + o.w) / T) - 1, r1 = Math.round((o.y + o.h) / T) - 1;
     const cells = gates.map(g => ({ c0: Math.floor(g.x / T), r0: Math.floor(g.y / T), c1: Math.ceil((g.x + g.w) / T) - 1, r1: Math.ceil((g.y + g.h) / T) - 1 }))
@@ -63,6 +65,7 @@ class Camp {
       sc.tweens.add({ targets: g.img, y: g.y, alpha: 1, duration: CAMP.rise, ease: 'Back.easeOut' });
       puff(sc, g.img.x + 32, g.y + 46);
     }
+    if (this.boss && this.foes[0]) { const b = this.foes[0]; sc.hud?.showBoss(b.b.name, b.b.avatar); sc.hud?.setBossHp(b.hp / b.maxHp) }
     const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
     for (const u of [sc.hero, ...this.foes.filter(e => !e.dead)])
       for (let i = 0; i < 40 && sc.solid(u, u.x, u.y); i++) {
@@ -78,6 +81,7 @@ class Camp {
       sc.tweens.add({ targets: g.img, y: g.y + CAMP.sink, alpha: 0, duration: CAMP.drop, onComplete: () => g.img.setVisible(false) });
       puff(sc, g.img.x + 32, g.y + 46);
     }
+    if (this.boss) return void sc.hud?.hideBoss();
     sc.time.delayedCall(CAMP.delay * 1000, () => { if (!sc.hero.dead && !sc.leaving) sc.openCards() });
   }
 }

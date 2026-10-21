@@ -125,6 +125,31 @@
   },
   {
    "id": 8,
+   "name": "boat",
+   "type": "class",
+   "color": "#ff2080ff",
+   "members": [],
+   "useAs": [
+    "property",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 9,
+   "name": "dock",
+   "type": "class",
+   "color": "#ff20a0a0",
+   "members": [],
+   "useAs": [
+    "property",
+    "object"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 10,
    "name": "loot",
    "type": "class",
    "color": "#ffffd020",
@@ -160,7 +185,7 @@
    "drawFill": true
   },
   {
-   "id": 9,
+   "id": 11,
    "name": "secret",
    "type": "class",
    "color": "#ff20c040",
@@ -181,7 +206,7 @@
    "drawFill": true
   },
   {
-   "id": 10,
+   "id": 12,
    "name": "stepstone",
    "type": "class",
    "color": "#ff40a0ff",
@@ -194,7 +219,7 @@
    "drawFill": true
   },
   {
-   "id": 11,
+   "id": 13,
    "name": "npc",
    "type": "class",
    "color": "#ffffffff",
@@ -214,7 +239,7 @@
    "drawFill": true
   },
   {
-   "id": 12,
+   "id": 14,
    "name": "shop",
    "type": "class",
    "color": "#ffe0a060",
@@ -234,7 +259,7 @@
    "drawFill": true
   },
   {
-   "id": 13,
+   "id": 15,
    "name": "gate",
    "type": "class",
    "color": "#ffa0a0a0",
@@ -246,7 +271,7 @@
    "drawFill": true
   },
   {
-   "id": 14,
+   "id": 16,
    "name": "washup",
    "type": "class",
    "color": "#ff4080ff",
@@ -260,7 +285,7 @@
    "drawFill": true
   },
   {
-   "id": 15,
+   "id": 17,
    "name": "spawn",
    "type": "class",
    "color": "#ff40ff40",
@@ -274,7 +299,7 @@
    "drawFill": true
   },
   {
-   "id": 16,
+   "id": 18,
    "name": "chunk",
    "type": "class",
    "color": "#ffff80ff",
@@ -313,7 +338,7 @@
    "drawFill": true
   },
   {
-   "id": 17,
+   "id": 19,
    "name": "door",
    "type": "class",
    "color": "#ffff8000",
@@ -331,7 +356,7 @@
    "drawFill": true
   },
   {
-   "id": 18,
+   "id": 20,
    "name": "floor",
    "type": "class",
    "color": "#8040ff40",
@@ -343,7 +368,7 @@
    "drawFill": true
   },
   {
-   "id": 19,
+   "id": 21,
    "name": "block",
    "type": "class",
    "color": "#80ff4040",
@@ -355,7 +380,7 @@
    "drawFill": true
   },
   {
-   "id": 20,
+   "id": 22,
    "name": "exit",
    "type": "class",
    "color": "#ff4080ff",
@@ -367,7 +392,7 @@
    "drawFill": true
   },
   {
-   "id": 21,
+   "id": 23,
    "name": "interior",
    "type": "class",
    "color": "#ffa0e0ff",

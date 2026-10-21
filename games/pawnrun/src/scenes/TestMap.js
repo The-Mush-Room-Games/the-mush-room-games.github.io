@@ -45,10 +45,11 @@ const feetHit = (r, u) => u.x + FEET.x > r.x && u.x - FEET.x < r.x + r.w && u.y 
 
 class TestMap extends Phaser.Scene {
   constructor(key = 'TestMap') { super(key) }
+  init(d) { this.run = d || {} }                                  // { island, hero } when a boat brought us here (Sail); empty on a first start, after a death or R
   create() {
     this.ready = this.leaving = false;
     this.cameras.main.setBackgroundColor('#47aba9');          // the pack's water colour
-    this.input.keyboard.once('keydown-R', () => this.scene.restart());
+    this.input.keyboard.once('keydown-R', () => this.scene.restart({}));
     const name = new URLSearchParams(location.search).get('map') || 'test';
     readMap(`maps/${name}.tmj`, loadJson).then(m => this.build(m, name), e => this.fail(e));
   }
@@ -58,10 +59,13 @@ class TestMap extends Phaser.Scene {
   }
   build(m, name) {
     dressTerrain(this, m);
+    const q = new URLSearchParams(location.search);
+    this.island = this.run.island ?? (+q.get('island') || 1);       // island number: enemies and power-ups scale with it (ISLAND, powerK)
     const lv = heightGrid(m), wg = walkGrids(m), rectsAt = new Map(), rects = [];   // rectsAt: cell index -> collision rects touching it
     const onRaised = (px, py) => lv[Math.floor(py / T) * m.w + Math.floor(px / T)] === LV.RAISED;   // objects: placed on a plateau
 
-    this.hittables = []; this.enemies = []; this.loot = []; this.herd = [];
+    this.hittables = []; this.enemies = []; this.loot = []; this.herd = []; this.shots = [];
+    let boatArt = null;
     const foes = [], flock = [], stones = [];                     // enemy and sheep objects: spawned once walkable exists
     // the art of `key` standing at o: its hurtbox (tall art, trees: only the trunk end) and collision rects (rs: frame-pixel rects, else objectRects)
     this.hurtboxOf = (o, key) => {
@@ -89,7 +93,8 @@ class TestMap extends Phaser.Scene {
       const high = onRaised(o.x, o.y - 1);
       if (o.cls === 'enemy') { foes.push({ o, y: o.y - gap, high }); continue }   // an Enemy draws and moves itself
       if (/^sheep/.test(o.key)) { flock.push({ x: o.x, y: o.y - gap, high }); continue }   // so does a Sheep
-      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.cls === 'stepstone' ? -5 : o.y - gap + (high ? HIGH_DEPTH : 0));
+      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.cls === 'stepstone' ? -5 : o.cls === 'boat' ? -4 : o.y - gap + (high ? HIGH_DEPTH : 0));
+      if (o.cls === 'boat') boatArt = s;
       if (o.cls === 'stepstone') stones.push({ x0: left + fb.x, y0: top + fb.y, x1: left + fb.x + fb.w, y1: top + fb.y + fb.h });   // feet may stand on the art
       const pk = o.cls === 'secret' ? o.props.kind : /^gold-stone\d$/.test(o.key) ? 'stone' : '';   // tree, rock, stone: PROPS
       let t = null;
@@ -107,6 +112,14 @@ class TestMap extends Phaser.Scene {
         for (const R of rectsAt.get(cy * m.w + cx) || []) if (!R.gone && R.high === !!u.high && x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return true;
       return false;
     };
+    // does a shot (an acorn) at the ground point stop here? An object rect on its level, a cliff or the foot of one (low), the edge of a plateau (high), or the map's edge. Water does not stop it.
+    this.shotBlocked = (x, y, high) => {
+      const cx = Math.floor(x / T), cy = Math.floor(y / T);
+      if (cx < 0 || cy < 0 || cx >= m.w || cy >= m.h) return true;
+      const i = cy * m.w + cx, l = lv[i];
+      if (high ? l !== LV.RAISED && l !== LV.STAIRS : l === LV.RAISED || (l === LV.BLOCK && m.ground[i])) return true;   // ponytail: a plateau's edge is a wall for a shot from above, too
+      return (rectsAt.get(i) || []).some(R => !R.gone && R.high === !!high && x >= R.x0 && x < R.x1 && y >= R.y0 && y < R.y1);
+    };
     this.walkable = (u, bx, by) => feetOk(m, wg, u.high, bx, by, stones) && !this.solid(u, bx, by);
     this.depthOf = u => u.rail ? u.rail.r.depth : u.y + (u.high ? HIGH_DEPTH : 0);
     const ramps = rampsOf(m);
@@ -119,7 +132,8 @@ class TestMap extends Phaser.Scene {
       for (let i = 0; i < n; i++) {
         const a = 2 * Math.PI * i / n, p = n > 1 ? [o.x + 28 * Math.cos(a), y + 28 * Math.sin(a)] : [o.x, y];
         const [x, py] = this.walkable({ high }, ...p) ? p : [o.x, y];
-        new Enemy(this, kind, x, py, high);
+        const e = new (ENEMIES[kind].boss ? Boss : Enemy)(this, kind, x, py, high);
+        if (e.b) this.boss = e;
       }
     }
     // camps: the enemies standing inside a camp rect are the ones to clear; its fence ring and gates are built here
@@ -132,15 +146,18 @@ class TestMap extends Phaser.Scene {
     for (const f of flock) new Sheep(this, f.x, f.y, f.high);
     for (const o of m.objects) if (o.cls === 'loot' && LOOT[o.props.kind]) spawnLoot(this, o.props.kind, o.x, o.y, onRaised(o.x, o.y - 1), +o.props.n || 1, undefined, { weapon: o.props.weapon, tier: +o.props.tier || 0 });
 
-    const spawn = m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
-    const q = new URLSearchParams(location.search), form = q.get('hero') === 'new' ? 'new' : 'old';
+    // ?at=<name> (dev): start at the `spawn` point of that name (camp, field, arena...)
+    const spawn = m.objects.find(o => o.cls === 'spawn' && q.get('at') && o.name === q.get('at')) || m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
+    const form = this.run.hero?.form || (q.get('hero') === 'new' ? 'new' : 'old');
     const weapons = q.get('w') ? q.get('w').split(',') : form === 'new' ? ['axe', 'pickaxe'] : ['axe', 'hammer'];
     this.hero = new Hero(this, spawn.x, spawn.y, { form, weapons, high: onRaised(spawn.x, spawn.y) });
+    if (this.run.hero) this.hero.load(this.run.hero);               // the run carries over from the last island: weapons, items, power-ups, hp
     this.fitBounds(m.w * T, m.h * T);
     this.cameras.main.startFollow(this.hero.sprite, true, 0.15, 0.15);
 
-    this.island = +q.get('island') || 1;                            // island number: power-ups scale with it (powerK)
     this.initInput();
+    const docks = m.objects.filter(o => o.cls === 'dock' && o.w > 0);   // `dock` rects: standing in one next to the boat shows the Board prompt
+    this.boat = boatArt && new Boat(this, boatArt, docks);
 
     // doors: Tiled rects of class `door` with an `interior` map path; walking up into one (update) enters it. Coming back
     // out (wake) puts the hero just below the door, facing down.
@@ -157,7 +174,7 @@ class TestMap extends Phaser.Scene {
     this.on(this.events, 'hero-hit', h => this.onHit(h));
     this.on(this.events, 'resume', () => { this.hud?.resetStick?.(); Object.assign(this.pend, { swing: false, dash: false, swap: false, pick: false }) });   // after the cards: no stuck stick or key
     this.on(this.events, 'hero-hurt', () => this.cameras.main.shake(90, 0.004));
-    this.on(this.events, 'hero-dead', () => this.time.delayedCall(2500, () => this.scene.restart()));
+    this.on(this.events, 'hero-dead', () => this.time.delayedCall(2500, () => this.scene.restart({})));   // a death starts over on island 1 (gold and ducks live in the registry and stay)
     this.dbg = q.has('dbg') && this.add.graphics().setDepth(1e6 - 1);   // ?dbg draws collision rects, the feet box and hit circles
 
     if (this.dbg) {                                                 // dev labels, under the HUD's top row
@@ -177,8 +194,8 @@ class TestMap extends Phaser.Scene {
     const press = { SPACE: 'swing', J: 'swing', SHIFT: 'dash', K: 'dash', Q: 'swap', F: 'pick' };   // F swaps for the weapon on the ground
     for (const [key, act] of Object.entries(press))
       this.on(kb, 'keydown-' + key, e => { if (!e.repeat) this.pend[act] = true });
-    for (const [key, i] of [['E', 0], ['ONE', 0], ['TWO', 1], ['THREE', 2], ['FOUR', 3]])   // bag slots: E and 1 use the first
-      this.on(kb, 'keydown-' + key, e => { if (!e.repeat) useItem(this, i) });
+    for (const [key, i] of [['E', 0], ['ONE', 0], ['TWO', 1], ['THREE', 2], ['FOUR', 3]])   // bag slots: E and 1 use the first (E boards the boat on the dock)
+      this.on(kb, 'keydown-' + key, e => { if (!e.repeat) key === 'E' && this.boat?.state === 'board' ? this.boat.board() : useItem(this, i) });
     this.on(kb, 'keydown-H', e => { if (!e.repeat) this.hurtTest = true });
     this.move = new Phaser.Math.Vector2();
     this.on(this.input, 'pointerdown', p => { if (!p.wasTouch && p.leftButtonDown()) this.pend.swing = true });   // a click swings; the hero swings the way he faces
@@ -290,7 +307,10 @@ class TestMap extends Phaser.Scene {
     const inp = this.readInput();
     h.update(dt / 1000, inp);
     for (const e of [...this.enemies, ...this.herd]) e.update(dt / 1000);
+    for (const a of this.shots) a.update(dt / 1000);
+    this.shots = this.shots.filter(a => !a.end);
     tickLoot(this);
+    this.boat?.update();
     if (inp.pick) swapPickup(this);
     for (const c of this.camps) c.update();
     if (!this.leaving && !h.high && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }

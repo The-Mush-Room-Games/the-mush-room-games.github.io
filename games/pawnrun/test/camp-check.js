@@ -82,8 +82,10 @@ for (const [id, p] of Object.entries(POWERUPS)) {
 // the test map's camp
 const root = path.join(__dirname, '..');
 readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'))).then(m => {
-  const T = 64, camps = m.objects.filter(o => o.cls === 'camp'), gates = m.objects.filter(o => o.cls === 'gate');
-  assert.strictEqual(camps.length, 1); assert.strictEqual(gates.length, 2, 'two gates');
+  const T = 64, camps = m.objects.filter(o => o.cls === 'camp' && o.props.kind !== 'boss'), allGates = m.objects.filter(o => o.cls === 'gate');
+  assert.strictEqual(camps.length, 1); assert.strictEqual(m.objects.filter(o => o.cls === 'camp').length, 2, 'the gnome camp and the boss arena');
+  const gates = allGates.filter(g => g.x >= camps[0].x - T && g.x <= camps[0].x + camps[0].w && g.y >= camps[0].y - T && g.y <= camps[0].y + camps[0].h);   // the gnome camp's own
+  assert.strictEqual(gates.length, 2, 'two gates'); assert.strictEqual(allGates.length, 4);
   const c = camps[0], c0 = c.x / T, r0 = c.y / T, c1 = (c.x + c.w) / T - 1, r1 = (c.y + c.h) / T - 1;
   assert([c.x, c.y, c.w, c.h].every(v => v % T === 0), 'tile-aligned');
   const cells = gates.map(g => ({ c0: g.x / T, r0: g.y / T, c1: (g.x + g.w) / T - 1, r1: (g.y + g.h) / T - 1 }));

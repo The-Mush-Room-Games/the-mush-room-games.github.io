@@ -38,7 +38,7 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(root, p
   // field's west shore and the islet; each feet-box corner must be on land or a stone, so gaps stop you
   const BOX = { 'water-rocks2': [7, 17, 57, 50], 'water-rocks4': [6, 14, 57, 52] };
   const stonesOf = list => list.map(o => { const [x0, y0, x1, y1] = BOX[o.key]; return { x0: o.x - 32 + x0, y0: o.y - 64 + y0, x1: o.x - 32 + x1, y1: o.y - 64 + y1 } });
-  const all = m.objects.filter(o => o.cls === 'stepstone');
+  const all = m.objects.filter(o => o.cls === 'stepstone' && /^water-rocks/.test(o.key));   // (the dock is a stepstone too)
   assert.strictEqual(all.length, 4);
   const go = (stones, x, y, dx, dy, n) => {
     const okS = (u, bx, by) => feetOk(m, wg, u.high, bx, by, stones), u = { x, y, high: false, rail: null };

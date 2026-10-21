@@ -5,7 +5,7 @@
  "version": "1.10",
  "objectalignment": "bottom",
  "columns": 0,
- "tilecount": 112,
+ "tilecount": 113,
  "margin": 0,
  "spacing": 0,
  "tilewidth": 576,
@@ -2509,6 +2509,28 @@
    "y": 0,
    "width": 192,
    "height": 192
+  },
+  {
+   "id": 112,
+   "image": "../assets/props/dock.png",
+   "imagewidth": 66,
+   "imageheight": 158,
+   "x": 0,
+   "y": 0,
+   "width": 66,
+   "height": 158,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "dock"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
   }
  ]
 }

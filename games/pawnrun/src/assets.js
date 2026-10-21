@@ -99,6 +99,7 @@ const ASSETS = {
   'gnome-tower': ['props/gnome-tower.png'],
   fence: ['props/fence.png'],
   boat: ['props/boat.png', 256, 256],
+  dock: ['props/dock.png'],                               // one plank section cut out of the old Bridge sheet (terrain/obridge.png)
   // pickups
   gold: ['pickups/gold.png'],
   'gold-highlight': ['pickups/gold-highlight.png', 128, 128],
@@ -254,6 +255,9 @@ const ANIMS = {
   'opawn-carry-run': ['opawn', 30, 35],
   'odead-dead': ['odead', 0, 6],
   'odead-buried': ['odead', 7, 13],
+  'bear-attack-wind': ['bear-attack', 0, 1],       // the Bear's attack sheet in three parts: crouch, rear up (arms raised), swipe (the arc)
+  'bear-attack-rear': ['bear-attack', 2, 5],
+  'bear-attack-swipe': ['bear-attack', 6, 8],
 };
 
 if (typeof module === 'object') module.exports = { ASSETS, ANIMS };

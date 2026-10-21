@@ -15,7 +15,11 @@ const types = [
   // a gnome camp (src/camp.js): a tile-aligned rect that is the INSIDE. The enemies standing in it must die to clear it. A Wooden Fence ring is drawn on the cells
   // around it; each `gate` rect (tile-aligned, on that ring) is a gap whose fence only appears while the camp is closed
   cls('camp', '#ffff8040', [str('kind', 'gnome')], ['property', 'object']),
+  // a boss arena is a `camp` with kind = boss (its inside is the camp rect; the boss is an `enemy` tile standing in it: bear-idle); the boss bar shows while it is closed
   cls('boss', '#ffc000c0', [str('kind')]),
+  // the boat at the end of a level (src/boat.js): a Boat tile object of class `boat` on the water; `dock` rects on the planks beside it show its Board prompt
+  cls('boat', '#ff2080ff', [], ['property', 'object', 'tile']),
+  cls('dock', '#ff20a0a0', [], ['property', 'object']),
   cls('loot', '#ffffd020', [enm('kind', 'lootKind', 'random'), { name: 'n', type: 'int', value: 1 }, str('weapon'), { name: 'tier', type: 'int', value: 0 }]),   // weapon/tier: only for kind weapon (axe, hammer, pickaxe, knife; tier 0-3)
   cls('secret', '#ff20c040', [enm('kind', 'secretKind', 'tree')]),
   cls('stepstone', '#ff40a0ff', [], ['property', 'object', 'tile']),   // a Water Rock in the water that feet can stand on (they must overlap to form a path)
@@ -23,7 +27,7 @@ const types = [
   cls('shop', '#ffe0a060', [str('shop')]),
   cls('gate', '#ffa0a0a0', [], ['property', 'object']),
   cls('washup', '#ff4080ff', []),
-  cls('spawn', '#ff40ff40', []),
+  cls('spawn', '#ff40ff40', []),   // the first spawn is where the hero starts; give the others a name and ?at=<name> starts there (dev)
   cls('chunk', '#ffff80ff', [enm('kind', 'chunkKind', 'landmark'), str('biomes'),
     { name: 'minIsland', type: 'int', value: 1 }, { name: 'weight', type: 'float', value: 1 }, { name: 'mirror', type: 'bool', value: false }], ['property', 'map']),
   // doors and interiors (src/scenes/Interior.js): a `door` rect on an outdoor map names the interior map it opens;

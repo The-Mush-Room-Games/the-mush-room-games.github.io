@@ -6,7 +6,7 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
 
 (async () => {
   const m = await readMap('maps/test.tmj', loadJson);
-  assert.deepStrictEqual([m.w, m.h], [40, 26]);
+  assert.deepStrictEqual([m.w, m.h], [64, 50]);
 
   for (const k of ['ground', 'raised', 'stairs', 'water']) {
     assert(m[k] instanceof Uint8Array && m[k].length === m.w * m.h, k + ' size');
@@ -41,8 +41,8 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   const houses = tiles.filter(o => o.key === 'house1');
   assert.strictEqual(houses.length, 2, 'two enterable houses');
   assert.deepStrictEqual(houses[0].block, [2, 2]);
-  assert.deepStrictEqual(one(tiles, o => o.key === 'tree2', 'tree2').block, [1, 1]);
-  assert.deepStrictEqual(one(tiles, o => o.key === 'bush1', 'bush1').block, [0, 0]);
+  assert.deepStrictEqual(one(tiles, o => o.key === 'tree2' && o.x < 24 * 64, 'tree2').block, [1, 1]);
+  assert.deepStrictEqual(one(tiles, o => o.key === 'bush1' && o.x < 24 * 64, 'bush1').block, [0, 0]);
 
   const gnome = one(tiles, o => o.cls === 'enemy' && o.x < 24 * 64, 'the island gnome pack');   // the camp's gnomes are in camp-check
   assert.strictEqual(gnome.key, 'gnome-idle');
@@ -51,18 +51,19 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   const secs = tiles.filter(o => o.cls === 'secret');
   assert.deepStrictEqual(secs.map(o => o.props.kind + ':' + o.key.replace(/\d$/, '')).sort(), Array(6).fill('rock:rock').concat(['tree:tree', 'tree:tree']));
   assert.strictEqual(tiles.filter(o => /^gold-stone\d$/.test(o.key)).length, 3, 'three gold stones');
-  assert.strictEqual(tiles.filter(o => o.cls === 'stepstone').length, 4, 'four stepping stones');
-  assert(tiles.filter(o => o.cls === 'stepstone').every(o => /^water-rocks\d$/.test(o.key)), 'stepping stones are Water Rocks');
+  const stepped = tiles.filter(o => o.cls === 'stepstone' && o.key !== 'dock');           // (the boss arena's dock is a stepstone too)
+  assert.strictEqual(stepped.length, 4, 'four stepping stones');
+  assert(stepped.every(o => /^water-rocks\d$/.test(o.key)), 'stepping stones are Water Rocks');
   assert.strictEqual(tiles.filter(o => /^sheep/.test(o.key)).length, 3, 'three sheep');
 
-  const spawn = one(shapes, o => o.cls === 'spawn', 'spawn');
+  const spawn = one(shapes, o => o.cls === 'spawn' && o.name === 'spawn', 'spawn');   // the others are named ?at= points
   assert.deepStrictEqual([spawn.w, spawn.h], [0, 0]);
   const ent = one(shapes, o => o.cls === 'entrance', 'entrance');
   assert(ent.w > 0 && ent.h > 0 && ent.x + ent.w === 20 * 64, 'entrance on the first island\'s east edge');
   const lootOf = k => shapes.filter(o => o.cls === 'loot' && o.props.kind === k);
   assert.strictEqual(lootOf('duck').length, 2, 'a duck in the open and one in the tree pocket');
   assert.deepStrictEqual(lootOf('gold').map(o => o.props.n).sort((a, b) => a - b), [5, 8, 10, 12], 'gold behind the rocks and on the islet');
-  assert.strictEqual(lootOf('meat').length, 3, 'two behind secrets and one in the camp meadow');
+  assert.strictEqual(lootOf('meat').length, 4, 'two behind secrets, one in the camp meadow, one in the slingshot grove');
   // weapons (tier 1 axe, tier 2 hammer, a pickaxe the old Pawn can't use) and one-use items on the field
   const ws = lootOf('weapon').map(o => o.props.weapon + o.props.tier).sort();
   assert.deepStrictEqual(ws, ['axe1', 'hammer2', 'pickaxe0']);
