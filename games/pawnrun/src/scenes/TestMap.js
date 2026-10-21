@@ -38,8 +38,6 @@ function objectRects(o, box) {
   else if (/^(house|castle|tower|barracks|monastery)/.test(o.key)) { w = 0.9 * box.w; h = 0.4 * box.h }
   return [{ x: box.x + (box.w - w) / 2, y: box.y + box.h - 2 - h, w, h }];
 }
-const FEET = { x: 10, top: 6, bottom: 2 };                      // feet box around the feet point: x ±10, y -6..+2
-const FEET_HIGH = { x: 16, top: 6, bottom: 8 };                 // on raised ground: the grass stops ~5px inside the tile edge
 const HITTABLE = /^(tree|rock|bush|sheep|pig)/;
 
 class TestMap extends Phaser.Scene {
@@ -58,8 +56,7 @@ class TestMap extends Phaser.Scene {
   build(m, name) {
     dressTerrain(this, m);
     const lv = heightGrid(m), rectsAt = new Map(), rects = [];     // rectsAt: cell index -> collision rects touching it
-    const cell = (px, py) => [Math.floor(px / T), Math.floor(py / T)];
-    const level = (px, py) => { const [x, y] = cell(px, py); return x < 0 || y < 0 || x >= m.w || y >= m.h ? 0 : lv[y * m.w + x] };
+    const level = (px, py) => levelAt(m, lv, px, py);
     const depth = (px, py) => py + (level(px, py) === LV.RAISED ? T : 0);   // one-tile boost on raised ground
 
     this.hittables = [];
@@ -69,9 +66,10 @@ class TestMap extends Phaser.Scene {
       const fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box;   // the art box as drawn (mirrored when flipped)
       const gap = box.fh - (box.y + box.h);                        // transparent rows under the art: the drawn feet sit that much higher
       const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(depth(o.x, o.y - 1) - gap);
-      if (HITTABLE.test(o.key)) {                                  // circle on the art's base, so it can be hit from any side
-        const r = Math.min(36, 0.45 * Math.min(box.w, box.h));
-        this.hittables.push({ s, x: left + fb.x + box.w / 2, y: top + box.y + box.h - r, r });
+      if (HITTABLE.test(o.key)) {                                  // hurtbox: the art as drawn; tall art (trees) only its trunk end
+        const tall = box.h > 64, w = tall ? 0.4 * box.w : box.w, cx = left + fb.x + box.w / 2, y1 = top + box.y + box.h;
+        this.hittables.push({ s, ox: o.x, high: level(o.x, o.y - 1) === LV.RAISED,
+          hb: { x0: cx - w / 2, x1: cx + w / 2, y0: y1 - (tall ? 56 : box.h), y1 } });
       }
       const anim = this.anims.get(o.key);
       if (anim && anim.repeat === -1) s.play({ key: o.key, startFrame: Phaser.Math.Between(0, anim.frames.length - 1) });
@@ -86,17 +84,18 @@ class TestMap extends Phaser.Scene {
     }
     // walkable(a -> b): the feet box around b must sit on terrain the unit can step to from a, and touch no object rect
     this.rects = rects;
-    const masks = stairMasks(this);
     this.walkable = (ax, ay, bx, by) => {
       const F = level(bx, by) === LV.RAISED ? FEET_HIGH : FEET;
       for (const px of [bx - F.x, bx + F.x]) for (const py of [by - F.top, by + F.bottom])
-        if (!cornerOk(m, lv, masks, ax, ay, px, py)) return false;
+        if (!cornerOk(m, lv, ax, ay, px, py)) return false;
       const x0 = bx - FEET.x, x1 = bx + FEET.x, y0 = by - FEET.top, y1 = by + FEET.bottom;
       for (let cy = Math.floor(y0 / T); cy <= Math.floor(y1 / T); cy++) for (let cx = Math.floor(x0 / T); cx <= Math.floor(x1 / T); cx++)
         for (const R of rectsAt.get(cy * m.w + cx) || []) if (x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return false;
       return true;
     };
     this.depthAt = depth;
+    const ramps = rampsOf(m);
+    this.moveFeet = (u, dx, dy) => moveFeet(ramps, this.walkable, u, dx, dy);   // ramps carry units along their centre line
 
     const spawn = m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
     const q = new URLSearchParams(location.search), form = q.get('hero') === 'new' ? 'new' : 'old';
@@ -142,18 +141,20 @@ class TestMap extends Phaser.Scene {
     emitter.on(ev, fn);
     this.events.once('shutdown', () => emitter.off(ev, fn));
   }
-  onHit({ x, y, r, damage, weapon }) {
-    if (this.dbg) this.dbgHit = { x, y, r, until: this.time.now + 150 };
+  onHit({ rect: h, high, damage, weapon }) {
+    if (this.dbg) this.dbgHit = { ...h, until: this.time.now + 150 };
     for (const t of this.hittables) {
-      if (Math.hypot(t.x - x, t.y - y) > r + t.r) continue;
+      const b = t.hb;                                              // the slash box must overlap the hurtbox, same level only
+      if (t.high !== high || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
       this.hits++;
       const s = t.s;
-      this.tweens.killTweensOf(s); s.x = t.x;
+      this.tweens.killTweensOf(s); s.x = t.ox;
       s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
       if (t.flash) t.flash.remove();
       t.flash = this.time.delayedCall(90, () => s.clearTint().setTintMode(Phaser.TintModes.MULTIPLY));
-      this.tweens.add({ targets: s, x: t.x + 3, duration: 35, yoyo: true, repeat: 2, onComplete: () => s.x = t.x });
-      const p = this.add.sprite(t.x, t.y, 'dust1').setDepth(1e5).play('dust1');
+      this.tweens.add({ targets: s, x: t.ox + 3, duration: 35, yoyo: true, repeat: 2, onComplete: () => s.x = t.ox });
+      const p = this.add.sprite((Math.max(h.x0, b.x0) + Math.min(h.x1, b.x1)) / 2, (Math.max(h.y0, b.y0) + Math.min(h.y1, b.y1)) / 2, 'dust1')
+        .setDepth(1e5).play('dust1');
       p.once('animationcomplete', () => p.destroy());
     }
   }
@@ -184,9 +185,11 @@ class TestMap extends Phaser.Scene {
     if (this.dbg) {
       const g = this.dbg.clear();
       g.lineStyle(1, 0xff4040); for (const R of this.rects) g.strokeRect(R.x0, R.y0, R.x1 - R.x0, R.y1 - R.y0);
-      g.lineStyle(1, 0x60ff60).strokeRect(h.x - FEET.x, h.y - FEET.top, 2 * FEET.x, FEET.top + FEET.bottom);
-      g.lineStyle(1, 0x60b0ff); for (const t of this.hittables) g.strokeCircle(t.x, t.y, t.r);
-      if (this.dbgHit && this.time.now < this.dbgHit.until) g.lineStyle(2, 0xffe066).strokeCircle(this.dbgHit.x, this.dbgHit.y, this.dbgHit.r);
+      const F = this.depthAt(h.x, h.y) !== h.y ? FEET_HIGH : FEET;
+      g.lineStyle(1, 0x60ff60).strokeRect(h.x - F.x, h.y - F.top, 2 * F.x, F.top + F.bottom);
+      g.lineStyle(1, 0x60b0ff); for (const { hb: b } of this.hittables) g.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+      const d = this.dbgHit;
+      if (d && this.time.now < d.until) g.lineStyle(2, 0xffe066).strokeRect(d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0);
     }
     this.readout?.setText(`${h.weapon}  HP ${h.hp}/${h.maxHp}  hits ${this.hits}  dash ${Math.round(h.dashFrac * 100)}%`);
     if (this.hud) {

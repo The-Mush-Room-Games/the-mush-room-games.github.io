@@ -1,6 +1,6 @@
 // The hero: movement, swing, dash, hurt, death. One class for both forms (old Pawn / new Pawn).
-// Scene contract: scene.walkable(ax, ay, bx, by), scene.depthAt(x, y). Events on scene.events:
-//   'hero-hit' { x, y, r, damage, weapon }   'hero-hurt' { hp, dmg, x, y }   'hero-dead'   'hero-swap' { weapon }
+// Scene contract: scene.moveFeet(unit, dx, dy) -> [x, y], scene.depthAt(x, y). Events on scene.events:
+//   'hero-hit' { rect: {x0,y0,x1,y1}, high, damage, weapon }   'hero-hurt' { hp, dmg, x, y }   'hero-dead'   'hero-swap' { weapon }
 // update(dt, input): dt in SECONDS; input = { move: Vector2 (len <= 1), aim: Vector2|null, swing, dash, swap } (last 3 = pressed this frame).
 class Hero {
   constructor(scene, x, y, { form = 'old', weapons = ['axe', 'hammer'] } = {}) {
@@ -12,8 +12,9 @@ class Hero {
     this.maxHp = this.hp = st.hp; this.speed = st.speed;
     this.sprite = scene.add.sprite(x, y, form === 'old' ? 'opawn' : 'pawn-idle-' + this.weapons[0]).setOrigin(0.5, st.originY);
     this.aim = new Phaser.Math.Vector2(1, 0);       // last aim direction (unit)
-    this.swing = null;                               // { w, dir, hit } while swinging
+    this.swing = null;                               // { w, key, hit } while swinging
     this.swingCd = 0; this.buf = 0;                  // recovery after a swing, buffered swing press
+    this.rail = null;                                // set by scene.moveFeet while riding a ramp
     this.dashT = 0; this.dashCd = 0; this.dashDir = new Phaser.Math.Vector2();
     this.inv = 0;                                    // invulnerable seconds left (dash and hurt)
     this.hurtT = 0; this.flashT = 0;                 // blink time, red flash time
@@ -28,10 +29,9 @@ class Hero {
   anim(kind) {                                       // 'idle' | 'run'
     return this.form === 'old' ? HERO.old[kind] : `pawn-${kind}-${this.weapon}`;
   }
-  step(dx, dy) {                                     // per-axis slide: each axis moves only if the feet land somewhere walkable
-    const s = this.sprite, w = this.scene.walkable;
-    if (w(s.x, s.y, s.x + dx, s.y)) s.x += dx;
-    if (w(s.x, s.y, s.x, s.y + dy)) s.y += dy;
+  step(dx, dy) {                                     // the scene slides the feet along walls and carries them along ramps
+    const [x, y] = this.scene.moveFeet(this, dx, dy);
+    this.sprite.setPosition(x, y);
   }
   puff(x, y) {                                       // a dust1 puff that deletes itself
     const p = this.scene.add.sprite(x, y - 8, 'dust1').setDepth(this.scene.depthAt(x, y) + 1).play('dust1');
@@ -87,7 +87,7 @@ class Hero {
   startSwing() {
     const w = WEAPONS[this.weapon], s = this.sprite;
     this.buf = 0;
-    this.swing = { w, key: this.weapon, dir: this.aim.clone(), hit: false };
+    this.swing = { w, key: this.weapon, hit: false };
     s.anims.timeScale = w.speed;
     s.play(w.anim[this.form]);
   }
@@ -95,8 +95,10 @@ class Hero {
     const sw = this.swing, s = this.sprite;
     const frame = s.anims.currentFrame ? s.anims.currentFrame.index - 1 : 0, done = !s.anims.isPlaying;
     if (!sw.hit && (frame >= sw.w.hitFrame[this.form] || done)) {
-      sw.hit = true;
-      this.scene.events.emit('hero-hit', { x: this.x + sw.dir.x * sw.w.reach, y: this.y + sw.dir.y * sw.w.reach, r: sw.w.radius, damage: sw.w.damage, weapon: sw.key });
+      sw.hit = true;                                 // the slash box from the art, mirrored when facing left
+      const [x0, y0, x1, y1] = sw.w.hit[this.form], f = s.flipX ? -1 : 1, scene = this.scene;
+      const rect = { x0: this.x + (f > 0 ? x0 : -x1), x1: this.x + (f > 0 ? x1 : -x0), y0: this.y + y0, y1: this.y + y1 };
+      scene.events.emit('hero-hit', { rect, high: scene.depthAt(this.x, this.y) !== this.y, damage: sw.w.damage, weapon: sw.key });
     }
     if (done) { this.swingCd = sw.w.recover; this.swing = null; }
   }
