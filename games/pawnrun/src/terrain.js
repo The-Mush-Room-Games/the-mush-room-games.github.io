@@ -52,6 +52,7 @@ const canStep = (a, b) => a !== LV.BLOCK && b !== LV.BLOCK && (a === b || a === 
 // Feet boxes around a unit's feet point. On a plateau the grass stops ~5px inside the tile edge and the back edge has
 // a thick outline, so the box is bigger there.
 const FEET = { x: 10, top: 6, bottom: 2 }, FEET_HIGH = { x: 16, top: 14, bottom: 8 };
+const HIGH_DEPTH = 2 * T;     // depth boost for anything standing on a plateau (see dressTerrain)
 const BEHIND = 26;           // how far feet go in behind a plateau's back edge: legs hidden, head and body still showing
 
 // Where feet may stand, per level. A plateau's top is drawn one tile above the ground it covers: a raised cell blocks
@@ -95,7 +96,7 @@ function rampsOf(m) {
     const F = { x: fx, y: yAt(fx) }, P = { x: px, y: yAt(px) }, L = Math.hypot(P.x - F.x, P.y - F.y);
     const d = { x: (P.x - F.x) / L, y: (P.y - F.y) / L };
     out.push({ F, P, L, d, n: { x: -d.y, y: d.x }, side, footCell: [sx + side, sy + 1], topCell: [sx - side, sy],
-      depth: (sy + 2) * T });                                       // riders draw over both ramp rows
+      depth: (sy + 2) * T + 1 });                                   // riders draw over both ramp rows
   }
   return out;
 }
@@ -130,8 +131,11 @@ function moveFeet(ramps, ok, u, dx, dy) {
   return [x, y];
 }
 
-// Phaser side. Water is the camera background; layers bottom to top: foam −40, flat −30, shadow −20, raised, cliffs and
-// stairs −10, except each plateau back row, which sorts with the units (see walkGrids).
+// Phaser side. Water is the camera background; layers bottom to top: foam −40, flat −30, shadow −20, stairs −10. Plateau
+// tops and cliffs sort with the units, one layer per row. A top-surface pixel covers the ground one tile below it, so it
+// is in front of anything standing on the ground less than a tile below it (a unit beside or behind the plateau is
+// shorter than the cliff): a top row y sorts at (y + 2) * T, a cliff row at (y + 1) * T. Units on a plateau sort at
+// feet + 2 * T, so the row they stand on stays under them (HIGH_DEPTH).
 // low/high: texture keys of the colour files for flat and raised ground (the guide: one colour per level).
 function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
   const c = cellFns(m), mid = n => n * T + T / 2;
@@ -139,11 +143,10 @@ function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
   const tsLow = map.addTilesetImage('low', low, T, T, 0, 0, 0);
   const tsHigh = map.addTilesetImage('high', high, T, T, 0, 0, 54);
   const flat = map.createBlankLayer('flat', tsLow).setDepth(-30);
-  const lvl1 = map.createBlankLayer('lvl1', tsHigh).setDepth(-10);
-  const foam = [], shadows = [], backRows = new Map();
-  // a plateau's back row covers the ground below it, so it draws in front of units walking behind it: one layer per row
-  const backRow = y => backRows.get(y) || backRows.set(y, map.createBlankLayer('back' + y, tsHigh, 0, y * T, m.w, 1)
-    .setDepth((y + 1) * T - 0.5)).get(y);
+  const stairs = map.createBlankLayer('stairs', tsHigh).setDepth(-10);
+  const foam = [], shadows = [], rows = new Map();
+  const row = (y, d) => rows.get(y + ':' + d) || rows.set(y + ':' + d,                      // a one-row layer at depth d
+    map.createBlankLayer('row' + y + ':' + d, tsHigh, 0, y * T, m.w, 1).setDepth(d - 0.5)).get(y + ':' + d);
   const addFoam = (x, y) => foam.push(scene.add.sprite(mid(x), mid(y), 'foam').setDepth(-40)
     .play({ key: 'foam', startFrame: Phaser.Math.Between(0, 15) }));
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
@@ -151,18 +154,18 @@ function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
       flat.putTileAt(autotile(c.G, x, y), x, y);
       if (!c.G(x - 1, y) || !c.G(x + 1, y) || !c.G(x, y - 1) || !c.G(x, y + 1)) addFoam(x, y);
     }
-    if (c.S(x, y)) lvl1.putTileAt(54 + m.stairTiles[y * m.w + x], x, y);
+    if (c.S(x, y)) stairs.putTileAt(54 + m.stairTiles[y * m.w + x], x, y);
     if (!c.H(x, y)) continue;
     // a stair top beside a raised edge: swap that edge for the centre piece (15), as the guide says
     const t = c.top(x - 1, y) || c.top(x + 1, y) ? 15 : autotile(c.H, x, y, 5);
-    if (c.H(x, y - 1)) lvl1.putTileAt(54 + t, x, y); else backRow(y).putTileAt(54 + t, x, 0);
+    row(y, (y + 2) * T).putTileAt(54 + t, x, 0);
     shadows.push(scene.add.image(mid(x), mid(y + 1), 'shadow').setDepth(-20));
     if (hasCliff(c, x, y)) {
-      lvl1.putTileAt(54 + cliffTile(c, x, y), x, y + 1);
+      row(y + 1, (y + 2) * T).putTileAt(54 + cliffTile(c, x, y), x, 0);
       if (!c.G(x, y + 1)) addFoam(x, y + 1);                  // cliffs standing in water get foam too
     }
   }
-  return { map, flat, lvl1, backRows, foam, shadows };
+  return { map, flat, stairs, rows, foam, shadows };
 }
 
-if (typeof module === 'object') module.exports = { T, LV, STAIR_IDX, FEET, FEET_HIGH, autotile, heightGrid, canStep, walkGrids, standOk, feetOk, rampsOf, moveFeet, cellFns, cliffTile, hasCliff };
+if (typeof module === 'object') module.exports = { T, LV, STAIR_IDX, FEET, FEET_HIGH, HIGH_DEPTH, autotile, heightGrid, canStep, walkGrids, standOk, feetOk, rampsOf, moveFeet, cellFns, cliffTile, hasCliff };

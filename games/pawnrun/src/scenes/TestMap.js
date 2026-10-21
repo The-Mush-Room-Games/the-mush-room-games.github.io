@@ -65,7 +65,7 @@ class TestMap extends Phaser.Scene {
       const fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box;   // the art box as drawn (mirrored when flipped)
       const gap = box.fh - (box.y + box.h);                        // transparent rows under the art: the drawn feet sit that much higher
       const high = onRaised(o.x, o.y - 1);
-      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.y - gap + (high ? T : 0));
+      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.y - gap + (high ? HIGH_DEPTH : 0));
       if (HITTABLE.test(o.key)) {                                  // hurtbox: the art as drawn; tall art (trees) only its trunk end
         const tall = box.h > 64, w = tall ? 0.4 * box.w : box.w, cx = left + fb.x + box.w / 2, y1 = top + box.y + box.h;
         this.hittables.push({ s, ox: o.x, high,
@@ -91,7 +91,7 @@ class TestMap extends Phaser.Scene {
         for (const R of rectsAt.get(cy * m.w + cx) || []) if (R.high === !!u.high && x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return false;
       return true;
     };
-    this.depthOf = u => u.rail ? u.rail.r.depth : u.y + (u.high ? T : 0);   // one-tile boost on a plateau
+    this.depthOf = u => u.rail ? u.rail.r.depth : u.y + (u.high ? HIGH_DEPTH : 0);
     const ramps = rampsOf(m);
     this.moveFeet = (u, dx, dy) => moveFeet(ramps, this.walkable, u, dx, dy);   // ramps carry units along their centre line
 
