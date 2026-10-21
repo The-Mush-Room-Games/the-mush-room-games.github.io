@@ -151,9 +151,8 @@ class Hud {
     const A = (o, d = 0) => { o.setDepth(UI_D + d); o.icon?.setDepth(UI_D + d + 1); this.list.push(o); return o };
     const label = (x, y, str, size, ox = 0.5) => A(s.add.text(x, y, str, numTxt(size)).setOrigin(ox, 0.5).setScrollFactor(0), 3);   // HUD labels are all numbers
 
-    A(roundPortrait(s, 62, 62, 'avatar05'), 2);              // top left: hero portrait (Blue Pawn, wood ring) and the HP bar beside it, the number on the bar
+    A(roundPortrait(s, 62, 62, 'avatar05'), 2);              // top left: hero portrait (Blue Pawn, wood ring) and the HP bar beside it (no number)
     this.hp = A(bar(s, 188, 62, 240, 'big'), 1);              // the bar's wood starts 40 px into its art: x 188 tucks it 12 px under the ring
-    this.hpText = label(188, 63, '', 20);
     this.coin = A(icon(s, W - 36, 32, 'icon03'));                      // top right: gold, ducks under it once you have one
     this.goldText = label(W - 68, 34, '', 24, 1);
     this.duck = A(icon(s, W - 36, 84, 'duck', 0).setScale(2));
@@ -212,7 +211,7 @@ class Hud {
     this.resetStick = () => end(this.sp);                       // a scene that slept never saw the finger lift
   }
 
-  setHp(cur, max) { Object.assign(this.v, { hp: cur, max }); this.hp.set(cur / max); this.hpText.setText(`${cur}/${max}`) }
+  setHp(cur, max) { Object.assign(this.v, { hp: cur, max }); this.hp.set(cur / max) }
   setGold(n) { this.v.gold = n; this.goldText.setText(n) }
   setDucks(n) { this.v.ducks = n; this.duck.setVisible(n > 0); this.duckText.setText(n).setVisible(n > 0) }
   setWeapons(slots, active) {
