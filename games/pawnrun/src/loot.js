@@ -5,7 +5,7 @@
 
 // Pure. Rows of a drop table -> [{ kind, n }]; rnd() is in [0, 1).
 const rollDrops = (table, rnd = Math.random) => table.filter(r => r.p === undefined || rnd() < r.p)
-  .map(r => ({ kind: r.kind, n: r.min === undefined ? 1 : r.min + Math.floor(rnd() * (r.max - r.min + 1)) }));
+  .map(r => ({ kind: r.kind, n: r.min === undefined ? 1 : r.min + Math.floor(rnd() * (r.max - r.min + 1)), ...(r.weapon && { weapon: r.weapon, tier: r.tier || 0 }) }));
 // Pure. Does unit u's feet box F (on its own level) overlap the square of half-size r around pickup p?
 const pickedUp = (F, u, p, r = PICKUP.r) => !!u.high === !!p.high &&
   u.x + F.x > p.x - r && u.x - F.x < p.x + r && u.y + F.bottom > p.y - r && u.y - F.top < p.y + r;
@@ -43,13 +43,14 @@ function spawnLoot(scene, kind, x, y, high, n = 1, from, extra) {
 }
 // Roll a drop table and scatter the results around (x, y), onto ground the unit's level can stand on.
 function dropLoot(scene, table, x, y, high) {
-  for (const { kind, n } of rollDrops(table)) {
+  for (const { kind, n, weapon, tier } of rollDrops(table)) {
+    const w = weapon === 'any' ? Phaser.Utils.Array.GetRandom(Object.keys(WEAPONS).filter(k => canUse(scene.hero.form, k))) : weapon;
     let tx = x, ty = y;
     for (let i = 0; i < 6; i++) {                                           // a few tries for a walkable landing spot
       const a = Math.random() * 2 * Math.PI, r = Phaser.Math.Between(...PICKUP.scatter), px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
       if (scene.walkable({ high }, px, py)) { tx = px; ty = py; break }
     }
-    spawnLoot(scene, kind, tx, ty, high, n, [x, y - 16]);
+    spawnLoot(scene, kind, tx, ty, high, n, [x, y - 16], w && { weapon: w, tier });
   }
 }
 // Take pickup p: a weapon into a free slot, an item into the bag if it has room. Gold and ducks add to the registry.

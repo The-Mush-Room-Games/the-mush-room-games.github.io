@@ -29,14 +29,50 @@ const DASH = { time: 0.3, mult: 1.85, invuln: 0.3, cooldown: 0.9 };
 
 // Enemies (distances in px, 64 = one tile). hp is in weapon damage (axe 2, hammer 5). hitFrame = attack frame where the club lands,
 // hitRange = how close the hero must still be then. hurtbox = [x0, y0, x1, y1] from the feet. drops = key in DROPS.
+// Extras by kind: snake `lunge` { frame, coil, speed, time } (the attack anim holds on `frame` for `coil` s, then it lunges `speed` px/s for `time` s),
+// spider `gait` { burst, rest } (it only moves during a burst), slingshot (`ai: 'sling'`): shoots within `reach` (not closer than `minShot`), backs off under `near`, closes in past `far`,
+// the acorn leaves at `hitFrame` as `shot` { speed, range, r (hit circle), kb, dy (drawn this high), ox (leaves this far in front) }.
+// The bear (a boss, src/boss.js) has its moves in `boss`.
 const ENEMIES = {
   gnome: { hp: 4, speed: 80, sight: 5 * 64, lose: 8 * 64, reach: 44, hitRange: 56, hitFrame: 3, damage: 1, cooldown: 0.8,
     stun: 0.3, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 0.35, originY: 127 / 192, hurtbox: [-18, -40, 18, 2], drops: 'gnome',
     idle: 'gnome-idle', run: 'gnome-run', attack: 'gnome-attack' },
+  snake: { hp: 5, speed: 50, sight: 5 * 64, lose: 8 * 64, reach: 108, hitRange: 62, hitFrame: 3, damage: 1, cooldown: 1.2,
+    lunge: { frame: 2, coil: 0.35, speed: 400, time: 0.28 },
+    stun: 0.3, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 0.35, originY: 123 / 192, hurtbox: [-30, -40, 30, 2], drops: 'snake',
+    idle: 'snake-idle', run: 'snake-run', attack: 'snake-attack' },
+  spider: { hp: 3, speed: 210, sight: 5 * 64, lose: 8 * 64, reach: 50, hitRange: 58, hitFrame: 4, damage: 1, cooldown: 0.7,
+    gait: { burst: 0.4, rest: 0.5 },
+    stun: 0.3, knockback: 40, kbTime: 0.15, flash: 0.1, fade: 0.35, originY: 137 / 192, hurtbox: [-30, -48, 30, 2], drops: 'spider',
+    idle: 'spider-idle', run: 'spider-run', attack: 'spider-attack' },
+  slingshot: { ai: 'sling', hp: 3, speed: 70, backSpeed: 95, sight: 7 * 64, lose: 10 * 64, reach: 5 * 64, near: 3 * 64, far: 5 * 64, minShot: 110, hitFrame: 6, damage: 1, cooldown: 1.6,
+    shot: { speed: 240, range: 7 * 64, r: 14, kb: 30, dy: 34, ox: 26 },
+    stun: 0.3, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 0.35, originY: 137 / 192, hurtbox: [-18, -48, 18, 2], drops: 'slingshot',
+    idle: 'slingshot-idle', run: 'slingshot-run', attack: 'slingshot-shoot' },
+  // The Bear: hp is in weapon damage (an old Pawn's tier-0 axe does 2 per swing). `scale` = drawn size, `r` = half width of its collision (it
+  // needs more room than a gnome), walk/keep = approach speed and the distance it stops at, rest = s between moves, resist = share of a knockback it
+  // takes, stunMul = damage multiplier while it is stunned. Below p2At of its hp it is in phase 2: speeds x p2.speed, telegraphs x p2.tele.
+  // weights: how often each move is picked, near / far = the hero closer / farther than the swipe's range (p2w multiplies them in phase 2).
+  // swipe: range (px, the hero must also be in front), tele = telegraph s, dmg, kb. charge: tele, speed, dist = longest rush, hitR, stun = s stunned after a wall.
+  // slam: tele, then a ring grows at `speed` px/s to radius `r`, w = half its thickness; only a dash (or standing outside r) avoids it. rec = s of rest after the move.
+  bear: { hp: 110, speed: 0, sight: 14 * 64, lose: 1e9, reach: 0, hitRange: 0, hitFrame: 0, damage: 1, cooldown: 0, stun: 0, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 1.2,
+    originY: 177 / 256, hurtbox: [-80, -112, 80, 2], drops: 'bear', idle: 'bear-idle', run: 'bear-run', attack: 'bear-attack',
+    boss: { name: 'Bear', avatar: 'bear-avatar', scale: 1.6, r: 56, walk: 100, keep: 90, rest: 0.9, resist: 0.15, stunMul: 1.5, p2At: 0.5, p2: { speed: 1.3, tele: 0.65 }, roar: 1.0,
+      weights: { near: { swipe: 6, slam: 3, charge: 1 }, far: { charge: 5, slam: 3, swipe: 0 } }, p2w: { swipe: 1, slam: 1.5, charge: 1.5 },
+      swipe: { range: 150, tele: 0.45, dmg: 2, kb: 50, rec: 0.35 },
+      charge: { tele: 0.8, speed: 430, dist: 500, hitR: 90, dmg: 2, kb: 70, stun: 1.4, rec: 0.5 },
+      slam: { tele: 0.55, hold: 0.15, speed: 300, r: 330, w: 20, dmg: 1, kb: 60, rec: 0.7 } },
+  },
 };
-// Drop tables: one pickup per row; p = chance (default always), min..max = amount (default 1).
+// Island scaling: an enemy on island n has hp x (1 + hp x (n - 1)) and damage x (1 + dmg x (n - 1)), rounded (never under 1). Island 1 = the numbers above.
+const ISLAND = { hp: 0.35, dmg: 0.34 };
+// Drop tables: one pickup per row; p = chance (default always), min..max = amount (default 1), weapon + tier = a weapon pickup ('any': a random one the hero can use).
 const DROPS = {
   gnome: [{ kind: 'gold', min: 2, max: 4 }, { kind: 'meat', p: 0.25 }, { kind: 'dynamite', p: 0.08 }],
+  snake: [{ kind: 'gold', min: 3, max: 5 }, { kind: 'meat', p: 0.2 }],
+  spider: [{ kind: 'gold', min: 1, max: 3 }, { kind: 'meat', p: 0.15 }, { kind: 'bomb', p: 0.06 }],
+  slingshot: [{ kind: 'gold', min: 2, max: 4 }, { kind: 'meat', p: 0.2 }, { kind: 'dynamite', p: 0.12 }],
+  bear: [{ kind: 'duck' }, { kind: 'duck' }, { kind: 'duck' }, { kind: 'gold', min: 10, max: 15 }, { kind: 'weapon', weapon: 'any', tier: 2 }],   // weapon 'any' = one the hero can use
   bush: [{ kind: 'gold', p: 0.2 }],                 // rolled once per bush, on the first hit
   sheep: [{ kind: 'gold' }],                        // the first hit on a sheep
   stone: [{ kind: 'gold', min: 1, max: 2 }],        // every pickaxe hit on a gold stone
@@ -119,4 +155,4 @@ const POWERUPS = {
 };
 const HIT2 = { delay: 0.1, mult: 1 };                // Twin Strike: the second hit lands `delay` s after the first, for `mult` of its damage
 
-if (typeof module === 'object') module.exports = { CAMP, FENCE, RARITY, POWER_SCALE, STAT0, POWERUPS, HIT2, WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };
+if (typeof module === 'object') module.exports = { ISLAND, CAMP, FENCE, RARITY, POWER_SCALE, STAT0, POWERUPS, HIT2, WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };
