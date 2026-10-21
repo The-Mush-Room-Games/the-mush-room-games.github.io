@@ -5,7 +5,7 @@
  "version": "1.10",
  "objectalignment": "bottom",
  "columns": 0,
- "tilecount": 119,
+ "tilecount": 118,
  "margin": 0,
  "spacing": 0,
  "tilewidth": 576,
@@ -2634,28 +2634,6 @@
      "name": "key",
      "type": "string",
      "value": "house2"
-    },
-    {
-     "name": "block",
-     "type": "string",
-     "value": "2,2"
-    }
-   ]
-  },
-  {
-   "id": 118,
-   "image": "../assets/town/house3.png",
-   "imagewidth": 128,
-   "imageheight": 192,
-   "x": 0,
-   "y": 0,
-   "width": 128,
-   "height": 192,
-   "properties": [
-    {
-     "name": "key",
-     "type": "string",
-     "value": "house3"
     },
     {
      "name": "block",
