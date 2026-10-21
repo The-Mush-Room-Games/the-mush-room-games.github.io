@@ -103,12 +103,12 @@ class UIGallery extends Phaser.Scene {
       ['HUD + touch controls forced on', () => { this.hud = this.makeHud(true) }],
     ];
     this.pageCount = this.pages.length;
-    this.title = this.add.text(240, 12, '', txt(14)).setOrigin(0.5).setDepth(2e6).setScrollFactor(0);
+    this.title = this.add.text(this.scale.width / 2, 12, '', txt(14)).setOrigin(0.5).setDepth(2e6).setScrollFactor(0);
     this.fixed = this.children.list.length;
     this.page = Phaser.Math.Clamp((+new URLSearchParams(location.search).get('page') || 1) - 1, 0, this.pageCount - 1);
     this.input.keyboard.on('keydown-LEFT', () => this.go(-1));
     this.input.keyboard.on('keydown-RIGHT', () => this.go(1));
-    this.input.on('pointerdown', p => { if (Math.abs(p.y - this.title.y) < 14) this.go(p.x < 240 ? -1 : 1) });
+    this.input.on('pointerdown', p => { if (Math.abs(p.y - this.title.y) < 14) this.go(p.x < this.scale.width / 2 ? -1 : 1) });
     this.show();
   }
   note(x, y, str) { return this.add.text(x, y, str, txt(12)).setOrigin(0.5).setAlign('center') }
@@ -118,7 +118,7 @@ class UIGallery extends Phaser.Scene {
     h.setWeapons([{ key: 'axe', tier: 0 }, { key: 'hammer', tier: 2 }], 1);
     h.setItems(['meat', 'dynamite', null]);
     h.showBoss('Bear King', 'bear-avatar'); h.setBossHp(0.7);
-    if (touch) this.stickText = this.add.text(240, 280, '', txt(12)).setOrigin(0.5).setDepth(2e6);
+    if (touch) this.stickText = this.add.text(this.scale.width / 2, 330, '', txt(12)).setOrigin(0.5).setDepth(2e6);
     ['swing', 'dash', 'swap', 'item', 'map'].forEach(n => this.events.on('hud-' + n, a => this.flash(n + (a === undefined ? '' : ' ' + a))));
     return h;
   }
@@ -130,9 +130,11 @@ class UIGallery extends Phaser.Scene {
     this.tweens.killAll(); this.time.removeAllEvents();
     ['swing', 'dash', 'swap', 'item', 'map'].forEach(n => this.events.off('hud-' + n));
     this.children.list.slice(this.fixed).forEach(o => o.destroy());
-    this.title.y = this.pages[this.page][0].startsWith('HUD') ? 250 : 12;
+    const hud = this.pages[this.page][0].startsWith('HUD');
+    this.title.y = hud ? 312 : 12;
     this.titleStr = `ui ${this.page + 1}/${this.pageCount}: ${this.pages[this.page][0]}`;
     this.title.setText(this.titleStr);
     this.pages[this.page][1]();
+    if (!hud) this.add.container(60, 75, this.children.list.slice(this.fixed));   // the pages are laid out for 480x600: centre them
   }
 }

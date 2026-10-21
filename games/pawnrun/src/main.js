@@ -10,7 +10,7 @@ const start = () => window.game = new Phaser.Game({         // window.game: hand
   parent: 'game',
   backgroundColor: '#0b0612',
   pixelArt: true,
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 480, height: 600 },
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 600, height: 750 },
   scene: [Boot, AnimGallery, UIGallery, TestMap],
   callbacks: { preBoot: g => g.registry.set('start', startScene) },
   banner: false,

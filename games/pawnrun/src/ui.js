@@ -107,10 +107,10 @@ function portrait(s, x, y, key, w = 64, h = 64, frame = true) {
 }
 
 // ---------------------------------------------------------------- HUD (screen space, depth >= 1e6)
-// Layout at 480x600. Stick + round buttons only on touch devices (or new Hud(scene, {touch:true})).
+// Layout at 600x750: the top row hugs the top corners, the bottom row and touch controls the bottom corners (W, H = screen size). Stick + round buttons only on touch devices (or new Hud(scene, {touch:true})).
 class Hud {
   constructor(scene, opts = {}) {
-    const s = this.scene = scene;
+    const s = this.scene = scene, W = s.scale.width, H = s.scale.height;
     this.list = [];
     this._stick = new Phaser.Math.Vector2();
     this.touch = opts.touch ?? uiTouch(s);
@@ -124,13 +124,13 @@ class Hud {
     this.hpText = label(272, 36, '', 28, 0);
     this.dash = A(bar(s, 174, 82, 224, 'small'), 1);
     // top right: counters (coin icon, duck frame 0 at 2x)
-    A(icon(s, 372, 30, 'icon03'));
-    this.goldText = label(404, 32, '0', 32, 0);
-    A(icon(s, 372, 84, 'duck', 0).setScale(2));
-    this.duckText = label(404, 86, '0', 32, 0);
+    A(icon(s, W - 108, 30, 'icon03'));
+    this.goldText = label(W - 76, 32, '0', 32, 0);
+    A(icon(s, W - 108, 84, 'duck', 0).setScale(2));
+    this.duckText = label(W - 76, 86, '0', 32, 0);
 
     // boss: big ribbon top centre, boss portrait, name, big bar (hidden until showBoss)
-    this.boss = A(uiBox(s, 240, 150, []), 2);
+    this.boss = A(uiBox(s, W / 2, 150, []), 2);
     const rib = ribbon(s, 0, 0, 440, 'red', 'big', ''), name = s.add.text(30, -18, '', txt(20)).setOrigin(0.5).setScrollFactor(0);
     this.bossBar = bar(s, 30, 14, 256, 'big');
     this.bossFace = portrait(s, -160, 0, 'bear-avatar');
@@ -140,12 +140,12 @@ class Hud {
 
     // bottom: 2 weapon slots (small square frame, tier ribbon under it; the active one is shown pressed) + 3 item slots (tiny square)
     this.w = [68, 200].map((x, i) => {
-      const sl = A(slot(s, x, 505, 'small'), 1), tag = A(ribbon(s, x, 572, 128, 'blue', 'small', ''), 2);
+      const sl = A(slot(s, x, H - 95, 'small'), 1), tag = A(ribbon(s, x, H - 28, 128, 'blue', 'small', ''), 2);
       uiHand(s, sl.fr); sl.fr.on('pointerdown', () => s.events.emit('hud-swap'));
       return { sl, tag };
     });
-    this.it = [296, 368, 440].map((x, i) => {
-      const sl = A(slot(s, x, 510, 'tiny'), 1);
+    this.it = [W - 184, W - 112, W - 40].map((x, i) => {
+      const sl = A(slot(s, x, H - 90, 'tiny'), 1);
       uiHand(s, sl.fr); sl.fr.on('pointerdown', () => s.events.emit('hud-item', i));
       return sl;
     });
@@ -155,16 +155,16 @@ class Hud {
   }
 
   _touchControls(A) {
-    const s = this.scene, ev = n => () => s.events.emit(n);
+    const s = this.scene, W = s.scale.width, H = s.scale.height, ev = n => () => s.events.emit(n);
     s.input.addPointer(2);                                      // stick + buttons at the same time
     // floating stick: a faint ring waits bottom left; a touch anywhere in the left zone moves it under the thumb
-    const home = { x: 88, y: 400 }, C = { ...home, r: 52 };
+    const home = { x: 88, y: H - 200 }, C = { ...home, r: 52 };
     const ring = A(s.add.image(C.x, C.y, 'btn-tiny-round').setScale(2).setScrollFactor(0).setAlpha(0.4));   // tiny round button at exactly 2x
     this.knob = A(s.add.image(C.x, C.y, 'btn-small-round').setScrollFactor(0).setAlpha(0.4), 1);
-    A(iconButton(s, 412, 388, 'round', 'small', 'icon05', ev('hud-swing')), 1);    // swing: crossed swords
-    A(iconButton(s, 318, 414, 'round', 'small', 'icon07', ev('hud-dash')), 1);     // dash: green play arrow
-    A(iconButton(s, 440, 290, 'round', 'small', 'icon11', ev('hud-map')), 1);       // map: info. Swap = tap a weapon slot
-    const zone = new Phaser.Geom.Rectangle(0, 120, 240, 330), stick = this._stick;
+    A(iconButton(s, W - 68, H - 212, 'round', 'small', 'icon05', ev('hud-swing')), 1);    // swing: crossed swords
+    A(iconButton(s, W - 162, H - 186, 'round', 'small', 'icon07', ev('hud-dash')), 1);     // dash: green play arrow
+    A(iconButton(s, W - 40, H - 310, 'round', 'small', 'icon11', ev('hud-map')), 1);       // map: info. Swap = tap a weapon slot
+    const zone = new Phaser.Geom.Rectangle(0, 120, W / 2, H - 270), stick = this._stick;
     const place = (x, y, a) => { C.x = x; C.y = y; ring.setPosition(x, y).setAlpha(a); this.knob.setPosition(x, y).setAlpha(a) };
     const move = p => {
       const dx = p.x - C.x, dy = p.y - C.y, d = Math.hypot(dx, dy), k = d > C.r ? C.r / d : 1;

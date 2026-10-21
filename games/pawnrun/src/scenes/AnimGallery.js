@@ -1,5 +1,5 @@
 // Dev page: every animation playing in a grid. Left/right arrows or a tap change page. ?page=N jumps to a page.
-const GCOLS = 5, GROWS = 5, GW = 96, GH = 104, GTOP = 28;
+const GCOLS = 6, GROWS = 6, GW = 96, GH = 104, GTOP = 28;
 
 class AnimGallery extends Phaser.Scene {
   constructor() { super('AnimGallery') }
@@ -9,10 +9,10 @@ class AnimGallery extends Phaser.Scene {
     this.pages = Math.ceil(this.keys.length / (GCOLS * GROWS));
     this.page = Phaser.Math.Clamp((+new URLSearchParams(location.search).get('page') || 1) - 1, 0, this.pages - 1);
     this.layer = this.add.container();
-    this.title = this.add.text(240, 14, '', txt(14)).setOrigin(0.5).setDepth(10);
+    this.title = this.add.text(this.scale.width / 2, 14, '', txt(14)).setOrigin(0.5).setDepth(10);
     this.input.keyboard.on('keydown-LEFT', () => this.go(-1));
     this.input.keyboard.on('keydown-RIGHT', () => this.go(1));
-    this.input.on('pointerdown', p => this.go(p.x < 160 ? -1 : 1));   // left third = back, rest = forward
+    this.input.on('pointerdown', p => this.go(p.x < this.scale.width / 3 ? -1 : 1));   // left third = back, rest = forward
     this.show();
   }
   go(d) { this.page = (this.page + d + this.pages) % this.pages; this.show() }
