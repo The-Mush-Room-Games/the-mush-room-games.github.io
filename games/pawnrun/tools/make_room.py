@@ -4,7 +4,7 @@
 Run from anywhere:  python3 tools/make_room.py        (needs PIL, numpy; the Modern Interiors pack in WebGames/Assets)
 
 Writes (all under the game folder):
-  assets/interiors/Room_Builder_3d_walls_48x48.png, Room_Builder_Floors_48x48.png   copies of the two Room_Builder sheets
+  assets/interiors/Room_Builder_3d_walls_48x48.png, Room_Builder_Floors_48x48.png   colour-graded copies of the two Room_Builder sheets
   assets/interiors/furniture/*.png                                                  pieces cropped from the Shadowless Theme_Sorter sheets
   maps/room_walls.tsj      wall sheet; every tile has a collision shape = the box of its opaque pixels (made once, used by every room)
   maps/room_floors.tsj     floor sheet (no collision)
@@ -12,10 +12,13 @@ Writes (all under the game folder):
   maps/interiors/house_b.tmj  the room (rules: _guide/ROOM_RULES.txt of the pack). Edit it in Tiled afterwards; this only seeds it.
 The tilesets are rewritten on every run, so run it only to rebuild from scratch.
 """
-import json, shutil
+import json, sys
 from pathlib import Path
 import numpy as np
 from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from interior_color import grade
 
 GAME = Path(__file__).resolve().parent.parent
 PACK = GAME.parents[2] / "WebGames/Assets/moderninteriors-win/1_Interiors/48x48"
@@ -46,13 +49,13 @@ def sheet_tsj(name, png, solid):
 
 WALLS, FLOORS = "Room_Builder_3d_walls_48x48.png", "Room_Builder_Floors_48x48.png"
 OUT.mkdir(parents=True, exist_ok=True)
-shutil.copy(SUB / WALLS, OUT / WALLS); shutil.copy(SUB / FLOORS, OUT / FLOORS)
+for f in (WALLS, FLOORS): grade(Image.open(SUB / f)).save(OUT / f)      # colour-graded copies (tools/interior_color.py)
 n_walls = sheet_tsj("room_walls", WALLS, True)
 n_floors = sheet_tsj("room_floors", FLOORS, False)
 
 # ---- furniture ------------------------------------------------------------------------------------------------------
 # name: (sheet, col0, row0, col1, row1 (exclusive), collision (x, y, w, h) in the cropped image, depth property)
-# The crop is trimmed to its opaque pixels. Collision follows the base: wall pieces block their whole floor depth.
+# The crop is trimmed to its opaque pixels. Not graded: the Shadowless pieces already match the Tiny Swords saturation (median 0.55 vs 0.52). Collision follows the base: wall pieces block their whole floor depth.
 PIECES = {
     "bed":        ("4_Bedroom",  9, 0, 11, 4,  lambda w, h: (0, 24, w, h - 24), None),
     "armoire":    ("2_LivingRoom", 7, 4, 9, 7, lambda w, h: (2, h - 48, w - 4, 48), None),
