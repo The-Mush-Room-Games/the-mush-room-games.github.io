@@ -303,51 +303,115 @@ def hand_ring(g):
     return int(xs.mean()), int(ys.mean())
 
 
+def find_hands(a):
+    """Hand rings by their look: a small brown disc ringed by dark outline (hair and tool shading are brown too, but not ringed)."""
+    m = is_col(a, [BROWN])
+    lab, n = ndi.label(m, structure=np.ones((3, 3)))
+    nav, out = is_col(a, [NAVY]), []
+    for i in range(1, n + 1):
+        c = lab == i
+        ys, xs = np.where(c)
+        if not (8 <= c.sum() <= 75 and np.ptp(xs) <= 9 and np.ptp(ys) <= 9):
+            continue
+        ring = ndi.binary_dilation(c, structure=np.ones((3, 3))) & ~c
+        if (ring & nav).sum() >= 0.4 * ring.sum():
+            out.append((int(xs.mean()), int(ys.mean()), c | (ring & nav)))
+    return out
+
+
+def strip_hands(lay):
+    """Take every hand ring (and its outline) off a body layer; the swing puts exactly the right two back."""
+    for _, _, m in find_hands(lay):
+        lay = lay * ~m[..., None]
+    return lay
+
+
+def ring_layer():
+    """His hand ring exactly as the hammer's wind-up frame draws it: outline, tan face, brown shade."""
+    a = side(sheet(), 2, 0)
+    m = tool_group(a, True) & ~tool_group(a, False)
+    return layer(a, m), bbox(m)
+
+
+RING, RB = ring_layer()
+RC = ((RB[0] + RB[2]) // 2, (RB[1] + RB[3]) // 2)
+
+
+def ring_at(cx, cy):
+    return xform(RING, dx=cx - RC[0], dy=cy - RC[1])
+
+
+# where the side rows draw his two hands, frame by frame (side-row pixels; the tables are turned to the view below).
+# The axe row hides both hands in the swoosh on f3 and the tool hand on f4, so those are filled in along the swing.
+FREE = {"axe": [(119, 103), (120, 100), (120, 100), (121, 106), (122, 107), (122, 108)],
+        "hammer": [(81, 111), (85, 109), (85, 109), (67, 107), (68, 105), (73, 111)]}
+HAMMER_TOOL = [(123, 80), (122, 78), (122, 78), None, None, (123, 109)]     # f3/f4: the grip is set on the slab itself
+MIRROR = lambda p: (194 - p[0], p[1])
+
+
+def free_hands(weapon, up):
+    """His free (left) hand per frame: screen right in the front view, screen left in the back view."""
+    f = FREE[weapon]
+    flip = (weapon == "axe") == up                     # the axe row's free hand is on the right, the hammer row's on the left
+    return [MIRROR(p) if flip else p for p in f]
+
+
+def mirrored_body(weapon, up):
+    """Right-handed in both views: the side rows are turned so the free hand lands on his own left."""
+    return (weapon == "axe") == up
+
+
 def hammer_frames(up, S):
     """His real build row: lift the hammer high, then slam it straight down (vertical on screen in both views)."""
-    L = lambda k: layer(S[k], tool_mask("hammer", k, S[k]))
-    group = [clean(L(k), 14) for k in range(3)]
-    sw, rs, rest = L(3), L(4), L(5)
+    flip = not up                                      # front view: his right hand is on screen left, so the row is mirrored
+    fl = (lambda lay: xform(lay, flip="h", pivot=(97, 0))) if flip else (lambda lay: lay)
+    fp = MIRROR if flip else (lambda p: p)
+    head = lambda k: strip_hands(layer(S[k], tool_group(S[k], False)))
+    sw, rs, rest = layer(S[3], tool_mask("hammer", 3, S[3])), layer(S[4], tool_mask("hammer", 4, S[4])), head(5)
     for lay in (sw, rs):
         lay[84:114, 118:132] = 0                      # that corner is his hair fringe, not swoosh
     x0, y0, x1, y1 = bbox(sw[..., 3] == 255)
     for lay in (sw, rs):                               # no dark specks along the streak: outline only on the head at the bottom
         lay[:y1 - 30] *= ~is_col(lay[:y1 - 30], [NAVY])[..., None]
-    for lay in (sw, rs):                               # and no loose bits of that outline
         nv = is_col(lay, [NAVY])
         lab, n = ndi.label(nv, structure=np.ones((3, 3)))
         lay *= ~np.isin(lab, [i + 1 for i, z in enumerate(ndi.sum(nv, lab, range(1, n + 1))) if z < 15])[..., None]
-    sw, rs = clean(sw, 8), clean(rs, 8)
+    sw, rs = clean(strip_hands(sw), 8), clean(strip_hands(rs), 8)
     lab, n = ndi.label(rs[..., 3] == 255, structure=np.ones((3, 3)))
     rs = rs * (lab == 1 + int(np.argmax(ndi.sum(lab > 0, lab, range(1, n + 1)))))[..., None]     # follow-through: the head and streak only
+    sw, rs, rest = fl(sw), fl(rs), fl(rest)
     cols = np.where((sw[y1 - 24:, :, 3] == 255).sum(0) >= 15)[0]      # the columns the head really fills
     sx0, sx1 = cols.min(), cols.max()
     slab_x = (sx0 + sx1) // 2                          # the head's centre column: this is what lands on the spot
     for lay in (sw, rs):
-        lay[y1 - 30:, :sx0 - 3] = 0                # nothing but the head at the foot of the streak
+        lay[y1 - 30:, :sx0 - 3] = 0                    # nothing but the head at the foot of the streak
+        lay[y1 - 30:, sx1 + 3:] = 0
     if up:                                             # lands just above the top of his hair, a little right of centre
         dx, dy = 104 - slab_x, 78 - y1
     else:                                              # lands just below his feet, a little left (his right hand): swoosh stretched taller
         sw = stretch(sw, 14, 62, 100)
         dx, dy = 80 - slab_x, 142 - y1
     sw, rs = xform(sw, dx=dx, dy=dy), xform(rs, dx=dx, dy=dy)
+    tool = [fp(p) if p else p for p in HAMMER_TOOL]
     low = lambda lay: lay * (np.arange(F)[:, None, None] >= 106)       # the head part, drawn in front of his feet
     high = lambda lay: lay * (np.arange(F)[:, None, None] < 106)
+    targets = [(136, 108), (136, 92), (131, 78)] if up else [(58, 100), (56, 88), (60, 74)]
+    wind = []
+    for i in range(3):                                 # lifted: his hand grips the base of the head (ring tucked 2 px up under it)
+        rx, ry = tool[i]
+        ry -= 3
+        tx, ty = targets[i]
+        wind.append(xform(fl(head(i)), dx=tx - rx, dy=ty - ry))
+        wind[-1] = (wind[-1], ring_at(tx, ty))
     out = []
-    if up:
-        for i, (hx, hy) in enumerate([(136, 108), (136, 92), (131, 78)]):      # raised from his right side to high overhead
-            g = group[i]
-            gx, gy = hand_ring(g)
-            out.append(([], True, [xform(g, dx=hx - gx, dy=hy - gy)]))
-        out += [([hand_at(118, 84)], False, [sw]), ([hand_at(118, 86)], False, [rs]),
-                ([hand_at(120, 110)], False, [xform(rest, dx=4, dy=6)])]
-    else:
-        for i, (hx, hy) in enumerate([(58, 100), (56, 88), (60, 74)]):           # cocked up over his right shoulder (screen left)
-            g = xform(group[i], flip="h", pivot=(97, 0))
-            gx, gy = hand_ring(g)
-            out.append(([xform(g, dx=hx - gx, dy=hy - gy)], False, []))
-        out += [([low(sw)], False, [high(sw)]), ([low(rs)], False, [high(rs)]),
-                ([xform(rest, flip="h", pivot=(97, 0), dx=-3, dy=4)], False, [])]
+    for i in range(3):
+        out.append(([wind[i][1]], True, [wind[i][0]]) if up else ([wind[i][0], wind[i][1]], False, []))
+    gx = (104 + 11) if up else (80 - 11)             # his right hand: on the slab's right (back view) / left (front view) side
+    for k, lay in enumerate((sw, rs)):                 # the grip sits against the foot of the head, two pixels onto it
+        ring = ring_at(gx + (-2 if up else 2), y1 + dy - 8)
+        out.append(([ring] if up else [low(lay), ring], False, [lay] if up else [high(lay)]))
+    r5 = ring_at(*HAMMER_TOOL[5])
+    out.append(([xform(r5, dx=4, dy=6)], False, [xform(rest, dx=4, dy=6)]) if up else ([rest, fl(r5)], False, []))
     return out
 
 
@@ -357,38 +421,64 @@ def frames_for(weapon, up, S):
         return hammer_frames(up, S)
     L = lambda k: layer(S[k], tool_mask("axe", k, S[k]))
     group, rest = [L(k) for k in range(3)], L(5)
-    smear, resid = L(3), L(4)
+    smear, resid = L(3), strip_hands(L(4))
     arc = lambda lay, dy=0: to_arc(lay, "axe", up, smear, top=114, bottom=70, dy=dy)
     trail = lambda dy: layer(arc(smear, dy), np.arange(F)[None, :] >= 100)
-    home = xform(rest, flip="h", pivot=(96, 0), dx=-22, dy=-4)
+    f5 = [rest, ring_at(85, 111)]                      # his own side pose again: the head at the lower left, his right hand on it
+    # f4: the side row shows only the tool hand, at the head's near edge; it rides on the arc's head end
+    hd = resid * (np.arange(F)[None, :, None] >= 135)
+    hx0, hy0, hx1, hy1 = bbox(hd[..., 3] == 255)
+    rel = (128 - hx0, 113 - (hy0 + hy1) // 2)
     if not up:                                         # his own side pose: the tool cocked up and out on screen left (his right hand)
-        return [([xform(g, dx=-3)], False) for g in group] + [
-            ([arc(smear), hand_at(113, 108)], False), ([trail(5), arc(resid, 5), hand_at(113, 110)], False), ([home], False)]
+        def f4(dy):
+            h = arc(hd, dy)
+            ax0, ay0, ax1, ay1 = bbox(h[..., 3] == 255)
+            return [trail(dy), arc(resid, dy), ring_at(ax0 + rel[0], (ay0 + ay1) // 2 + rel[1])]
+        return [([xform(g, dx=-3)], False) for g in group] + [([arc(smear)], False), (f4(5), False), (f5, False)]
     low = []
     for i in range(3):                                 # back view: tool low behind his right shoulder, pulled back
         g = xform(xform(group[i], flip="v", pivot=(96, 96)), flip="h", pivot=(96, 0))
         x0, y0, x1, y1 = bbox(g[..., 3] == 255)
         low.append(([xform(g, dx=134 - (x0 + x1) // 2 + i, dy=(110 + 2 * i) - (y0 + y1) // 2)], True))
     mir = lambda ps: [xform(q, flip="h", pivot=(96, 0)) for q in ps]      # right-handed: the arc runs from screen right over his head to the left
-    return low + [(mir([arc(smear), hand_at(110, 74)]), True), (mir([trail(-5), arc(resid, -5), hand_at(110, 76)]), True),
-                  (mir([low[0][0][0]]), True)]
+    h = arc(hd, -5)
+    ax0, ay0, ax1, ay1 = bbox(h[..., 3] == 255)
+    f4u = [trail(-5), arc(resid, -5), ring_at(ax0 + rel[0], (ay0 + ay1) // 2 + rel[1])]
+    return low + [(mir([arc(smear)]), True), (mir(f4u), True), (low[0][0], True)]
 
 
 def swing(weapon, direction):
     up = direction == "up"
     S = [side(sheet(), WEAPONS[weapon]["row"], c) for c in range(6)]
     shadow = np.where(((S[0][..., 3] > 0) & (S[0][..., 3] < 255))[..., None], S[0], 0).astype(np.uint8)
+    free = free_hands(weapon, up)
     out = []
     for k, (pieces, behind, *under) in enumerate(frames_for(weapon, up, S)):
         f = shadow.copy()
-        body = side_body(S[k], k, weapon, "back" if up else "front")
-        if weapon == "hammer" and not up and k < 3:
+        body = strip_hands(side_body(S[k], k, weapon, "back" if up else "front"))
+        if mirrored_body(weapon, up):
             body = xform(body, flip="h", pivot=(97, 0))
-        for lay in (under[0] if under else []) + (pieces + [body] if behind else [body] + pieces):
+        for lay in (under[0] if under else []) + (pieces + [body] if behind else [body] + pieces) + [ring_at(*free[k])]:
             m = lay[..., 3] == 255
             f[m] = lay[m]
         out.append(f)
     return out
+
+
+STRICT = True
+
+
+def audit(name, frames, up, weapon):
+    """Per-frame hand count and places; the rules: two hands (one only where the side row hides the tool hand in the
+    swoosh: the axe's f3), the free hand on its own side of the body."""
+    free_side = (lambda x: x < 97) if up else (lambda x: x > 97)
+    for k, f in enumerate(frames):
+        hs = [(x, y) for x, y, _ in find_hands(f)]
+        want = 1 if weapon == "axe" and k == 3 else 2
+        print(f"  {name} f{k}: {len(hs)} hands {sorted(hs)}")
+        if STRICT:
+            assert len(hs) == want, f"{name} f{k}: {len(hs)} hands, want {want}"
+            assert any(free_side(x) for x, _ in hs), f"{name} f{k}: no free hand on its side"
 
 
 def main():
@@ -397,7 +487,9 @@ def main():
     write("opawn-back-run.png", [back_from_side(side(sh, 1, c)) for c in range(6)])
     for weapon in WEAPONS:
         for d in ("up", "down"):
-            write(f"opawn-{weapon}-{d}.png", swing(weapon, d))
+            fr = swing(weapon, d)
+            write(f"opawn-{weapon}-{d}.png", fr)
+            audit(f"{weapon}-{d}", fr, d == "up", weapon)
 
 
 if __name__ == "__main__":
