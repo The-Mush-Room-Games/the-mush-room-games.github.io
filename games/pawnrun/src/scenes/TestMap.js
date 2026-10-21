@@ -1,5 +1,16 @@
 // Dev scene: draws a Tiled map through tmj.js + terrain.js and lets the old Pawn walk on it.
 // R re-reads the map from disk, so the loop is: edit in Tiled, save, press R.
+
+// Never cached, so R sees the latest save. XHR rather than fetch: headless Chrome's virtual clock waits for XHR only.
+const loadJson = p => new Promise((ok, fail) => {
+  const x = new XMLHttpRequest();
+  x.open('GET', p + '?t=' + Date.now());
+  x.responseType = 'json';
+  x.onload = () => x.status === 200 && x.response ? ok(x.response) : fail(new Error(p + ': ' + (x.status === 200 ? 'not valid JSON' : x.status)));
+  x.onerror = () => fail(new Error(p + ': could not load'));
+  x.send();
+});
+
 class TestMap extends Phaser.Scene {
   constructor() { super('TestMap') }
   create() {
@@ -7,7 +18,6 @@ class TestMap extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#47aba9');          // the pack's water colour
     this.input.keyboard.once('keydown-R', () => this.scene.restart());
     const name = new URLSearchParams(location.search).get('map') || 'test';
-    const loadJson = p => fetch(p + '?t=' + Date.now()).then(r => r.json());   // never cached, so R sees the save
     readMap(`maps/${name}.tmj`, loadJson).then(m => this.build(m, name), e => this.fail(e));
   }
   fail(e) {

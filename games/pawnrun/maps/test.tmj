@@ -12,7 +12,7 @@
  "tilewidth": 64,
  "tileheight": 64,
  "nextlayerid": 6,
- "nextobjectid": 16,
+ "nextobjectid": 17,
  "properties": [
   {
    "name": "kind",
@@ -1600,6 +1600,18 @@
        "value": "duck"
       }
      ]
+    },
+    {
+     "id": 16,
+     "gid": 167,
+     "x": 768,
+     "y": 584,
+     "width": 192,
+     "height": 192,
+     "name": "",
+     "rotation": 0,
+     "visible": true,
+     "type": ""
     }
    ]
   }

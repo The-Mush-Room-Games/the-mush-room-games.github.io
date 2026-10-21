@@ -25,11 +25,14 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   assert.strictEqual(m.cls, 'chunk');
   assert.deepStrictEqual(m.props, { biomes: 'forest', kind: 'landmark', minIsland: 1, mirror: false, weight: 1 }, JSON.stringify(m.props));
 
-  // every tile object has a known asset key (when assets.js exists)
+  // every tile object has a key Boot loads: listed in assets.js, or art added to objects.tsj in Tiled (named after its file)
   const af = path.join(root, 'src/assets.js');
   if (fs.existsSync(af)) {
     const { ASSETS } = require(af);
-    for (const o of m.objects) if ('key' in o) assert(o.key in ASSETS, 'unknown asset key ' + o.key);
+    const ts = JSON.parse(fs.readFileSync(path.join(root, 'maps/objects.tsj'), 'utf8')).tiles;
+    const extra = new Set(ts.map(t => t.image.split('/').pop().replace(/\.png$/i, '')));
+    for (const o of m.objects) if ('key' in o) assert(o.key in ASSETS || extra.has(o.key), 'unknown asset key ' + o.key);
+    assert(m.objects.some(o => o.key && !(o.key in ASSETS)), 'test map should hold one Tiled-only art object (pig-idle)');
   }
   const tiles = m.objects.filter(o => 'key' in o), shapes = m.objects.filter(o => !('key' in o));
   assert(tiles.length >= 10 && tiles.every(o => o.key && Number.isFinite(o.x) && Number.isFinite(o.y) && Array.isArray(o.block)), 'tile objects');

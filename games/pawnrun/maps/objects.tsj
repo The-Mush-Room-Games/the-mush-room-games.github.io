@@ -5,7 +5,7 @@
  "version": "1.10",
  "objectalignment": "bottom",
  "columns": 0,
- "tilecount": 111,
+ "tilecount": 112,
  "margin": 0,
  "spacing": 0,
  "tilewidth": 576,
@@ -1780,7 +1780,7 @@
      "value": "gnome-idle"
     }
    ],
-   "class": "enemy"
+   "type": "enemy"
   },
   {
    "id": 80,
@@ -1874,7 +1874,7 @@
      "value": "snake-idle"
     }
    ],
-   "class": "enemy"
+   "type": "enemy"
   },
   {
    "id": 84,
@@ -1968,7 +1968,7 @@
      "value": "spider-idle"
     }
    ],
-   "class": "enemy"
+   "type": "enemy"
   },
   {
    "id": 88,
@@ -2040,7 +2040,7 @@
      "value": "slingshot-idle"
     }
    ],
-   "class": "enemy"
+   "type": "enemy"
   },
   {
    "id": 91,
@@ -2156,7 +2156,7 @@
      "value": "bear-idle"
     }
    ],
-   "class": "enemy"
+   "type": "enemy"
   },
   {
    "id": 96,
@@ -2250,7 +2250,7 @@
      "value": "panda-idle"
     }
    ],
-   "class": "enemy"
+   "type": "enemy"
   },
   {
    "id": 100,
@@ -2322,7 +2322,7 @@
      "value": "acorn"
     }
    ],
-   "class": "enemy"
+   "type": "enemy"
   },
   {
    "id": 103,
@@ -2499,6 +2499,16 @@
      "value": "0,0"
     }
    ]
+  },
+  {
+   "id": 111,
+   "image": "../assets/props/pig-idle.png",
+   "imagewidth": 1920,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192
   }
  ]
 }
