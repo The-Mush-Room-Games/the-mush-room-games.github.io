@@ -254,18 +254,45 @@ def tool_mask(weapon, k, a):
     return with_outline(a, m)
 
 
-def side_body(a, k, weapon, view):
-    """His body from side frame k with the tool taken off (his lean, bob and steps stay), as front or back view."""
+LEGS = 115          # rows from here down are his legs (the tunic and belt end above)
+
+
+def kept_body(a, k, weapon):
+    """The side frame without its tool: (body, tool mask)."""
     tm = tool_mask(weapon, k, a)
     keep = (a[..., 3] == 255) & ~tm
     lab, n = ndi.label(keep, structure=np.ones((3, 3)))
     keep &= np.isin(lab, [i + 1 for i, z in enumerate(ndi.sum(keep, lab, range(1, n + 1))) if z >= 20])   # no flecks left over
-    b = np.where(keep[..., None], a, 0).astype(np.uint8)
-    hole = (b[..., 3] == 0) & (F0[..., 3] == 255)                 # where the swoosh hid legs/tunic: use his idle ones
+    return np.where(keep[..., None], a, 0).astype(np.uint8), tm
+
+
+def drop_leg_specks(b, minpx=4):
+    """Pixels the hand-ring removal leaves stranded down by the feet."""
+    m = b[..., 3] == 255
+    m[:LEGS - 1] = False
+    lab, n = ndi.label(m, structure=np.ones((3, 3)))
+    for i in range(1, n + 1):
+        if (lab == i).sum() < minpx:
+            b[lab == i] = 0
+    return b
+
+
+def side_body(a, k, weapon, view):
+    b, tm = kept_body(a, k, weapon)
+    hole = (b[..., 3] == 0) & (F0[..., 3] == 255)                 # where the swoosh hid the tunic: use his idle one
     hole[:112] = False
+    hole[LEGS:] = False                                            # never the idle legs: that is a third leg beside the side row's own
     hole[:, :90] = False
     hole[:, 125:] = False
     b[hole] = F0[hole]
+    # where the swoosh hid the side row's own legs, give back just that part of them (from the wind-up frame, which still shows both)
+    donor, _ = kept_body(side(sheet(), WEAPONS[weapon]["row"], 2), 2, weapon)
+    cov = ndi.binary_dilation(tm, iterations=2) & (b[..., 3] == 0) & (donor[..., 3] == 255)
+    cov[:LEGS] = False
+    cov[:, :75] = False
+    cov[:, 126:] = False
+    b[cov] = donor[cov]
+    b[LEGS:, 115:] = 0                                             # nothing but legs down here: no stray bits of the tool arm
     return b if view == "front" else back_from_side(b)
 
 
@@ -452,17 +479,18 @@ def swing(weapon, direction):
     S = [side(sheet(), WEAPONS[weapon]["row"], c) for c in range(6)]
     shadow = np.where(((S[0][..., 3] > 0) & (S[0][..., 3] < 255))[..., None], S[0], 0).astype(np.uint8)
     free = free_hands(weapon, up)
-    out = []
+    out, bodies = [], []
     for k, (pieces, behind, *under) in enumerate(frames_for(weapon, up, S)):
         f = shadow.copy()
-        body = strip_hands(side_body(S[k], k, weapon, "back" if up else "front"))
+        body = drop_leg_specks(strip_hands(side_body(S[k], k, weapon, "back" if up else "front")))
         if mirrored_body(weapon, up):
             body = xform(body, flip="h", pivot=(97, 0))
+        bodies.append(body)
         for lay in (under[0] if under else []) + (pieces + [body] if behind else [body] + pieces) + [ring_at(*free[k])]:
             m = lay[..., 3] == 255
             f[m] = lay[m]
         out.append(f)
-    return out
+    return out, bodies
 
 
 STRICT = True
@@ -481,15 +509,35 @@ def audit(name, frames, up, weapon):
             assert any(free_side(x) for x, _ in hs), f"{name} f{k}: no free hand on its side"
 
 
+def legs_of(body):
+    """The leg/foot blobs: what hangs below the last wide row (the tunic and belt) of the body layer, near his feet."""
+    m = (body[..., 3] == 255)[:, 78:117]
+    wide = [y for y in range(100, 130) if any(len(r) >= 12 for r in ''.join('1' if v else ' ' for v in m[y]).split())]
+    below = m.copy()
+    below[:max(wide) + 1] = False
+    lab, n = ndi.label(below, structure=np.ones((3, 3)))
+    return [(int(np.where(lab == i)[1].min()) + 78, int(np.where(lab == i)[1].max()) + 78, int(np.where(lab == i)[0].min()), int(np.where(lab == i)[0].max())) for i in range(1, n + 1)]
+
+
+def audit_legs(name, bodies):
+    """Exactly two legs per frame (checked on the body layer, before the tool pieces go on)."""
+    for k, b in enumerate(bodies):
+        lg = legs_of(b)
+        print(f"  {name} f{k}: {len(lg)} legs (x0,x1,y0,y1) {lg}")
+        if STRICT:
+            assert len(lg) == 2, f"{name} f{k}: {len(lg)} legs, want 2"
+
+
 def main():
     sh = sheet()
     write("opawn-back-idle.png", [back_from_side(side(sh, 0, c)) for c in range(6)])
     write("opawn-back-run.png", [back_from_side(side(sh, 1, c)) for c in range(6)])
     for weapon in WEAPONS:
         for d in ("up", "down"):
-            fr = swing(weapon, d)
+            fr, bodies = swing(weapon, d)
             write(f"opawn-{weapon}-{d}.png", fr)
             audit(f"{weapon}-{d}", fr, d == "up", weapon)
+            audit_legs(f"{weapon}-{d}", bodies)
 
 
 if __name__ == "__main__":
