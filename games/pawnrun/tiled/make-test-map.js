@@ -1,19 +1,22 @@
-// Writes maps/test.tmj, a 20x16 test island. Run: node tiled/make-test-map.js (after make-rules.js and make-objects.js)
+// Writes maps/test.tmj, a 24x26 test island. Run: node tiled/make-test-map.js (after make-rules.js and make-objects.js)
 const fs = require('fs'), path = require('path');
 const C = require('./common.js'), TR = require('../src/terrain.js');
 const R = path.join(__dirname, '..');
-const W = 20, H = 16, T = 64;
+const W = 24, H = 26, T = 64;
 const objTs = JSON.parse(fs.readFileSync(path.join(R, 'maps/objects.tsj'), 'utf8'));
 const keyOf = t => (t.properties || []).find(p => p.name === 'key')?.value || t.image.split('/').pop().replace(/\.png$/i, '');
 const findTile = key => objTs.tiles.find(t => keyOf(t) === key);
 const gidOf = key => C.FIRST.objects + findTile(key).id;
 const F = C.FIRST;
 
-// island: [row, firstCol, lastCol]
-const rows = { 2: [7, 12], 3: [5, 14], 4: [4, 15], 5: [4, 16], 6: [3, 16], 7: [3, 19], 8: [3, 19], 9: [4, 16], 10: [4, 15], 11: [5, 15], 12: [6, 14], 13: [7, 13] };
+// island: row -> [firstCol, lastCol] (or a list of those). Rows 2-13 are the first island; below it a field with:
+// a tree-walled pocket (rows 14-16, cols 19-20), a 1-tile dead end (col 10, rows 22-24) and an islet (cols 0-1) across the water
+const rows = { 2: [7, 12], 3: [5, 14], 4: [4, 15], 5: [4, 16], 6: [3, 16], 7: [3, 19], 8: [3, 19], 9: [4, 16], 10: [4, 15], 11: [5, 15], 12: [6, 14], 13: [7, 13],
+  14: [[7, 13], [19, 20]], 15: [[5, 15], [19, 20]], 16: [[4, 16], [19, 20]], 17: [[0, 1], [4, 21]], 18: [[0, 1], [4, 21]], 19: [4, 17], 20: [5, 15], 21: [7, 13],
+  22: [10, 10], 23: [10, 10], 24: [10, 10] };
 const idx = (x, y) => y * W + x;
 const ground = new Uint8Array(W * H), raised = new Uint8Array(W * H), water = new Uint8Array(W * H);
-for (const [y, [a, b]] of Object.entries(rows)) for (let x = a; x <= b; x++) ground[idx(x, +y)] = 1;
+for (const [y, r] of Object.entries(rows)) for (const [a, b] of typeof r[0] === 'number' ? [r] : r) for (let x = a; x <= b; x++) ground[idx(x, +y)] = 1;
 for (let y = 10; y <= 11; y++) for (let x = 9; x <= 11; x++) { ground[idx(x, y)] = 0; water[idx(x, y)] = 1; } // pond
 for (let y = 3; y <= 6; y++) for (let x = 6; x <= 11; x++) raised[idx(x, y)] = 1;                          // 6x4 plateau
 for (let x = 9; x <= 11; x++) raised[idx(x, 9)] = 1;                                                      // bump whose cliff stands in the pond
@@ -67,7 +70,7 @@ const objects = [
   tileObj('tree2', bottom(14, 4)), tileObj('tree4', bottom(4, 9)),
   tileObj('rock1', bottom(11, 8)), tileObj('rock2', bottom(16, 6)),
   tileObj('house1', [14 * T, 12 * T]),
-  tileObj('sheep-idle', bottom(7, 9)), tileObj('sheep-idle', bottom(12, 9)),
+  tileObj('sheep-idle', bottom(7, 9)), tileObj('sheep-idle', bottom(12, 9)), tileObj('sheep-idle', bottom(7, 17)),
   tileObj('pig-idle', [768, 584]),   // Tiled-only art (added in Tiled): keep it across regeneration
   tileObj('gnome-idle', bottom(15, 8), undefined, [P('count', 2, 'int')]),
   tileObj('bush1', bottom(6, 8)), tileObj('bush2', bottom(13, 7)), tileObj('bush3', bottom(3, 7)),
@@ -75,6 +78,24 @@ const objects = [
   { id: oid++, name: 'entrance', class: 'entrance', x: 19 * T, y: 7 * T, width: T, height: 2 * T, rotation: 0, visible: true, properties: [] },
   point('loot', centre(6, 12), [P('kind', 'duck', 'string', 'lootKind')]),
 ];
+// Resources and secrets (the field south of the first island)
+const kind = k => [P('kind', k, 'string', 'secretKind')];
+const loot = (k, [x, y], n) => point('loot', [x, y], [P('kind', k, 'string', 'lootKind'), ...(n ? [P('n', n, 'int')] : [])]);
+objects.push(
+  // gold stones: a pickaxe pops gold and steps each down a size (the old Pawn has no pickaxe: ?hero=new)
+  tileObj('gold-stone4', bottom(11, 18)), tileObj('gold-stone6', bottom(14, 18)), tileObj('gold-stone2', bottom(8, 19)),
+  // the pocket (rows 14-16, cols 19-20): a tree line closes its mouth; only the middle tree, with the mushroom at its foot, can be chopped.
+  // Trunks stand 54 px apart: 18 px between them (the Pawn is 20 wide), 31 px once the middle one is a stump
+  tileObj('tree1', [1226, 1091]), tileObj('tree1', [1280, 1091], 'secret', kind('tree')), tileObj('tree1', [1334, 1091]),
+  loot('duck', [1280, 15 * T + 32]),
+  // a 1-tile dead end closed by a rock pile (hammer, or pickaxe x2); meat and gold behind it
+  tileObj('rock4', [672, 1436], 'secret', kind('rock')), tileObj('rock2', [672, 1461], 'secret', kind('rock')),
+  loot('meat', [672, 23 * T + 32]), loot('gold', [672, 24 * T + 32], 5),
+  // stepping stones across 2 tiles of water to an islet (Water Rocks of class stepstone, overlapping so the line has no gap)
+  tileObj('water-rocks4', [128, 1183], 'stepstone'), tileObj('water-rocks2', [174, 1183], 'stepstone'),
+  tileObj('water-rocks4', [222, 1183], 'stepstone'), tileObj('water-rocks2', [265, 1183], 'stepstone'),
+  loot('gold', [44, 1140], 10), loot('meat', [84, 1170]),
+);
 // two enterable houses near the spawn. A door is a rect over the doorway in the art (house1.png: door x 51-77, y 126-162 in the
 // 128x192 frame) that reaches down past the base shadow, where the walking-up hero's feet stop. Its `interior` is a map path.
 const house2 = tileObj('house1', [416, 768]);

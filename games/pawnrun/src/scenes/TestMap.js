@@ -38,7 +38,7 @@ function objectRects(o, box) {
   else if (/^(house|castle|tower|barracks|monastery)/.test(o.key)) { w = 0.9 * box.w; h = 0.4 * box.h }
   return [{ x: box.x + (box.w - w) / 2, y: box.y + box.h - 2 - h, w, h }];
 }
-const HITTABLE = /^(tree|rock|bush|sheep|pig)/;
+const HITTABLE = /^(tree|rock|bush|gold-stone|pig)/;
 
 // Does the unit's feet box (ground level) overlap rect r = { x, y, w, h }?
 const feetHit = (r, u) => u.x + FEET.x > r.x && u.x - FEET.x < r.x + r.w && u.y + FEET.bottom > r.y && u.y - FEET.top < r.y + r.h;
@@ -61,8 +61,26 @@ class TestMap extends Phaser.Scene {
     const lv = heightGrid(m), wg = walkGrids(m), rectsAt = new Map(), rects = [];   // rectsAt: cell index -> collision rects touching it
     const onRaised = (px, py) => lv[Math.floor(py / T) * m.w + Math.floor(px / T)] === LV.RAISED;   // objects: placed on a plateau
 
-    this.hittables = []; this.enemies = []; this.loot = [];
-    const foes = [];                                               // enemy objects: spawned once walkable exists
+    this.hittables = []; this.enemies = []; this.loot = []; this.herd = [];
+    const foes = [], flock = [], stones = [];                     // enemy and sheep objects: spawned once walkable exists
+    // the art of `key` standing at o: its hurtbox (tall art, trees: only the trunk end) and collision rects (rs: frame-pixel rects, else objectRects)
+    this.hurtboxOf = (o, key) => {
+      const box = artBox(this, key), fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box, tall = box.h > 64, w = tall ? 0.4 * box.w : box.w;
+      const cx = o.x - box.fw / 2 + fb.x + box.w / 2, y1 = o.y - box.fh + box.y + box.h;
+      return { x0: cx - w / 2, x1: cx + w / 2, y0: y1 - (tall ? 56 : box.h), y1 };
+    };
+    this.addRects = (o, key, high, rs) => {
+      const box = artBox(this, key), fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box, top = o.y - box.fh, left = o.x - box.fw / 2;
+      return (rs || objectRects({ ...o, key }, fb)).map(r => {
+        const R = { x0: left + r.x, y0: top + r.y, x1: left + r.x + r.w, y1: top + r.y + r.h, high, gone: false };   // gone: broken, no longer blocks
+        rects.push(R);
+        for (let cy = Math.floor(R.y0 / T); cy <= Math.floor((R.y1 - 1e-6) / T); cy++)
+          for (let cx = Math.floor(R.x0 / T); cx <= Math.floor((R.x1 - 1e-6) / T); cx++) {
+            const k = cy * m.w + cx; (rectsAt.get(k) || rectsAt.set(k, []).get(k)).push(R);
+          }
+        return R;
+      });
+    };
     for (const o of m.objects) {
       if (!o.key) continue;                                        // markers: spawn, entrance, loot...
       const box = artBox(this, o.key), top = o.y - box.fh, left = o.x - box.fw / 2;   // frame top-left in the world
@@ -70,30 +88,24 @@ class TestMap extends Phaser.Scene {
       const gap = box.fh - (box.y + box.h);                        // transparent rows under the art: the drawn feet sit that much higher
       const high = onRaised(o.x, o.y - 1);
       if (o.cls === 'enemy') { foes.push({ o, y: o.y - gap, high }); continue }   // an Enemy draws and moves itself
-      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.y - gap + (high ? HIGH_DEPTH : 0));
-      if (HITTABLE.test(o.key) || o.cls === 'enemy') {        // hurtbox: the art as drawn; tall art (trees) only its trunk end
-        const tall = box.h > 64, w = tall ? 0.4 * box.w : box.w, cx = left + fb.x + box.w / 2, y1 = top + box.y + box.h;
-        this.hittables.push({ s, ox: o.x, high, drop: /^bush/.test(o.key) && 'bush',
-          hb: { x0: cx - w / 2, x1: cx + w / 2, y0: y1 - (tall ? 56 : box.h), y1 } });
-      }
+      if (/^sheep/.test(o.key)) { flock.push({ x: o.x, y: o.y - gap, high }); continue }   // so does a Sheep
+      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.cls === 'stepstone' ? -5 : o.y - gap + (high ? HIGH_DEPTH : 0));
+      if (o.cls === 'stepstone') stones.push({ x0: left + fb.x, y0: top + fb.y, x1: left + fb.x + fb.w, y1: top + fb.y + fb.h });   // feet may stand on the art
+      const pk = o.cls === 'secret' ? o.props.kind : /^gold-stone\d$/.test(o.key) ? 'stone' : '';   // tree, rock, stone: PROPS
+      let t = null;
+      if (HITTABLE.test(o.key)) this.hittables.push(t = { s, ox: o.x, high, drop: /^bush/.test(o.key) && 'bush', hb: this.hurtboxOf(o, o.key) });
       const anim = this.anims.get(o.key);
       if (anim && anim.repeat === -1) s.play({ key: o.key, startFrame: Phaser.Math.Between(0, anim.frames.length - 1) });
-      for (const r of objectRects(o, fb)) {
-        const R = { x0: left + r.x, y0: top + r.y, x1: left + r.x + r.w, y1: top + r.y + r.h, high };
-        rects.push(R);
-        for (let cy = Math.floor(R.y0 / T); cy <= Math.floor((R.y1 - 1e-6) / T); cy++)
-          for (let cx = Math.floor(R.x0 / T); cx <= Math.floor((R.x1 - 1e-6) / T); cx++) {
-            const k = cy * m.w + cx; (rectsAt.get(k) || rectsAt.set(k, []).get(k)).push(R);
-          }
-      }
+      const Rs = this.addRects(o, o.key, high);
+      if (t && PROPS[pk]) t.prop = new Prop(this, o, pk, t, Rs, o.y - gap);
     }
     // walkable(unit, b): the feet box at b must sit on the unit's own level and touch no object rect on that level
     this.rects = rects;
     this.walkable = (u, bx, by) => {
-      if (!feetOk(m, wg, u.high, bx, by)) return false;
+      if (!feetOk(m, wg, u.high, bx, by, stones)) return false;
       const x0 = bx - FEET.x, x1 = bx + FEET.x, y0 = by - FEET.top, y1 = by + FEET.bottom;
       for (let cy = Math.floor(y0 / T); cy <= Math.floor(y1 / T); cy++) for (let cx = Math.floor(x0 / T); cx <= Math.floor(x1 / T); cx++)
-        for (const R of rectsAt.get(cy * m.w + cx) || []) if (R.high === !!u.high && x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return false;
+        for (const R of rectsAt.get(cy * m.w + cx) || []) if (!R.gone && R.high === !!u.high && x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return false;
       return true;
     };
     this.depthOf = u => u.rail ? u.rail.r.depth : u.y + (u.high ? HIGH_DEPTH : 0);
@@ -110,6 +122,7 @@ class TestMap extends Phaser.Scene {
         new Enemy(this, kind, x, py, high);
       }
     }
+    for (const f of flock) new Sheep(this, f.x, f.y, f.high);
     for (const o of m.objects) if (o.cls === 'loot' && LOOT[o.props.kind]) spawnLoot(this, o.props.kind, o.x, o.y, onRaised(o.x, o.y - 1), +o.props.n || 1);
 
     const spawn = m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
@@ -186,16 +199,23 @@ class TestMap extends Phaser.Scene {
       if (t.high !== high || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
       this.hits++;
       if (t.enemy) { t.enemy.hurt(damage, this.hero.x, this.hero.y); continue }
+      if (t.sheep) { t.sheep.hurt(this.hero.x, this.hero.y); continue }
       if (t.drop) { dropLoot(this, DROPS[t.drop], t.ox, b.y1 + 4, high); t.drop = false }   // once per bush: rolled on the first hit
-      const s = t.s;
+      const s = t.s;                                               // every prop wobbles and flashes white; props with hp (t.prop) also react
       this.tweens.killTweensOf(s); s.x = t.ox;
       s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
       if (t.flash) t.flash.remove();
-      t.flash = this.time.delayedCall(90, () => s.clearTint().setTintMode(Phaser.TintModes.MULTIPLY));
+      t.flash = this.time.delayedCall(90, () => s.active && s.clearTint().setTintMode(Phaser.TintModes.MULTIPLY));
       this.tweens.add({ targets: s, x: t.ox + 3, duration: 35, yoyo: true, repeat: 2, onComplete: () => s.x = t.ox });
-      const p = this.add.sprite((Math.max(h.x0, b.x0) + Math.min(h.x1, b.x1)) / 2, (Math.max(h.y0, b.y0) + Math.min(h.y1, b.y1)) / 2, 'dust1')
-        .setDepth(1e5).play('dust1');
-      p.once('animationcomplete', () => p.destroy());
+      const x = (Math.max(h.x0, b.x0) + Math.min(h.x1, b.x1)) / 2, y = (Math.max(h.y0, b.y0) + Math.min(h.y1, b.y1)) / 2;   // where the slash met it
+      t.prop ? t.prop.hit(weapon, x, y) : puff(this, x, y);
+    }
+  }
+  // dynamite hook: breaks every rock pile whose hurtbox touches rect r = { x0, y0, x1, y1 } (what a blast covers)
+  blast(r) {
+    for (const t of [...this.hittables]) {
+      const b = t.hb;
+      if (t.prop && PROPS[t.prop.kind].blast && r.x1 > b.x0 && r.x0 < b.x1 && r.y1 > b.y0 && r.y0 < b.y1) t.prop.done();
     }
   }
   // this frame's hero input; zero while a fade is running
@@ -243,13 +263,13 @@ class TestMap extends Phaser.Scene {
     if (!this.ready) return;
     const h = this.hero;
     h.update(dt / 1000, this.readInput());
-    for (const e of [...this.enemies]) e.update(dt / 1000);
+    for (const e of [...this.enemies, ...this.herd]) e.update(dt / 1000);
     tickLoot(this);
     if (!this.leaving && !h.high && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }
 
     if (this.dbg) {
       const g = this.dbg.clear();
-      g.lineStyle(1, 0xff4040); for (const R of this.rects) g.strokeRect(R.x0, R.y0, R.x1 - R.x0, R.y1 - R.y0);
+      g.lineStyle(1, 0xff4040); for (const R of this.rects) if (!R.gone) g.strokeRect(R.x0, R.y0, R.x1 - R.x0, R.y1 - R.y0);
       g.lineStyle(1, 0xffa020); for (const d of this.doors) g.strokeRect(d.x, d.y, d.w, d.h);
       const F = h.high ? FEET_HIGH : FEET;
       g.lineStyle(1, 0x60ff60).strokeRect(h.x - F.x, h.y - F.top, 2 * F.x, F.top + F.bottom);

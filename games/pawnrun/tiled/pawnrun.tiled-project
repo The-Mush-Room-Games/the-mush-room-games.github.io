@@ -17,6 +17,7 @@
     "weapon",
     "item",
     "gold",
+    "meat",
     "random"
    ],
    "valuesAsFlags": false
@@ -134,6 +135,11 @@
      "type": "string",
      "propertyType": "lootKind",
      "value": "random"
+    },
+    {
+     "name": "n",
+     "type": "int",
+     "value": 1
     }
    ],
    "useAs": [
@@ -167,6 +173,19 @@
   },
   {
    "id": 10,
+   "name": "stepstone",
+   "type": "class",
+   "color": "#ff40a0ff",
+   "members": [],
+   "useAs": [
+    "property",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 11,
    "name": "npc",
    "type": "class",
    "color": "#ffffffff",
@@ -186,7 +205,7 @@
    "drawFill": true
   },
   {
-   "id": 11,
+   "id": 12,
    "name": "shop",
    "type": "class",
    "color": "#ffe0a060",
@@ -206,7 +225,7 @@
    "drawFill": true
   },
   {
-   "id": 12,
+   "id": 13,
    "name": "gate",
    "type": "class",
    "color": "#ffa0a0a0",
@@ -220,7 +239,7 @@
    "drawFill": true
   },
   {
-   "id": 13,
+   "id": 14,
    "name": "washup",
    "type": "class",
    "color": "#ff4080ff",
@@ -234,7 +253,7 @@
    "drawFill": true
   },
   {
-   "id": 14,
+   "id": 15,
    "name": "spawn",
    "type": "class",
    "color": "#ff40ff40",
@@ -248,7 +267,7 @@
    "drawFill": true
   },
   {
-   "id": 15,
+   "id": 16,
    "name": "chunk",
    "type": "class",
    "color": "#ffff80ff",
@@ -287,7 +306,7 @@
    "drawFill": true
   },
   {
-   "id": 16,
+   "id": 17,
    "name": "door",
    "type": "class",
    "color": "#ffff8000",
@@ -305,7 +324,7 @@
    "drawFill": true
   },
   {
-   "id": 17,
+   "id": 18,
    "name": "floor",
    "type": "class",
    "color": "#8040ff40",
@@ -317,7 +336,7 @@
    "drawFill": true
   },
   {
-   "id": 18,
+   "id": 19,
    "name": "block",
    "type": "class",
    "color": "#80ff4040",
@@ -329,7 +348,7 @@
    "drawFill": true
   },
   {
-   "id": 19,
+   "id": 20,
    "name": "exit",
    "type": "class",
    "color": "#ff4080ff",
@@ -341,7 +360,7 @@
    "drawFill": true
   },
   {
-   "id": 20,
+   "id": 21,
    "name": "interior",
    "type": "class",
    "color": "#ffa0e0ff",

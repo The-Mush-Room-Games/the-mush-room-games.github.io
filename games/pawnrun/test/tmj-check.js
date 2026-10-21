@@ -6,7 +6,7 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
 
 (async () => {
   const m = await readMap('maps/test.tmj', loadJson);
-  assert.deepStrictEqual([m.w, m.h], [20, 16]);
+  assert.deepStrictEqual([m.w, m.h], [24, 26]);
 
   for (const k of ['ground', 'raised', 'stairs', 'water']) {
     assert(m[k] instanceof Uint8Array && m[k].length === m.w * m.h, k + ' size');
@@ -47,15 +47,22 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   const gnome = one(tiles, o => o.cls === 'enemy', 'enemy');
   assert.strictEqual(gnome.key, 'gnome-idle');
   assert.deepStrictEqual(gnome.props, { kind: 'gnome-idle', count: 2 });
-  const sec = one(tiles, o => o.cls === 'secret', 'secret');
-  assert(sec.key.startsWith('tree') && sec.props.kind === 'tree');
+  // secrets and resources: a choppable tree (north tip), the pocket's tree and a rock pile (2 rocks)
+  const secs = tiles.filter(o => o.cls === 'secret');
+  assert.deepStrictEqual(secs.map(o => o.props.kind + ':' + o.key.replace(/\d$/, '')).sort(), ['rock:rock', 'rock:rock', 'tree:tree', 'tree:tree']);
+  assert.strictEqual(tiles.filter(o => /^gold-stone\d$/.test(o.key)).length, 3, 'three gold stones');
+  assert.strictEqual(tiles.filter(o => o.cls === 'stepstone').length, 4, 'four stepping stones');
+  assert(tiles.filter(o => o.cls === 'stepstone').every(o => /^water-rocks\d$/.test(o.key)), 'stepping stones are Water Rocks');
+  assert.strictEqual(tiles.filter(o => /^sheep/.test(o.key)).length, 3, 'three sheep');
 
   const spawn = one(shapes, o => o.cls === 'spawn', 'spawn');
   assert.deepStrictEqual([spawn.w, spawn.h], [0, 0]);
   const ent = one(shapes, o => o.cls === 'entrance', 'entrance');
-  assert(ent.w > 0 && ent.h > 0 && ent.x + ent.w === m.w * 64, 'entrance on the east edge');
-  const loot = one(shapes, o => o.cls === 'loot', 'loot');
-  assert.strictEqual(loot.props.kind, 'duck');
+  assert(ent.w > 0 && ent.h > 0 && ent.x + ent.w === 20 * 64, 'entrance on the first island\'s east edge');
+  const lootOf = k => shapes.filter(o => o.cls === 'loot' && o.props.kind === k);
+  assert.strictEqual(lootOf('duck').length, 2, 'a duck in the open and one in the tree pocket');
+  assert.deepStrictEqual(lootOf('gold').map(o => o.props.n).sort((a, b) => a - b), [5, 10], 'gold behind the rocks and on the islet');
+  assert.strictEqual(lootOf('meat').length, 2);
 
   // each house has a door rect over its doorway (inside the house's art) naming an interior map that reads and is playable
   const doors = shapes.filter(o => o.cls === 'door');

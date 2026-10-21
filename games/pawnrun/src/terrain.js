@@ -81,10 +81,13 @@ function standOk(m, wg, high, px, py) {
   }
   return v === 1 || v === 2 && ly < BEHIND || v === 3 && (m.stairTiles[cy * m.w + cx] === 36 ? lx : T - lx) + ly < T - RAMP_BACK;
 }
-// Is a unit's feet box at (bx, by) on its own level's walkable ground?
-function feetOk(m, wg, high, bx, by) {
+// Stepping stones: rects { x0, y0, x1, y1 } (the art of a Water Rock in the water) where ground-level feet may stand on top of
+// the water. Each corner of the feet box must be on land or on a stone, so a gap between stones is a wall (stones must overlap).
+const onStone = (stones, x, y) => stones.some(r => x >= r.x0 && x < r.x1 && y >= r.y0 && y < r.y1);
+// Is a unit's feet box at (bx, by) on its own level's walkable ground (or, at ground level, on a stone)?
+function feetOk(m, wg, high, bx, by, stones = []) {
   const F = high ? FEET_HIGH : FEET;
-  for (const px of [bx - F.x, bx + F.x]) for (const py of [by - F.top, by + F.bottom]) if (!standOk(m, wg, high, px, py)) return false;
+  for (const px of [bx - F.x, bx + F.x]) for (const py of [by - F.top, by + F.bottom]) if (!standOk(m, wg, high, px, py) && (high || !onStone(stones, px, py))) return false;
   return true;
 }
 
@@ -176,4 +179,4 @@ function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
   return { map, flat, stairs, rows, foam, shadows };
 }
 
-if (typeof module === 'object') module.exports = { T, LV, STAIR_IDX, FEET, FEET_HIGH, HIGH_DEPTH, autotile, heightGrid, canStep, walkGrids, standOk, feetOk, rampsOf, moveFeet, cellFns, cliffTile, hasCliff };
+if (typeof module === 'object') module.exports = { T, LV, STAIR_IDX, FEET, FEET_HIGH, HIGH_DEPTH, autotile, heightGrid, canStep, walkGrids, standOk, onStone, feetOk, rampsOf, moveFeet, cellFns, cliffTile, hasCliff };

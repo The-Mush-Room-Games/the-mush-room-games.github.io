@@ -33,6 +33,8 @@ const ENEMIES = {
 const DROPS = {
   gnome: [{ kind: 'gold', min: 2, max: 4 }, { kind: 'meat', p: 0.25 }],
   bush: [{ kind: 'gold', p: 0.2 }],                 // rolled once per bush, on the first hit
+  sheep: [{ kind: 'gold' }],                        // the first hit on a sheep
+  stone: [{ kind: 'gold', min: 1, max: 2 }],        // every pickaxe hit on a gold stone
 };
 // Pickups. tex/anim = art, glint = sparkle overlay, dy = how far the art sits above the ground point.
 const LOOT = {
@@ -40,7 +42,20 @@ const LOOT = {
   meat: { tex: 'meat', dy: -14 },
   duck: { tex: 'duck', anim: 'duck', tint: 0xffd34d, dy: -14 },
 };
+// Map props that react to weapons: hp, and damage per weapon (a weapon that is not listed clanks off). chips = debris colours.
+// tree = a `secret` tree (felled into a stump), rock = a `secret` rock (rock pile: broken for good; blast = dynamite breaks it),
+// stone = a Gold Stone 1-6 (each pickaxe hit pops gold and steps it down a size, gone after size 1).
+const PROPS = {
+  tree:  { hp: 3, dmg: { axe: 1 }, chips: [0x8a5a2b, 0x4f9a3a] },
+  rock:  { hp: 2, dmg: { hammer: 2, pickaxe: 1 }, chips: [0x8fb0b0, 0x5a7a80], blast: true },
+  stone: { hp: 1, dmg: { pickaxe: 1 }, chips: [0xf2c33a, 0xffe888] },
+};
+const STUMP = { w: 10, h: 8 };                       // a stump's collision (px); a tree trunk is 0.3 of its art's width, so the way past opens
+const SHEEP = {                                     // acts: weight and seconds range; walk goes to a spot within `wander` px of home
+  speed: 22, wander: 56, flee: 1.2, fleeSpeed: 120, flash: 0.1, hurtbox: [-16, -28, 16, 2],
+  acts: { idle: [2, 1.5, 4], graze: [3, 2, 5], walk: [2, 1, 2.5] },
+};
 const PICKUP = { r: 14, arc: 22, pop: 380, scatter: [18, 34] };   // r = reach around the ground point, arc/pop = drop arc height (px) and time (ms)
 const BAG = 3, MEAT_HEAL = 2;                        // item slots, hp one meat heals
 
-if (typeof module === 'object') module.exports = { WEAPONS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL };
+if (typeof module === 'object') module.exports = { WEAPONS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };
