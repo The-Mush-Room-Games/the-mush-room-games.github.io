@@ -140,12 +140,10 @@ class TestMap extends Phaser.Scene {
     // presses come from keydown events, not JustDown polling, so a tap shorter than one frame is not lost
     const press = { SPACE: 'swing', J: 'swing', SHIFT: 'dash', K: 'dash', Q: 'swap' };
     for (const [key, act] of Object.entries(press))
-      this.on(kb, 'keydown-' + key, e => { if (e.repeat) return; this.pend[act] = true; if (act === 'swing') this.mouseAim = false });
+      this.on(kb, 'keydown-' + key, e => { if (!e.repeat) this.pend[act] = true });
     this.on(kb, 'keydown-H', e => { if (!e.repeat) this.hurtTest = true });
-    this.mouseAim = false;                                          // true after the mouse is used, false after a swing key
-    this.move = new Phaser.Math.Vector2(); this.aim = new Phaser.Math.Vector2();
-    this.on(this.input, 'pointermove', p => { if (!p.wasTouch) this.mouseAim = true });
-    this.on(this.input, 'pointerdown', p => { if (!p.wasTouch && p.leftButtonDown()) { this.mouseAim = true; this.pend.swing = true } });
+    this.move = new Phaser.Math.Vector2();
+    this.on(this.input, 'pointerdown', p => { if (!p.wasTouch && p.leftButtonDown()) this.pend.swing = true });   // a click swings; the hero swings the way he faces
 
     if (typeof Hud !== 'undefined') {                               // HUD glue: ui.js
       this.hud = new Hud(this);
@@ -189,15 +187,9 @@ class TestMap extends Phaser.Scene {
     }
     if (this.hurtTest) { this.hurtTest = false; const a = Math.random() * Math.PI * 2; h.hurt(1, h.x + Math.cos(a) * 50, h.y + Math.sin(a) * 50) }
 
-    let aim = null;                                                  // desktop: towards the mouse; otherwise the hero uses his move direction
-    if (this.mouseAim && !ptr.wasTouch) {
-      ptr.updateWorldPoint(this.cameras.main);
-      this.aim.set(ptr.worldX - h.x, ptr.worldY - h.y);
-      if (this.aim.lengthSq() > 16) aim = this.aim;
-    }
-    const inp = { move: mv, aim, swing: pend.swing, dash: pend.dash, swap: pend.swap };
+    const inp = { move: mv, swing: pend.swing, dash: pend.dash, swap: pend.swap };
     pend.swing = pend.dash = pend.swap = false;
-    if (this.leaving) { mv.reset(); return { move: mv, aim: null, swing: false, dash: false, swap: false } }
+    if (this.leaving) { mv.reset(); return { move: mv, swing: false, dash: false, swap: false } }
     return inp;
   }
   syncHud() {

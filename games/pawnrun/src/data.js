@@ -14,8 +14,8 @@ const WEAPONS = {
 };
 
 const HERO = {
-  old: { hp: 5, speed: 140, idle: 'opawn-idle', run: 'opawn-run', texture: 'opawn', originY: 128 / 192, rollY: 30 },
-  new: { hp: 7, speed: 155, originY: 135 / 192, rollY: 36 },                      // new Pawn anims are 'pawn-idle-<tool>' / 'pawn-run-<tool>'
+  old: { hp: 5, speed: 140, idle: 'opawn-idle', run: 'opawn-run', texture: 'opawn', originY: 128 / 192, bodyY: 30 },
+  new: { hp: 7, speed: 155, originY: 135 / 192, bodyY: 36 },                      // new Pawn anims are 'pawn-idle-<tool>' / 'pawn-run-<tool>'
   swingSlow: 0.35,                                 // movement multiplier while swinging
   knockback: 40, knockbackTime: 0.12, hurtInvuln: 0.6, flashTime: 0.1,
 };
