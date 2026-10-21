@@ -1,2 +1,3 @@
 rules/ground.tmj
 rules/raised.tmj
+rules/cliffs.tmj

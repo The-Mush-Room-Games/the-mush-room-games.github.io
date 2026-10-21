@@ -65,7 +65,12 @@ async function readMap(path, loadJson) {
       const key = props.key || (def.image ? def.image.split('/').pop().replace(/\.png$/i, '') : undefined), bl = props.block;
       delete props.key; delete props.block;
       const block = bl ? String(bl).split(',').map(Number) : [0, 0];
-      return { key, x: o.x, y: o.y, flipX: !!((o.gid >>> 0) & FLIP_X), cls: o.class || o.type || def.class || def.type || '', props, block };
+      const flipX = !!((o.gid >>> 0) & FLIP_X), w = def.width || def.imagewidth || o.width, h = def.height || def.imageheight || o.height;
+      // collision shapes drawn on the tile in Tiled's collision editor, in image pixels from the frame's top-left
+      // (rectangles and ellipses count as their bounding box; mirrored with the object)
+      const rects = ((def.objectgroup && def.objectgroup.objects) || []).filter(r => r.width > 0 && r.height > 0)
+        .map(r => ({ x: flipX ? w - r.x - r.width : r.x, y: r.y, w: r.width, h: r.height }));
+      return { key, x: o.x, y: o.y, w, h, flipX, cls: o.class || o.type || def.class || def.type || '', props, block, rects };
     }
     return { cls: o.class || o.type || '', name: o.name || '', x: o.x, y: o.y, w: o.width || 0, h: o.height || 0, props: propsOf(o.properties) };
   }

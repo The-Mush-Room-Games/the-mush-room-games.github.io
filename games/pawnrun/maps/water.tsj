@@ -3,6 +3,8 @@
  "name": "water",
  "tiledversion": "1.12.2",
  "version": "1.10",
+ "margin": 0,
+ "spacing": 0,
  "image": "../tiled/water.png",
  "imagewidth": 64,
  "imageheight": 64,

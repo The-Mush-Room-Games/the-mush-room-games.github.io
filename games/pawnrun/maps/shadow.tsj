@@ -1,0 +1,19 @@
+{
+ "type": "tileset",
+ "name": "shadow",
+ "tiledversion": "1.12.2",
+ "version": "1.10",
+ "margin": 0,
+ "spacing": 0,
+ "image": "../assets/terrain/shadow.png",
+ "imagewidth": 192,
+ "imageheight": 192,
+ "tilewidth": 192,
+ "tileheight": 192,
+ "columns": 1,
+ "tilecount": 1,
+ "tileoffset": {
+  "x": -64,
+  "y": 64
+ }
+}

@@ -3,6 +3,8 @@
  "name": "AutoMap Rules",
  "tiledversion": "1.12.2",
  "version": "1.10",
+ "margin": 0,
+ "spacing": 0,
  "image": "automap-rules.png",
  "imagewidth": 160,
  "imageheight": 32,

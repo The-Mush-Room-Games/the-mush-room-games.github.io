@@ -49,6 +49,30 @@ function heightGrid(m) {
 // Can a unit step from level a to level b? Same level, or on/off stairs.
 const canStep = (a, b) => a !== LV.BLOCK && b !== LV.BLOCK && (a === b || a === LV.STAIRS || b === LV.STAIRS);
 
+// The ramps climb sideways: a stair bottom meets the ground on one side only (left stair: west, right stair: east);
+// its bottom edge is a small stone face. 0 = a stair top, which never meets the ground.
+const FOOT_SIDE = { 45: -1, 48: 1 }, footSide = t => FOOT_SIDE[t] || 0;
+
+// Pixel rule for one corner of a unit's feet box: can a unit centred at (ax, ay) put a corner at (px, py)?
+// On top of canStep: ground and ramp meet only at the ramp's foot side, and inside a stair cell only the ramp's own
+// pixels count (masks: stair tile -> Uint8Array T*T, 1 = walkable; see stairMasks).
+function cornerOk(m, lv, masks, ax, ay, px, py) {
+  const cx = Math.floor(px / T), cy = Math.floor(py / T), fx = Math.floor(ax / T), fy = Math.floor(ay / T);
+  if (cx < 0 || cy < 0 || cx >= m.w || cy >= m.h) return false;
+  const from = lv[fy * m.w + fx], to = lv[cy * m.w + cx];
+  if (!canStep(from, to)) return false;
+  if (to === LV.STAIRS) {
+    const t = m.stairTiles[cy * m.w + cx], mk = masks && masks[t];
+    if (mk && !mk[(Math.floor(py) - cy * T) * T + Math.floor(px) - cx * T]) return false;
+    if (from === LV.GROUND) return footSide(t) !== 0 && fy === cy && fx === cx + footSide(t);
+  }
+  if (from === LV.STAIRS && to === LV.GROUND) {
+    const f = footSide(m.stairTiles[fy * m.w + fx]);
+    return f !== 0 && cy === fy && cx === fx + f;
+  }
+  return true;
+}
+
 // Phaser side. Water is the camera background; layers bottom to top: foam −40, flat −30, shadow −20, raised −10.
 // low/high: texture keys of the colour files for flat and raised ground (the guide: one colour per level).
 function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
@@ -80,4 +104,27 @@ function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
   return { map, flat, lvl1, foam, shadows };
 }
 
-if (typeof module === 'object') module.exports = { T, LV, STAIR_IDX, autotile, heightGrid, canStep };
+// Walkable pixels of the stair tiles, read from the art: anything that is not cliff stone, outline or empty.
+// The stone palette is a cliff tile's non-green colours (same file, so every colour file works). The outline along the
+// ramp's foot side is drawing, not a wall, so up to 10px of it is opened where the ramp surface reaches it.
+function stairMasks(scene, key = 'tilemap2') {
+  const src = scene.textures.get(key).getSourceImage(), c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0);
+  const px = t => g.getImageData((t % 9) * T, Math.floor(t / 9) * T, T, T).data;
+  const stone = new Set(), cliff = px(42), rgb = (d, i) => (d[i] << 16) | (d[i + 1] << 8) | d[i + 2];
+  for (let i = 0; i < cliff.length; i += 4) if (cliff[i + 3] && cliff[i + 1] <= cliff[i + 2] + 10) stone.add(rgb(cliff, i));
+  const masks = {};
+  for (const t of STAIR_IDX) {
+    const d = px(t), mk = masks[t] = new Uint8Array(T * T);
+    for (let i = 0; i < T * T; i++) mk[i] = d[i * 4 + 3] && !stone.has(rgb(d, i * 4)) ? 1 : 0;
+    const f = footSide(t);
+    if (f) for (let y = 0; y < T; y++) for (let k = 0; k < 10; k++) {
+      const x = f < 0 ? k : T - 1 - k;
+      if (mk[y * T + x]) { for (let j = 0; j < k; j++) mk[y * T + (f < 0 ? j : T - 1 - j)] = 1; break }
+    }
+  }
+  return masks;
+}
+
+if (typeof module === 'object') module.exports = { T, LV, STAIR_IDX, autotile, heightGrid, canStep, cornerOk, cellFns, cliffTile, hasCliff };
