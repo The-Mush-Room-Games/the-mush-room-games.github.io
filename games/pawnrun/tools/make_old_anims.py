@@ -297,7 +297,7 @@ def fade(lay, x0):
 def frames_for(weapon, up, S):
     """[(pieces, behind_body)] for the 6 frames; pieces are full-frame layers."""
     L = lambda k: layer(S[k], tool_mask(weapon, k, S[k]))
-    group = [clean(L(k)) if weapon == 'hammer' else L(k) for k in range(3)]
+    group = [clean(L(k), 14) if weapon == 'hammer' else L(k) for k in range(3)]
     rest = L(5)
     A = [side(sheet(), WEAPONS["axe"]["row"], c) for c in (3, 4)]      # the axe arcs are the template for both tools
     smear, resid = (layer(a, tool_mask("axe", 3 + n, a)) for n, a in enumerate(A))
@@ -332,9 +332,9 @@ def frames_for(weapon, up, S):
     home = xform(rest, flip="h", pivot=(96, 0), dx=-22, dy=-4) if weapon == "axe" else xform(rest, dx=-8, dy=4)
     if not up:
         wind = []
-        for i in range(3):                             # cocked over his right shoulder, beside the head (axe: his side pose mirrored)
-            g = xform(group[i], flip="h", pivot=(97, 0)) if weapon == "axe" else group[i]
-            wind.append(([xform(g, dx=3)], False))
+        for i in range(3):                             # cocked over his right shoulder = screen left (the axe row already is; the hammer row is mirrored)
+            g = xform(group[i], flip="h", pivot=(97, 0)) if weapon == "hammer" else group[i]
+            wind.append(([xform(g, dx=-3)], False))
         return wind + [(h3(0) + [hand_at(113, 108)], False), (h4(5) + [hand_at(113, 110)], False), ([home], False)]
     low = []
     for i in range(3):                                 # back view: tool low behind his shoulder, pulled back
@@ -342,8 +342,15 @@ def frames_for(weapon, up, S):
         if weapon == "axe":
             g = xform(xform(g, flip="v", pivot=(96, 96)), flip="h", pivot=(96, 0))
         x0, y0, x1, y1 = bbox(g[..., 3] == 255)
-        low.append(([xform(g, dx=134 - (x0 + x1) // 2 + i, dy=(110 + 2 * i) - (y0 + y1) // 2)], True))
-    return low + [(h3(0) + [hand_at(110, 74)], True), (h4(-5) + [hand_at(110, 76)], True), ([low[0][0][0]], True)]
+        if weapon == "hammer":                         # his hand at the right hip, the head up behind the shoulder
+            hr = is_col(g, [BROWN])
+            hr[:y1 - 11] = False                       # the hand ring is the brown at the very bottom (the head has brown shading too)
+            by, bx = np.where(hr)
+            low.append(([xform(g, dx=134 - int(bx.mean()) + i, dy=(115 + 2 * i) - int(by.mean()))], True))
+        else:
+            low.append(([xform(g, dx=134 - (x0 + x1) // 2 + i, dy=(110 + 2 * i) - (y0 + y1) // 2)], True))
+    mir = lambda ps: [xform(q, flip="h", pivot=(96, 0)) for q in ps]      # right-handed: the arc runs from screen right over his head to the left
+    return low + [(mir(h3(0) + [hand_at(110, 74)]), True), (mir(h4(-5) + [hand_at(110, 76)]), True), (mir([low[0][0][0]]), True)]
 
 
 def swing(weapon, direction):
@@ -354,7 +361,7 @@ def swing(weapon, direction):
     for k, (pieces, behind) in enumerate(frames_for(weapon, up, S)):
         f = shadow.copy()
         body = side_body(S[k], k, weapon, "back" if up else "front")
-        if weapon == "axe" and not up and k < 3:
+        if weapon == "hammer" and not up and k < 3:
             body = xform(body, flip="h", pivot=(97, 0))
         for lay in (pieces + [body] if behind else [body] + pieces):
             m = lay[..., 3] == 255
