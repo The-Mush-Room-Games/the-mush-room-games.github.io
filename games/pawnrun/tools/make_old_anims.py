@@ -240,13 +240,17 @@ def with_outline(a, m):
     return m | (ndi.binary_dilation(m, structure=np.ones((3, 3)), iterations=2) & is_col(a, [NAVY]))
 
 
+def hammer_swoosh(a):
+    return box(a, 127, 175, 20, 150) | box(a, 100, 127, 20, 73)
+
+
 def tool_mask(weapon, k, a):
     """Every tool/swoosh/hand-on-tool pixel of side frame k (so what is left is his body)."""
     if weapon == "axe":
         m = tool_group(a) if k < 3 else outside_body(a) if k < 5 else tool_group(a, False)
     else:
-        m = (tool_group(a) if k < 3 else box(a, 124, 175, 58, 150) if k == 3 else
-             comp_right_of(a, 117) if k == 4 else box(a, 127, 175, 80, 112))
+        m = (tool_group(a) if k < 3 else hammer_swoosh(a) if k == 3 else
+             comp_right_of(a, 117) | box(a, 127, 175, 20, 150) if k == 4 else tool_group(a, False))
     return with_outline(a, m)
 
 
@@ -275,31 +279,71 @@ def to_arc(lay, weapon, up, ref, top=None, bottom=None, cx=96, dy=0):
     return xform(m, dx=sx, dy=sy + dy)
 
 
+def clean(lay, minpx=6):
+    """Drop specks: opaque blobs smaller than minpx pixels."""
+    m = lay[..., 3] == 255
+    lab, n = ndi.label(m, structure=np.ones((3, 3)))
+    keep = np.isin(lab, [i + 1 for i, z in enumerate(ndi.sum(m, lab, range(1, n + 1))) if z >= minpx])
+    return lay * keep[..., None]
+
+
+def fade(lay, x0):
+    """Right part of an arc with a slanted lower-left edge instead of a straight cut."""
+    ys, xs = np.mgrid[:F, :F]
+    ymid = np.where(lay[..., 3] == 255)[0].mean()
+    return lay * (xs + 1.2 * (ys - ymid) >= x0)[..., None]
+
+
 def frames_for(weapon, up, S):
     """[(pieces, behind_body)] for the 6 frames; pieces are full-frame layers."""
     L = lambda k: layer(S[k], tool_mask(weapon, k, S[k]))
-    group = [L(k) for k in range(3)]
-    smear, resid, rest = L(3), L(4), L(5)
-    arc = lambda lay, dy=0: to_arc(lay, weapon, up, smear, top=114, bottom=70, dy=dy)
-    trail = lambda dy: layer(arc(smear, dy), np.arange(F)[None, :] >= 100) if weapon == "axe" else np.zeros_like(smear)
-    if not up:                                         # front view: tool raised clear above the head, then down across his feet
-        gx0, gy0, gx1, gy1 = bbox(group[1][..., 3] == 255)
+    group = [clean(L(k)) if weapon == 'hammer' else L(k) for k in range(3)]
+    rest = L(5)
+    A = [side(sheet(), WEAPONS["axe"]["row"], c) for c in (3, 4)]      # the axe arcs are the template for both tools
+    smear, resid = (layer(a, tool_mask("axe", 3 + n, a)) for n, a in enumerate(A))
+    arc = lambda lay, dy=0: to_arc(lay, "axe", up, smear, top=114, bottom=70, dy=dy)
+    cut = lambda lay, x: (lay * (np.arange(F)[None, :, None] < x), lay * (np.arange(F)[None, :, None] >= x))
+    smear_t, smear_h = cut(smear, 142)
+    smear_t = smear_t * ~is_col(smear_t, [NAVY])[..., None]            # his hammer arc has no dark outline specks                                 # arc without its axe head / the axe head alone
+    resid_t, resid_h = cut(resid, 130)
+    mid = lambda lay: ((lambda b: ((b[0] + b[2]) // 2, (b[1] + b[3]) // 2))(bbox(lay[..., 3] == 255)))
+    trail = lambda dy, base: layer(arc(base, dy), np.arange(F)[None, :] >= 100)
+    if weapon == "axe":
+        hit = [smear, resid]
+        tails = [None, lambda dy: trail(dy, smear)]
+    else:                                                              # same arc, his hammer head on its tip instead of the axe head
+        head = layer(S[1], tool_group(S[1], False))
+        hb = bbox(head[..., 3] == 255)
+
+        def tip(arc_lay, ex=0):                        # the hammer head sits on the arc's end, centred on the arc's thickness there
+            ys, xs = np.where(arc_lay[..., 3] == 255)
+            x1 = xs.max()
+            yc = ys[xs >= x1 - 4].mean()
+            return xform(head, dx=x1 - 3 + ex - hb[0], dy=int(round(yc)) - (hb[1] + hb[3]) // 2)
+    if weapon == "hammer":
+        def under(a_lay):                              # the arc stops where the hammer head starts: nothing pokes out above it
+            hd = tip(a_lay)
+            return [clean(a_lay * (np.arange(F)[None, :, None] < bbox(hd[..., 3] == 255)[0] + 2)), hd]
+        h3 = lambda dy: under(arc(smear_t, dy))
+        h4 = lambda dy: under(clean(xform(fade(arc(smear_t, dy), 96), dx=6)))
+    else:
+        h3 = lambda dy: [arc(smear, dy)]
+        h4 = lambda dy: [trail(dy, smear), arc(resid, dy)]
+    home = xform(rest, flip="h", pivot=(96, 0), dx=-22, dy=-4) if weapon == "axe" else xform(rest, dx=-8, dy=4)
+    if not up:
         wind = []
-        for i in range(3):
-            g = xform(group[i], flip="h", pivot=(96, 0)) if weapon == "axe" else group[i]
-            x0, y0, x1, y1 = bbox(g[..., 3] == 255)
-            wind.append(([xform(g, dx=104 - (x0 + x1) // 2, dy=(76 - 3 * i) - y1)], False))
-        home = xform(rest, flip="h", pivot=(96, 0), dx=-22, dy=-4) if weapon == "axe" else xform(rest, dx=-8, dy=4)
-        return wind + [([arc(smear), hand_at(113, 108)], False), ([trail(5), arc(resid, 5), hand_at(113, 110)], False), ([home], False)]
+        for i in range(3):                             # cocked over his right shoulder, beside the head (axe: his side pose mirrored)
+            g = xform(group[i], flip="h", pivot=(97, 0)) if weapon == "axe" else group[i]
+            wind.append(([xform(g, dx=3)], False))
+        return wind + [(h3(0) + [hand_at(113, 108)], False), (h4(5) + [hand_at(113, 110)], False), ([home], False)]
     low = []
     for i in range(3):                                 # back view: tool low behind his shoulder, pulled back
-        g = xform(group[i], flip="v", pivot=(96, 96) if weapon == "hammer" else (96, 96))
+        g = group[i]
         if weapon == "axe":
-            g = xform(g, flip="h", pivot=(96, 0))
+            g = xform(xform(g, flip="v", pivot=(96, 96)), flip="h", pivot=(96, 0))
         x0, y0, x1, y1 = bbox(g[..., 3] == 255)
         low.append(([xform(g, dx=134 - (x0 + x1) // 2 + i, dy=(110 + 2 * i) - (y0 + y1) // 2)], True))
-    home = xform(rest, flip="h", pivot=(96, 0), dx=-22, dy=-4) if weapon == "axe" else xform(rest, dx=-8, dy=4)
-    return low + [([arc(smear), hand_at(110, 74)], True), ([trail(-5), arc(resid, -5), hand_at(110, 76)], True), ([low[0][0][0]], True)]
+    return low + [(h3(0) + [hand_at(110, 74)], True), (h4(-5) + [hand_at(110, 76)], True), ([low[0][0][0]], True)]
 
 
 def swing(weapon, direction):
@@ -310,6 +354,8 @@ def swing(weapon, direction):
     for k, (pieces, behind) in enumerate(frames_for(weapon, up, S)):
         f = shadow.copy()
         body = side_body(S[k], k, weapon, "back" if up else "front")
+        if weapon == "axe" and not up and k < 3:
+            body = xform(body, flip="h", pivot=(97, 0))
         for lay in (pieces + [body] if behind else [body] + pieces):
             m = lay[..., 3] == 255
             f[m] = lay[m]
