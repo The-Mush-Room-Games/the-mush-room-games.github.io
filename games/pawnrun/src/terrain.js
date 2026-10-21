@@ -54,6 +54,7 @@ const canStep = (a, b) => a !== LV.BLOCK && b !== LV.BLOCK && (a === b || a === 
 const FEET = { x: 10, top: 6, bottom: 2 }, FEET_HIGH = { x: 16, top: 14, bottom: 8 };
 const HIGH_DEPTH = 2 * T;     // depth boost for anything standing on a plateau (see dressTerrain)
 const BEHIND = 26;           // how far feet go in behind a plateau's back edge: legs hidden, head and body still showing
+const SHORE = { x: 6, top: 8, bottom: 6 };   // extra margin on a tile's water side (on top of FEET), so feet stay on the drawn grass
 
 // Where feet may stand, per level. A plateau's top is drawn one tile above the ground it covers: a raised cell blocks
 // the ground cell below it, and the ground under the top of a plateau's back row is free (units there walk behind the
@@ -70,8 +71,13 @@ function walkGrids(m) {
 function standOk(m, wg, high, px, py) {
   const cx = Math.floor(px / T), cy = Math.floor(py / T);
   if (cx < 0 || cy < 0 || cx >= m.w || cy >= m.h) return false;
-  const v = (high ? wg.high : wg.ground)[cy * m.w + cx];
-  return v === 1 || v === 2 && py - cy * T < BEHIND;
+  const v = (high ? wg.high : wg.ground)[cy * m.w + cx], lx = px - cx * T, ly = py - cy * T;
+  if (!high) {
+    const land = (x, y) => x >= 0 && y >= 0 && x < m.w && y < m.h && m.ground[y * m.w + x] === 1;
+    if (ly < SHORE.top && !land(cx, cy - 1) || ly >= T - SHORE.bottom && !land(cx, cy + 1) ||
+        lx < SHORE.x && !land(cx - 1, cy) || lx >= T - SHORE.x && !land(cx + 1, cy)) return false;
+  }
+  return v === 1 || v === 2 && ly < BEHIND;
 }
 // Is a unit's feet box at (bx, by) on its own level's walkable ground?
 function feetOk(m, wg, high, bx, by) {

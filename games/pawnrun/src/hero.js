@@ -11,6 +11,7 @@ class Hero {
     const st = HERO[form];
     this.maxHp = this.hp = st.hp; this.speed = st.speed;
     this.sprite = scene.add.sprite(x, y, form === 'old' ? 'opawn' : 'pawn-idle-' + this.weapons[0]).setOrigin(0.5, st.originY);
+    this.roll = scene.add.sprite(x, y, this.sprite.texture.key).setVisible(false);   // stands in for the sprite during a dodge roll
     this.aim = new Phaser.Math.Vector2(1, 0);       // last aim direction (unit)
     this.swing = null;                               // { w, key, hit } while swinging
     this.swingCd = 0; this.buf = 0;                  // recovery after a swing, buffered swing press
@@ -78,11 +79,17 @@ class Hero {
       s.play(this.anim(moving || this.dashT > 0 ? 'run' : 'idle'), true);
     }
 
-    // look: red flash, blink while hurt-invulnerable, slightly see-through while dashing
+    // look: red flash, blink while hurt-invulnerable, hidden while the roll stand-in shows
     if (this.flashT > 0) s.setTint(0xff3030).setTintMode(Phaser.TintModes.FILL);
     else s.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
-    s.setAlpha(this.hurtT > 0 ? (Math.floor(this.hurtT * 16) % 2 ? 0.35 : 1) : this.dashT > 0 ? 0.7 : 1);
+    s.setAlpha(this.dashT > 0 ? 0 : this.hurtT > 0 ? (Math.floor(this.hurtT * 16) % 2 ? 0.35 : 1) : 1);
     s.setDepth(scene.depthOf(this));
+    // dodge roll: the current frame, one full flip around the body's middle, squashed a little mid-roll
+    const k = this.dashT > 0 ? 1 - this.dashT / DASH.time : 0, c = HERO[this.form].rollY;
+    this.roll.setVisible(k > 0);
+    if (k > 0) this.roll.setTexture(s.texture.key, s.frame.name).setFlipX(s.flipX).setDepth(s.depth)
+      .setOrigin(0.5, s.originY - c / s.height).setPosition(s.x, s.y - c)
+      .setAngle((s.flipX ? -360 : 360) * k).setScale(1, 1 - 0.15 * Math.sin(Math.PI * k));
   }
 
   startSwing() {
@@ -127,7 +134,7 @@ class Hero {
     return true;
   }
   die() {
-    this.dead = true; this.sprite.setVisible(false);
+    this.dead = true; this.sprite.setVisible(false); this.roll.setVisible(false);
     const s = this.scene.add.sprite(this.x, this.y, 'odead').setOrigin(0.5, 0.72).setDepth(this.scene.depthOf(this)).play('odead-dead');
     s.once('animationcomplete', () => s.play('odead-buried'));
     this.scene.events.emit('hero-dead');

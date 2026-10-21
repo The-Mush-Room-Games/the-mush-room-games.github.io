@@ -66,7 +66,7 @@ class TestMap extends Phaser.Scene {
       const gap = box.fh - (box.y + box.h);                        // transparent rows under the art: the drawn feet sit that much higher
       const high = onRaised(o.x, o.y - 1);
       const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.y - gap + (high ? HIGH_DEPTH : 0));
-      if (HITTABLE.test(o.key)) {                                  // hurtbox: the art as drawn; tall art (trees) only its trunk end
+      if (HITTABLE.test(o.key) || o.cls === 'enemy') {        // hurtbox: the art as drawn; tall art (trees) only its trunk end
         const tall = box.h > 64, w = tall ? 0.4 * box.w : box.w, cx = left + fb.x + box.w / 2, y1 = top + box.y + box.h;
         this.hittables.push({ s, ox: o.x, high,
           hb: { x0: cx - w / 2, x1: cx + w / 2, y0: y1 - (tall ? 56 : box.h), y1 } });
