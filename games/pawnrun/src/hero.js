@@ -99,6 +99,7 @@ class Hero {
     this.swing = { w, key: this.weapon, hit: false };
     s.anims.timeScale = w.speed;
     const v = this.aim.y < 0 ? 'up' : this.aim.y > 0 ? 'down' : '';   // up/down have their own back/front-view strips
+    if (v) s.setFlipX(false);                                         // up/down strips are drawn right-handed: never mirror them
     s.play(v ? `${this.form === 'old' ? 'o' : ''}pawn-${this.weapon}-${v}` : w.anim[this.form]);
   }
   tickSwing() {
