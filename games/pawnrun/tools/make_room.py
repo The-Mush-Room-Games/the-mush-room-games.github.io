@@ -55,7 +55,7 @@ n_floors = sheet_tsj("room_floors", FLOORS, False)
 
 # ---- furniture ------------------------------------------------------------------------------------------------------
 # name: (sheet, col0, row0, col1, row1 (exclusive), collision (x, y, w, h) in the cropped image, depth property)
-# The crop is trimmed to its opaque pixels. Not graded: the Shadowless pieces already match the Tiny Swords saturation (median 0.55 vs 0.52). Collision follows the base: wall pieces block their whole floor depth.
+# The crop is trimmed to its opaque pixels. Contrast only (luma std 40 vs Tiny Swords 64): the Shadowless pieces already match the Tiny Swords saturation (median 0.55 vs 0.52). Collision follows the base: wall pieces block their whole floor depth.
 PIECES = {
     "bed":        ("4_Bedroom",  9, 0, 11, 4,  lambda w, h: (0, 24, w, h - 24), None),
     "armoire":    ("2_LivingRoom", 7, 4, 9, 7, lambda w, h: (2, h - 48, w - 4, 48), None),
@@ -71,7 +71,7 @@ PIECES = {
 tiles, size = [], {}
 for i, (name, (sh, c0, r0, c1, r1, col, depth)) in enumerate(PIECES.items()):
     im = Image.open(SORT / f"{sh}_Shadowless_48x48.png").convert("RGBA").crop((c0 * T, r0 * T, c1 * T, r1 * T))
-    im = im.crop(im.getbbox()); im.save(OUT / "furniture" / f"{name}.png"); size[name] = im.size
+    im = im.crop(im.getbbox()); grade(im, sat=1, gamma=1, con=1.3).save(OUT / "furniture" / f"{name}.png"); size[name] = im.size
     t = {"id": i, "image": f"../assets/interiors/furniture/{name}.png", "imagewidth": im.width, "imageheight": im.height}
     if depth: t["properties"] = [prop("depth", depth)]
     if col: t["objectgroup"] = collision([col(*im.size)])
