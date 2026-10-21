@@ -182,9 +182,9 @@ const UPGRADES = {
   bag:        { name: 'Big Bag', text: 'Item slots +{v}', cur: 'gold', cost: [70, 150], perm: { slots: 1 }, icon: ['btn-tiny-square'] },
   whetstone:  { name: 'Whetstone', text: 'Weapons start at tier {v}', cur: 'gold', cost: [60, 120], icon: ['icon05'] },
   newpawn:    { name: 'New Pawn', text: 'The new Pawn: more HP and speed, four tools', cur: 'ducks', cost: [3], icon: ['avatar05'] },
-  secondwind: { name: 'Second Wind', text: 'Get up once per run when you fall', cur: 'ducks', cost: [2], icon: ['icon04'] },
-  spyglass:   { name: 'Spyglass', text: 'Marks the dock on the map once you have seen the coast near it', cur: 'ducks', cost: [2], icon: ['icon11'] },
-  ferry:      { name: 'Ferry Ticket', text: 'Start a run at a biome you have reached', cur: 'ducks', cost: [3], icon: ['icon07'], stub: true },   // ponytail: no biomes yet, the purchase is only recorded
+  secondwind: { name: 'Second Wind', text: 'Get up once per run when you fall', cur: 'ducks', cost: [2], icon: ['icon08'] },
+  spyglass:   { name: 'Spyglass', text: 'Shows the dock on your map', cur: 'ducks', cost: [2], icon: ['icon11'] },
+  ferry:      { name: 'Ferry Ticket', text: 'Start at a reached biome', cur: 'ducks', cost: [3], icon: ['icon07'], stub: true },   // ponytail: no biomes yet, the purchase is only recorded
 };
 // The shops: who sells what. The vendors trade outside, at their own stall (the shop opens over the town).
 const SHOPS = {

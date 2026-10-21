@@ -26,13 +26,15 @@ const types = [
   cls('npc', '#ffffffff', [str('role')]),
   cls('shop', '#ffe0a060', [str('shop')]),
   cls('gate', '#ffa0a0a0', [], ['property', 'object']),   // a gap in a clearing's wall: a tile-aligned rect (2-3 tiles long, 1 wide) on its edge; the fence or the boulders stand on it while the camp is closed
+  cls('sail', '#ff2060ff', [], ['property', 'object']),   // the town's main gate: a rect on the pier; walking into it sails to island 1 (scenes/Town.js)
+  cls('fence', '#ffa07040', [str('p')], ['property', 'object']),   // a yard's fence, one 64 px cell: p = the piece (tl tr bl br h0 h1 v el er; data.js YARD). Made by make-town-map.js
   cls('washup', '#ff4080ff', []),
   cls('spawn', '#ff40ff40', []),   // the first spawn is where the hero starts; give the others a name and ?at=<name> starts there (dev)
   cls('chunk', '#ffff80ff', [enm('kind', 'chunkKind', 'landmark'), str('biomes'),
     { name: 'minIsland', type: 'int', value: 1 }, { name: 'weight', type: 'float', value: 1 }, { name: 'mirror', type: 'bool', value: false }], ['property', 'map']),
   // doors and interiors (src/scenes/Interior.js): a `door` rect on an outdoor map names the interior map it opens;
   // inside, `floor` rects are walkable, `block` rects cut furniture out of them (outdoors a `block` rect is a wall tile of a clearing: solid, trees and rocks are drawn on top), `spawn` is where you appear, `exit` leaves
-  cls('door', '#ffff8000', [str('interior')], ['property', 'object']),
+  cls('door', '#ffff8000', [str('interior'), str('npc'), str('npcAt')], ['property', 'object']),   // npc: the role who stands inside (data.js NPCS), npcAt: "x,y" in the room's pixels
   cls('floor', '#8040ff40', [], ['property', 'object']),
   cls('block', '#80ff4040', [], ['property', 'object']),
   cls('exit', '#ff4080ff', [], ['property', 'object']),

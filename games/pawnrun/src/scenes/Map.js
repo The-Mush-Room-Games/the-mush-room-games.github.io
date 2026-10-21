@@ -1,5 +1,5 @@
 // The explored map: opens over a paused TestMap (scene.openMap: M, the HUD's map button, or a tap on the touch one). M, Esc or any click / tap closes it
-// and resumes the scene. d = { from, island, w, h, cls, obj, seen, doors, hero: [x, y], ducks: [[x, y]] } (tile units; seen is the live explored grid).
+// and resumes the scene. d = { from, island, w, h, cls, obj, seen, doors, hero: [x, y], ducks: [[x, y]], dock: [x, y] or null (the Spyglass) } (tile units; seen is the live explored grid).
 // The island is drawn once to a canvas texture at a whole number of screen pixels per tile (more for a small island, fewer for a big one), fogged where
 // it has not been seen; the hero, doors and ducks are small sprites. ponytail: the texture is redrawn on open and on resize, ~12k fillRects for 110x110.
 class MapView extends Phaser.Scene {
@@ -27,6 +27,7 @@ class MapView extends Phaser.Scene {
     items.push(this.add.rectangle(mx - 1, my - 1, mw + 2, mh + 2).setOrigin(0).setStrokeStyle(2, 0x82564e).setScrollFactor(0));
     const at = ([x, y]) => [mx + x * ts, my + y * ts];
     for (const p of d.ducks) items.push(this.add.image(...at(p), 'duck', 0).setTint(LOOT.duck.tint).setScrollFactor(0));
+    if (d.dock) items.push(icon(this, ...at(d.dock), 'icon11').setScale(0.5));            // Spyglass: the dock, seen or not
     const me = this.add.circle(...at(d.hero), 6, 0xffffff).setStrokeStyle(3, 0x161c2e).setScrollFactor(0);
     const ring = this.add.circle(...at(d.hero), 10).setStrokeStyle(2, 0x161c2e).setScrollFactor(0);
     this.tweens.add({ targets: ring, scale: 1.8, alpha: 0, duration: 1100, repeat: -1 });

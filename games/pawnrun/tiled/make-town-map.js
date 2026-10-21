@@ -16,7 +16,7 @@ const F = C.FIRST, idx = (x, y) => y * W + x;
 
 // ---- the island: a few overlapping blobs, cleaned by the game's terrain rule
 const ground = new Uint8Array(W * H);
-for (const [cx, cy, rx, ry, seed] of [[24.5, 18.5, 17.5, 12.5, 3], [14, 12.5, 8, 6, 5], [35, 12, 8, 6.5, 7], [11.5, 25, 7, 5.5, 11], [38, 24.5, 7, 5.5, 13], [24.5, 28, 9.5, 5.5, 17]])
+for (const [cx, cy, rx, ry, seed] of [[24.5, 18.5, 17.5, 12.5, 3], [14, 12.5, 8, 6, 5], [35, 12, 8, 6.5, 7], [11.5, 25, 7, 5.5, 11], [38, 24.5, 7, 5.5, 13], [24.5, 28, 9.5, 5.5, 17], [11.5, 31, 6, 3.5, 19]])
   for (const i of CL.ellipse(cx, cy, rx, ry, seed, { amp: 0.12 })) ground[i] = 1;
 for (let y = 29; y <= 35; y++) for (let x = 20; x <= 29; x++) ground[idx(x, y)] = 1;       // the gatehouse spit, down to the pier
 CL.clean(ground);
@@ -139,20 +139,20 @@ reserve(4, 20, 7, 24);
 
 // lanes: the walking routes stay free of trees (gate -> plaza -> castle, and out to each yard)
 const lane = (x0, y0, x1, y1, w = 1.4) => { const n = 40; for (let i = 0; i <= n; i++) reserve(x0 + (x1 - x0) * i / n - w, y0 + (y1 - y0) * i / n - w, x0 + (x1 - x0) * i / n + w, y0 + (y1 - y0) * i / n + w) };
-lane(24.5, 36, 24.5, 18); lane(24.5, 18, 24.5, 13); lane(24.5, 18, 12, 19.5); lane(24.5, 19, 36, 20); lane(24.5, 26, 12, 30); lane(24.5, 27, 18, 29); lane(24.5, 27, 31, 29); lane(11, 22.5, 6, 22.5);
-reserve(17, 15, 32, 25);                                                                     // the plaza
+lane(24.5, 36, 24.5, 18); lane(24.5, 18, 24.5, 13); lane(24.5, 18, 12, 19.5); lane(24.5, 19, 36, 20); lane(24.5, 26, 12, 30); lane(24.5, 27, 18, 29); lane(24.5, 27, 31, 29); lane(11, 22.5, 6, 22.5); lane(11, 29, 16, 31.5);
+const plaza = (x, y) => x >= 17 && x <= 32 && y >= 15 && y <= 25;                            // open ground in the middle: bushes and rocks, no trees
 
 // trees: the rim of the island and clumps in the corners, thinner inside; bushes, rocks and mushrooms in the open ground, sheep in the meadows
 const dense = (x, y) => CL.vnoise(x / 4.5 + 3, y / 4.5 + 3, 21) > 0.55;
 const treeAt = (cx, cy) => add(feet(pick(['tree1', 'tree2', 'tree3', 'tree4']), cx + jit(0.5), cy + jit(0.4)));
 for (let y = 3; y < H - 2; y++) for (let x = 3; x < W - 3; x++) {
   const i = idx(x, y);
-  if (!ground[i] || used.has(i)) continue;
+  if (!ground[i] || used.has(i) || plaza(x, y)) continue;
   const edge = !(has(ground, x - 2, y) && has(ground, x + 2, y) && has(ground, x, y - 2) && has(ground, x, y + 2));   // within 2 cells of the water
   const p = edge ? (dense(x, y) ? 0.6 : 0.32) : dense(x, y) ? 0.3 : 0.04;
   if (rnd() < p) { treeAt(x + 0.5, y + 0.85); used.add(i) }
 }
-for (let n = 0, g = 0; n < 600 && g < 30; n++) {
+for (let n = 0, g = 0; n < 2000 && g < 70; n++) {
   const x = 4 + Math.floor(rnd() * (W - 8)), y = 5 + Math.floor(rnd() * 28), i = idx(x, y);
   if (!ground[i] || used.has(i) || !has(ground, x - 1, y) || !has(ground, x + 1, y) || !has(ground, x, y + 1) || !has(ground, x, y - 1)) continue;
   add(feet(pick(['bush1', 'bush2', 'bush3', 'bush4', 'odeco02', 'odeco03', 'odeco10', 'odeco11', 'rock1', 'rock3']), x + 0.5 + jit(0.4), y + 0.8 + jit(0.3))); used.add(i); g++;
@@ -161,7 +161,7 @@ add(feet('sheep-idle', 19.3, 17.6), feet('sheep-idle', 20.4, 18.4), feet('sheep-
 
 // spawn points for ?at=<name>: the first is where a new game starts
 const spawn = (name, cx, cy) => add(point('spawn', at(cx, cy), [], name));
-spawn('start', 24.5, 25.6); spawn('gate', 24.5, 30.6); spawn('blacksmith', 12.9, 21.7); spawn('healer', 36, 21.7); spawn('market', 25.2, 24.8); spawn('steward', 24.5, 15); spawn('trainer', 12.4, 31.3); spawn('beach', 6.2, 22.2);
+spawn('start', 24.5, 25.6); spawn('gate', 24.5, 30.6); spawn('blacksmith', 12.4, 20.6); spawn('healer', 36, 20.2); spawn('market', 24.3, 24.2); spawn('steward', 24.5, 14.2); spawn('trainer', 11.3, 28.6); spawn('beach', 6.2, 22.2);
 spawn('houseA', 17.5, 30.4); spawn('houseB', 31.5, 31);
 
 const map = {

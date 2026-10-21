@@ -6,7 +6,7 @@ class Npc {
   constructor(scene, sprite, role, x, y) {          // (x, y) = where the feet stand
     this.scene = scene; this.s = sprite; this.role = role; this.x = x; this.y = y; this.d = NPCS[role];
     // a title over a vendor's head, so a stall reads at a glance
-    if (this.d.shop || this.d.train) this.tag = scene.add.text(x, y - artBox(scene, sprite.texture.key).h - 4, this.d.title, txt(14)).setOrigin(0.5).setDepth(1e5 - 1);
+    if (this.d.shop || this.d.train) this.tag = scene.add.text(x, y - artBox(scene, sprite.texture.key).h - 4, this.d.title, txt(16)).setOrigin(0.5).setDepth(1e5 - 1);
   }
   get busy() { const sc = this.scene; return sc.leaving || sc.hero.dead || sc.scene.isPaused() }
   talk() {
@@ -24,7 +24,7 @@ function tickNpcs(scene) {
   let best = null, bd = TALK.range;
   for (const n of list) { const d = Math.hypot(n.x - h.x, n.y - h.y); if (d < bd && !h.dead && !scene.leaving) { best = n; bd = d } }
   scene.near = best;
-  let p = scene.talkPrompt;
+  let p = scene.talkPrompt?.c.scene ? scene.talkPrompt : null;      // a restarted scene is the same object: its old prompt is destroyed
   if (!p && list.length) {
     const c = scene.add.container(0, 0).setDepth(1e5).setVisible(false), t = scene.add.text(0, 0, '', txt(16)).setOrigin(0.5);
     c.add(t);

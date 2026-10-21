@@ -272,6 +272,36 @@
   },
   {
    "id": 16,
+   "name": "sail",
+   "type": "class",
+   "color": "#ff2060ff",
+   "members": [],
+   "useAs": [
+    "property",
+    "object"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 17,
+   "name": "fence",
+   "type": "class",
+   "color": "#ffa07040",
+   "members": [
+    {
+     "name": "p",
+     "type": "string",
+     "value": ""
+    }
+   ],
+   "useAs": [
+    "property",
+    "object"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 18,
    "name": "washup",
    "type": "class",
    "color": "#ff4080ff",
@@ -285,7 +315,7 @@
    "drawFill": true
   },
   {
-   "id": 17,
+   "id": 19,
    "name": "spawn",
    "type": "class",
    "color": "#ff40ff40",
@@ -299,7 +329,7 @@
    "drawFill": true
   },
   {
-   "id": 18,
+   "id": 20,
    "name": "chunk",
    "type": "class",
    "color": "#ffff80ff",
@@ -338,13 +368,23 @@
    "drawFill": true
   },
   {
-   "id": 19,
+   "id": 21,
    "name": "door",
    "type": "class",
    "color": "#ffff8000",
    "members": [
     {
      "name": "interior",
+     "type": "string",
+     "value": ""
+    },
+    {
+     "name": "npc",
+     "type": "string",
+     "value": ""
+    },
+    {
+     "name": "npcAt",
      "type": "string",
      "value": ""
     }
@@ -356,7 +396,7 @@
    "drawFill": true
   },
   {
-   "id": 20,
+   "id": 22,
    "name": "floor",
    "type": "class",
    "color": "#8040ff40",
@@ -368,7 +408,7 @@
    "drawFill": true
   },
   {
-   "id": 21,
+   "id": 23,
    "name": "block",
    "type": "class",
    "color": "#80ff4040",
@@ -380,7 +420,7 @@
    "drawFill": true
   },
   {
-   "id": 22,
+   "id": 24,
    "name": "exit",
    "type": "class",
    "color": "#ff4080ff",
@@ -392,7 +432,7 @@
    "drawFill": true
   },
   {
-   "id": 23,
+   "id": 25,
    "name": "interior",
    "type": "class",
    "color": "#ffa0e0ff",

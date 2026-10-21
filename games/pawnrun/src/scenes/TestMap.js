@@ -158,6 +158,7 @@ class TestMap extends Phaser.Scene {
     this.initInput();
     const docks = m.objects.filter(o => o.cls === 'dock' && o.w > 0);   // `dock` rects: standing in one next to the boat shows the Board prompt
     this.boat = boatArt && new Boat(this, boatArt, docks);
+    this.dockAt = docks[0] && [(docks[0].x + docks[0].w / 2) / T, (docks[0].y + docks[0].h / 2) / T];   // the Spyglass (town shop) marks it on the map
 
     // doors: Tiled rects of class `door` with an `interior` map path; walking up into one (update) enters it. Coming back
     // out (wake) puts the hero just below the door, facing down.
@@ -308,7 +309,7 @@ class TestMap extends Phaser.Scene {
     if (!this.exp || !this.ready || this.leaving || this.hero.dead || this.scene.isPaused()) return;
     this.senseDucks();
     const h = this.hero;
-    this.scene.launch('Map', { ...this.exp, from: this.scene.key, island: this.island, hero: [h.x / T, h.y / T], ducks: shownDucks(this.ducksSeen, this.loot) });
+    this.scene.launch('Map', { ...this.exp, from: this.scene.key, island: this.island, hero: [h.x / T, h.y / T], ducks: shownDucks(this.ducksSeen, this.loot), dock: SAVE?.up.spyglass && this.dockAt });
     this.scene.pause();
   }
   // Duck Sense: the golden ducks near the hero are remembered for the map
