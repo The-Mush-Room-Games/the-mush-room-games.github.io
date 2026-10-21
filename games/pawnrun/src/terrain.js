@@ -49,21 +49,34 @@ function heightGrid(m) {
 // Can a unit step from level a to level b? Same level, or on/off stairs.
 const canStep = (a, b) => a !== LV.BLOCK && b !== LV.BLOCK && (a === b || a === LV.STAIRS || b === LV.STAIRS);
 
-// Feet boxes around a unit's feet point. On raised ground the grass stops ~5px inside the tile edge, so the box is wider.
-const FEET = { x: 10, top: 6, bottom: 2 }, FEET_HIGH = { x: 16, top: 6, bottom: 8 };
-const BACK = 5;              // the top rows of a plateau's back row are still ground: its art starts 1-2px down
+// Feet boxes around a unit's feet point. On a plateau the grass stops ~5px inside the tile edge and the back edge has
+// a thick outline, so the box is bigger there.
+const FEET = { x: 10, top: 6, bottom: 2 }, FEET_HIGH = { x: 16, top: 14, bottom: 8 };
+const BEHIND = 26;           // how far feet go in behind a plateau's back edge: legs hidden, head and body still showing
 
-// Level under a point (pixel version of heightGrid).
-function levelAt(m, lv, px, py) {
-  const cx = Math.floor(px / T), cy = Math.floor(py / T);
-  if (cx < 0 || cy < 0 || cx >= m.w || cy >= m.h) return LV.BLOCK;
-  const l = lv[cy * m.w + cx];
-  return l === LV.RAISED && py - cy * T < BACK && (cy === 0 || lv[(cy - 1) * m.w + cx] !== LV.RAISED) ? LV.GROUND : l;
+// Where feet may stand, per level. A plateau's top is drawn one tile above the ground it covers: a raised cell blocks
+// the ground cell below it, and the ground under the top of a plateau's back row is free (units there walk behind the
+// plateau, which dressTerrain draws in front of them; only BEHIND px deep, so a unit never vanishes). Stair cells are never stood on: units ride ramps (moveFeet).
+function walkGrids(m) {
+  const c = cellFns(m), ground = new Uint8Array(m.w * m.h), high = new Uint8Array(m.w * m.h);
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
+    const i = y * m.w + x;
+    high[i] = c.H(x, y) && !c.S(x, y) ? 1 : 0;
+    ground[i] = !c.G(x, y) || c.S(x, y) || c.H(x, y - 1) ? 0 : c.H(x, y) ? 2 : 1;   // 2 = behind a back row
+  }
+  return { ground, high };
 }
-// Can a unit centred at (ax, ay) put a feet-box corner at (px, py)? Stair cells never: units ride ramps (moveFeet).
-function cornerOk(m, lv, ax, ay, px, py) {
-  const to = levelAt(m, lv, px, py);
-  return to !== LV.STAIRS && canStep(levelAt(m, lv, ax, ay), to);
+function standOk(m, wg, high, px, py) {
+  const cx = Math.floor(px / T), cy = Math.floor(py / T);
+  if (cx < 0 || cy < 0 || cx >= m.w || cy >= m.h) return false;
+  const v = (high ? wg.high : wg.ground)[cy * m.w + cx];
+  return v === 1 || v === 2 && py - cy * T < BEHIND;
+}
+// Is a unit's feet box at (bx, by) on its own level's walkable ground?
+function feetOk(m, wg, high, bx, by) {
+  const F = high ? FEET_HIGH : FEET;
+  for (const px of [bx - F.x, bx + F.x]) for (const py of [by - F.top, by + F.bottom]) if (!standOk(m, wg, high, px, py)) return false;
+  return true;
 }
 
 // Ramps climb sideways from a foot beside the stair bottom up to the plateau beside the stair top. A unit rides the
@@ -81,21 +94,23 @@ function rampsOf(m) {
     const fx = foot + side * (FEET.x + 1), px = top - side * (FEET_HIGH.x + 1);
     const F = { x: fx, y: yAt(fx) }, P = { x: px, y: yAt(px) }, L = Math.hypot(P.x - F.x, P.y - F.y);
     const d = { x: (P.x - F.x) / L, y: (P.y - F.y) / L };
-    out.push({ F, P, L, d, n: { x: -d.y, y: d.x }, side, footCell: [sx + side, sy + 1], topCell: [sx - side, sy] });
+    out.push({ F, P, L, d, n: { x: -d.y, y: d.x }, side, footCell: [sx + side, sy + 1], topCell: [sx - side, sy],
+      depth: (sy + 2) * T });                                       // riders draw over both ramp rows
   }
   return out;
 }
 
-// Move unit u ({ x, y, rail }) by (dx, dy); returns the new [x, y]. Off a ramp: per-axis slide, each axis only if
-// ok(ax, ay, bx, by). Pushing sideways into a ramp from the cell beside its foot or top boards it (u.rail); on it,
-// any input along the ramp moves along the centre line, and the unit drifts onto that line as it climbs.
+// Move unit u ({ x, y, high, rail }) by (dx, dy); returns the new [x, y]. Off a ramp: per-axis slide, each axis only if
+// ok(u, bx, by). Pushing sideways into a ramp from the cell beside its foot (on the ground) or its top (on the plateau)
+// boards it (u.rail); on it, any input along the ramp moves along the centre line, and the unit drifts onto that line
+// as it climbs. Leaving at the top puts the unit on the plateau (u.high), at the foot back on the ground.
 function moveFeet(ramps, ok, u, dx, dy) {
   let x = u.x, y = u.y;
   if (!u.rail) {
     const cx = Math.floor(x / T), cy = Math.floor(y / T);
     for (const r of ramps) {
-      const atFoot = cx === r.footCell[0] && cy === r.footCell[1] && dx * r.side < 0 && Math.abs(x - r.F.x) < 8;
-      const atTop = cx === r.topCell[0] && cy === r.topCell[1] && dx * r.side > 0 && Math.abs(x - r.P.x) < 8;
+      const atFoot = !u.high && cx === r.footCell[0] && cy === r.footCell[1] && dx * r.side < 0 && Math.abs(x - r.F.x) < 8;
+      const atTop = u.high && cx === r.topCell[0] && cy === r.topCell[1] && dx * r.side > 0 && Math.abs(x - r.P.x) < 8;
       if (!atFoot && !atTop) continue;
       const along = (x - r.F.x) * r.d.x + (y - r.F.y) * r.d.y, t = Math.min(1, Math.max(0, along / r.L));
       u.rail = { r, t, a: along - t * r.L, o: (x - r.F.x) * r.n.x + (y - r.F.y) * r.n.y };   // a, o: off the line
@@ -107,15 +122,16 @@ function moveFeet(ramps, ok, u, dx, dy) {
     const toward0 = v => v - Math.sign(v) * Math.min(Math.abs(v), k);
     R.t += along / r.L; R.a = toward0(R.a); R.o = toward0(R.o);
     const s = R.t * r.L + R.a;
-    if (R.t < 0 || R.t > 1) u.rail = null;
+    if (R.t < 0 || R.t > 1) { u.high = R.t > 1; u.rail = null }
     return [r.F.x + r.d.x * s + r.n.x * R.o, r.F.y + r.d.y * s + r.n.y * R.o];
   }
-  if (ok(x, y, x + dx, y)) x += dx;
-  if (ok(x, y, x, y + dy)) y += dy;
+  if (ok(u, x + dx, y)) x += dx;
+  if (ok(u, x, y + dy)) y += dy;
   return [x, y];
 }
 
-// Phaser side. Water is the camera background; layers bottom to top: foam −40, flat −30, shadow −20, raised −10.
+// Phaser side. Water is the camera background; layers bottom to top: foam −40, flat −30, shadow −20, raised, cliffs and
+// stairs −10, except each plateau back row, which sorts with the units (see walkGrids).
 // low/high: texture keys of the colour files for flat and raised ground (the guide: one colour per level).
 function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
   const c = cellFns(m), mid = n => n * T + T / 2;
@@ -124,7 +140,10 @@ function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
   const tsHigh = map.addTilesetImage('high', high, T, T, 0, 0, 54);
   const flat = map.createBlankLayer('flat', tsLow).setDepth(-30);
   const lvl1 = map.createBlankLayer('lvl1', tsHigh).setDepth(-10);
-  const foam = [], shadows = [];
+  const foam = [], shadows = [], backRows = new Map();
+  // a plateau's back row covers the ground below it, so it draws in front of units walking behind it: one layer per row
+  const backRow = y => backRows.get(y) || backRows.set(y, map.createBlankLayer('back' + y, tsHigh, 0, y * T, m.w, 1)
+    .setDepth((y + 1) * T - 0.5)).get(y);
   const addFoam = (x, y) => foam.push(scene.add.sprite(mid(x), mid(y), 'foam').setDepth(-40)
     .play({ key: 'foam', startFrame: Phaser.Math.Between(0, 15) }));
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
@@ -136,14 +155,14 @@ function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
     if (!c.H(x, y)) continue;
     // a stair top beside a raised edge: swap that edge for the centre piece (15), as the guide says
     const t = c.top(x - 1, y) || c.top(x + 1, y) ? 15 : autotile(c.H, x, y, 5);
-    lvl1.putTileAt(54 + t, x, y);
+    if (c.H(x, y - 1)) lvl1.putTileAt(54 + t, x, y); else backRow(y).putTileAt(54 + t, x, 0);
     shadows.push(scene.add.image(mid(x), mid(y + 1), 'shadow').setDepth(-20));
     if (hasCliff(c, x, y)) {
       lvl1.putTileAt(54 + cliffTile(c, x, y), x, y + 1);
       if (!c.G(x, y + 1)) addFoam(x, y + 1);                  // cliffs standing in water get foam too
     }
   }
-  return { map, flat, lvl1, foam, shadows };
+  return { map, flat, lvl1, backRows, foam, shadows };
 }
 
-if (typeof module === 'object') module.exports = { T, LV, STAIR_IDX, FEET, FEET_HIGH, autotile, heightGrid, canStep, levelAt, cornerOk, rampsOf, moveFeet, cellFns, cliffTile, hasCliff };
+if (typeof module === 'object') module.exports = { T, LV, STAIR_IDX, FEET, FEET_HIGH, autotile, heightGrid, canStep, walkGrids, standOk, feetOk, rampsOf, moveFeet, cellFns, cliffTile, hasCliff };

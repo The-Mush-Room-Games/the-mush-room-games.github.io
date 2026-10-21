@@ -55,9 +55,8 @@ class TestMap extends Phaser.Scene {
   }
   build(m, name) {
     dressTerrain(this, m);
-    const lv = heightGrid(m), rectsAt = new Map(), rects = [];     // rectsAt: cell index -> collision rects touching it
-    const level = (px, py) => levelAt(m, lv, px, py);
-    const depth = (px, py) => py + (level(px, py) === LV.RAISED ? T : 0);   // one-tile boost on raised ground
+    const lv = heightGrid(m), wg = walkGrids(m), rectsAt = new Map(), rects = [];   // rectsAt: cell index -> collision rects touching it
+    const onRaised = (px, py) => lv[Math.floor(py / T) * m.w + Math.floor(px / T)] === LV.RAISED;   // objects: placed on a plateau
 
     this.hittables = [];
     for (const o of m.objects) {
@@ -65,16 +64,17 @@ class TestMap extends Phaser.Scene {
       const box = artBox(this, o.key), top = o.y - box.fh, left = o.x - box.fw / 2;   // frame top-left in the world
       const fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box;   // the art box as drawn (mirrored when flipped)
       const gap = box.fh - (box.y + box.h);                        // transparent rows under the art: the drawn feet sit that much higher
-      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(depth(o.x, o.y - 1) - gap);
+      const high = onRaised(o.x, o.y - 1);
+      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.y - gap + (high ? T : 0));
       if (HITTABLE.test(o.key)) {                                  // hurtbox: the art as drawn; tall art (trees) only its trunk end
         const tall = box.h > 64, w = tall ? 0.4 * box.w : box.w, cx = left + fb.x + box.w / 2, y1 = top + box.y + box.h;
-        this.hittables.push({ s, ox: o.x, high: level(o.x, o.y - 1) === LV.RAISED,
+        this.hittables.push({ s, ox: o.x, high,
           hb: { x0: cx - w / 2, x1: cx + w / 2, y0: y1 - (tall ? 56 : box.h), y1 } });
       }
       const anim = this.anims.get(o.key);
       if (anim && anim.repeat === -1) s.play({ key: o.key, startFrame: Phaser.Math.Between(0, anim.frames.length - 1) });
       for (const r of objectRects(o, fb)) {
-        const R = { x0: left + r.x, y0: top + r.y, x1: left + r.x + r.w, y1: top + r.y + r.h };
+        const R = { x0: left + r.x, y0: top + r.y, x1: left + r.x + r.w, y1: top + r.y + r.h, high };
         rects.push(R);
         for (let cy = Math.floor(R.y0 / T); cy <= Math.floor((R.y1 - 1e-6) / T); cy++)
           for (let cx = Math.floor(R.x0 / T); cx <= Math.floor((R.x1 - 1e-6) / T); cx++) {
@@ -82,25 +82,23 @@ class TestMap extends Phaser.Scene {
           }
       }
     }
-    // walkable(a -> b): the feet box around b must sit on terrain the unit can step to from a, and touch no object rect
+    // walkable(unit, b): the feet box at b must sit on the unit's own level and touch no object rect on that level
     this.rects = rects;
-    this.walkable = (ax, ay, bx, by) => {
-      const F = level(bx, by) === LV.RAISED ? FEET_HIGH : FEET;
-      for (const px of [bx - F.x, bx + F.x]) for (const py of [by - F.top, by + F.bottom])
-        if (!cornerOk(m, lv, ax, ay, px, py)) return false;
+    this.walkable = (u, bx, by) => {
+      if (!feetOk(m, wg, u.high, bx, by)) return false;
       const x0 = bx - FEET.x, x1 = bx + FEET.x, y0 = by - FEET.top, y1 = by + FEET.bottom;
       for (let cy = Math.floor(y0 / T); cy <= Math.floor(y1 / T); cy++) for (let cx = Math.floor(x0 / T); cx <= Math.floor(x1 / T); cx++)
-        for (const R of rectsAt.get(cy * m.w + cx) || []) if (x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return false;
+        for (const R of rectsAt.get(cy * m.w + cx) || []) if (R.high === !!u.high && x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return false;
       return true;
     };
-    this.depthAt = depth;
+    this.depthOf = u => u.rail ? u.rail.r.depth : u.y + (u.high ? T : 0);   // one-tile boost on a plateau
     const ramps = rampsOf(m);
     this.moveFeet = (u, dx, dy) => moveFeet(ramps, this.walkable, u, dx, dy);   // ramps carry units along their centre line
 
     const spawn = m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
     const q = new URLSearchParams(location.search), form = q.get('hero') === 'new' ? 'new' : 'old';
     const weapons = q.get('w') ? q.get('w').split(',') : form === 'new' ? ['axe', 'pickaxe'] : ['axe', 'hammer'];
-    this.hero = new Hero(this, spawn.x, spawn.y, { form, weapons });
+    this.hero = new Hero(this, spawn.x, spawn.y, { form, weapons, high: onRaised(spawn.x, spawn.y) });
     this.cameras.main.setBounds(0, 0, m.w * T, m.h * T).startFollow(this.hero.sprite, true, 0.15, 0.15);
 
     // input: pend holds "pressed this frame" flags (keys, mouse and HUD buttons all feed it)
@@ -185,7 +183,7 @@ class TestMap extends Phaser.Scene {
     if (this.dbg) {
       const g = this.dbg.clear();
       g.lineStyle(1, 0xff4040); for (const R of this.rects) g.strokeRect(R.x0, R.y0, R.x1 - R.x0, R.y1 - R.y0);
-      const F = this.depthAt(h.x, h.y) !== h.y ? FEET_HIGH : FEET;
+      const F = h.high ? FEET_HIGH : FEET;
       g.lineStyle(1, 0x60ff60).strokeRect(h.x - F.x, h.y - F.top, 2 * F.x, F.top + F.bottom);
       g.lineStyle(1, 0x60b0ff); for (const { hb: b } of this.hittables) g.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
       const d = this.dbgHit;

@@ -1,9 +1,9 @@
 // The hero: movement, swing, dash, hurt, death. One class for both forms (old Pawn / new Pawn).
-// Scene contract: scene.moveFeet(unit, dx, dy) -> [x, y], scene.depthAt(x, y). Events on scene.events:
+// Scene contract: scene.moveFeet(unit, dx, dy) -> [x, y], scene.depthOf(unit). Events on scene.events:
 //   'hero-hit' { rect: {x0,y0,x1,y1}, high, damage, weapon }   'hero-hurt' { hp, dmg, x, y }   'hero-dead'   'hero-swap' { weapon }
 // update(dt, input): dt in SECONDS; input = { move: Vector2 (len <= 1), aim: Vector2|null, swing, dash, swap } (last 3 = pressed this frame).
 class Hero {
-  constructor(scene, x, y, { form = 'old', weapons = ['axe', 'hammer'] } = {}) {
+  constructor(scene, x, y, { form = 'old', weapons = ['axe', 'hammer'], high = false } = {}) {
     this.scene = scene; this.form = form;
     this.weapons = weapons.filter(k => WEAPONS[k] && WEAPONS[k].anim[form]).slice(0, 2);   // the old Pawn has no pickaxe or knife
     if (!this.weapons.length) this.weapons = ['axe'];
@@ -14,6 +14,7 @@ class Hero {
     this.aim = new Phaser.Math.Vector2(1, 0);       // last aim direction (unit)
     this.swing = null;                               // { w, key, hit } while swinging
     this.swingCd = 0; this.buf = 0;                  // recovery after a swing, buffered swing press
+    this.high = high;                                // on a plateau; only ramps change it (scene.moveFeet)
     this.rail = null;                                // set by scene.moveFeet while riding a ramp
     this.dashT = 0; this.dashCd = 0; this.dashDir = new Phaser.Math.Vector2();
     this.inv = 0;                                    // invulnerable seconds left (dash and hurt)
@@ -34,7 +35,7 @@ class Hero {
     this.sprite.setPosition(x, y);
   }
   puff(x, y) {                                       // a dust1 puff that deletes itself
-    const p = this.scene.add.sprite(x, y - 8, 'dust1').setDepth(this.scene.depthAt(x, y) + 1).play('dust1');
+    const p = this.scene.add.sprite(x, y - 8, 'dust1').setDepth(this.scene.depthOf(this) + 1).play('dust1');
     p.once('animationcomplete', () => p.destroy());
   }
 
@@ -81,7 +82,7 @@ class Hero {
     if (this.flashT > 0) s.setTint(0xff3030).setTintMode(Phaser.TintModes.FILL);
     else s.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
     s.setAlpha(this.hurtT > 0 ? (Math.floor(this.hurtT * 16) % 2 ? 0.35 : 1) : this.dashT > 0 ? 0.7 : 1);
-    s.setDepth(scene.depthAt(s.x, s.y));
+    s.setDepth(scene.depthOf(this));
   }
 
   startSwing() {
@@ -98,7 +99,7 @@ class Hero {
       sw.hit = true;                                 // the slash box from the art, mirrored when facing left
       const [x0, y0, x1, y1] = sw.w.hit[this.form], f = s.flipX ? -1 : 1, scene = this.scene;
       const rect = { x0: this.x + (f > 0 ? x0 : -x1), x1: this.x + (f > 0 ? x1 : -x0), y0: this.y + y0, y1: this.y + y1 };
-      scene.events.emit('hero-hit', { rect, high: scene.depthAt(this.x, this.y) !== this.y, damage: sw.w.damage, weapon: sw.key });
+      scene.events.emit('hero-hit', { rect, high: this.high, damage: sw.w.damage, weapon: sw.key });
     }
     if (done) { this.swingCd = sw.w.recover; this.swing = null; }
   }
@@ -127,7 +128,7 @@ class Hero {
   }
   die() {
     this.dead = true; this.sprite.setVisible(false);
-    const s = this.scene.add.sprite(this.x, this.y, 'odead').setOrigin(0.5, 0.72).setDepth(this.scene.depthAt(this.x, this.y)).play('odead-dead');
+    const s = this.scene.add.sprite(this.x, this.y, 'odead').setOrigin(0.5, 0.72).setDepth(this.scene.depthOf(this)).play('odead-dead');
     s.once('animationcomplete', () => s.play('odead-buried'));
     this.scene.events.emit('hero-dead');
   }
