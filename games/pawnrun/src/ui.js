@@ -187,6 +187,7 @@ class Hud {
     });
 
     if (this.touch) this._touchControls(A, W, H);
+    else A(iconButton(s, W - 36, 150, 'round', 'tiny', 'icon11', () => s.events.emit('hud-map')), 1);   // map: info (M). On touch it sits with the other buttons
     this.setHp(v.hp, v.max); this.setGold(v.gold); this.setDucks(v.ducks);
     this.setWeapons(v.weapons, v.active); this.setItems(v.items); this.setPowers(v.powers); this.setDash(...v.dash);
     v.boss ? this.showBoss(...v.boss) : this.boss.setVisible(false);

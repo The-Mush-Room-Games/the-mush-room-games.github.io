@@ -152,6 +152,9 @@ class TestMap extends Phaser.Scene {
     const weapons = q.get('w') ? q.get('w').split(',') : form === 'new' ? ['axe', 'pickaxe'] : ['axe', 'hammer'];
     this.hero = new Hero(this, spawn.x, spawn.y, { form, weapons, high: onRaised(spawn.x, spawn.y) });
     if (this.run.hero) this.hero.load(this.run.hero);               // the run carries over from the last island: weapons, items, power-ups, hp
+    this.exp = { w: m.w, h: m.h, cls: terrainClass(m), obj: objectClass(m), seen: new Uint8Array(m.w * m.h),     // the explored map: made per island, so a death or a new island starts it empty
+      doors: m.objects.filter(o => o.cls === 'door' && o.props.interior).map(o => [Math.floor((o.x + o.w / 2) / T), Math.floor((o.y + o.h / 2) / T)]) };
+    this.ducksSeen = new Set(); this.tile = [-1, -1];
     this.fitBounds(m.w * T, m.h * T);
     this.cameras.main.startFollow(this.hero.sprite, true, 0.15, 0.15);
 
@@ -197,6 +200,7 @@ class TestMap extends Phaser.Scene {
     for (const [key, i] of [['E', 0], ['ONE', 0], ['TWO', 1], ['THREE', 2], ['FOUR', 3]])   // bag slots: E and 1 use the first (E boards the boat on the dock)
       this.on(kb, 'keydown-' + key, e => { if (!e.repeat) key === 'E' && this.boat?.state === 'board' ? this.boat.board() : useItem(this, i) });
     this.on(kb, 'keydown-H', e => { if (!e.repeat) this.hurtTest = true });
+    this.on(kb, 'keydown-M', e => { if (!e.repeat) this.openMap() });
     this.move = new Phaser.Math.Vector2();
     this.on(this.input, 'pointerdown', p => { if (!p.wasTouch && p.leftButtonDown()) this.pend.swing = true });   // a click swings; the hero swings the way he faces
 
@@ -204,6 +208,7 @@ class TestMap extends Phaser.Scene {
       this.hud = new Hud(this);
       for (const [ev, k] of [['hud-swing', 'swing'], ['hud-dash', 'dash'], ['hud-swap', 'swap']]) this.on(this.events, ev, () => this.pend[k] = true);
       this.on(this.events, 'hud-item', i => useItem(this, i));       // a tap on a bag slot
+      this.on(this.events, 'hud-map', () => this.openMap());
     }
   }
   // camera bounds for a W x H world: a world smaller than the screen sits in its middle (the screen is any size, Scale.EXPAND)
@@ -284,6 +289,16 @@ class TestMap extends Phaser.Scene {
     this.scene.launch('Cards', { from: this.scene.key, cards: ids, island: this.island });
     this.scene.pause();
   }
+  // the explored map: the Map scene over this one, which stands still until it is closed. Not in a room (Interior has no `exp`).
+  openMap() {
+    if (!this.exp || !this.ready || this.leaving || this.hero.dead || this.scene.isPaused()) return;
+    this.senseDucks();
+    const h = this.hero;
+    this.scene.launch('Map', { ...this.exp, from: this.scene.key, island: this.island, hero: [h.x / T, h.y / T], ducks: shownDucks(this.ducksSeen, this.loot) });
+    this.scene.pause();
+  }
+  // Duck Sense: the golden ducks near the hero are remembered for the map
+  senseDucks() { if (this.hero.pw.sense) senseDucks(this.loot, this.ducksSeen, this.hero.x, this.hero.y) }
   // the card that was picked: the hero takes it, and a line of what it gave floats up
   takePower(id) {
     const h = this.hero;
@@ -310,6 +325,8 @@ class TestMap extends Phaser.Scene {
     for (const a of this.shots) a.update(dt / 1000);
     this.shots = this.shots.filter(a => !a.end);
     tickLoot(this);
+    const tx = Math.floor(h.x / T), ty = Math.floor(h.y / T);
+    if (tx !== this.tile[0] || ty !== this.tile[1]) { this.tile = [tx, ty]; revealAround(this.exp.seen, this.exp.w, this.exp.h, tx, ty); this.senseDucks() }   // a new tile: reveal around it
     this.boat?.update();
     if (inp.pick) swapPickup(this);
     for (const c of this.camps) c.update();

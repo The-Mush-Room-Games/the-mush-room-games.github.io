@@ -135,7 +135,7 @@ const RARITY = {
   rare:     { weight: 1.5, ribbon: 'purple', label: 'Rare',     tint: 0xa060e0, special: true },   // special = paper_special
 };
 const POWER_SCALE = { perIsland: 0.1, cap: 2 };      // powerK(island) = min(cap, 1 + perIsland x (island - 1)): island 1 = 1, island 6 = 1.5
-const STAT0 = { dmg: 1, hp: 0, speed: 1, swing: 1, gold: 1, dashRate: 1, reach: 1, kb: 1, meat: 1, charges: 1, twice: 0, thorns: 0, slots: 0 };   // stats with no power-up
+const STAT0 = { dmg: 1, hp: 0, speed: 1, swing: 1, gold: 1, dashRate: 1, reach: 1, kb: 1, meat: 1, charges: 1, twice: 0, thorns: 0, slots: 0, sense: 0 };   // stats with no power-up
 const POWERUPS = {
   damage:   { rarity: 'common', name: 'Sharp Edge', text: '+{v}% damage', stat: 'dmg', add: 0.15, pct: true, scale: true, icon: ['tool2', 0, 2] },
   vigor:    { rarity: 'common', name: 'Tough Hide', text: '+1 max HP, heal 1', stat: 'hp', add: 1, heal: 1, icon: ['icon06'] },
@@ -151,8 +151,13 @@ const POWERUPS = {
   echo:     { rarity: 'rare', name: 'Twin Strike', text: 'Every swing hits twice', stat: 'twice', add: 1, max: 1, icon: ['icon05'] },
   thorns:   { rarity: 'rare', name: 'Thorns', text: 'Enemies that hurt you take 1', stat: 'thorns', add: 1, icon: ['icon09'] },
   pockets:  { rarity: 'rare', name: 'Deep Pockets', text: '+1 item slot', stat: 'slots', add: 1, max: 1, icon: ['btn-tiny-square'] },
-  ducks:    { rarity: 'rare', name: 'Duck Sense', text: 'Golden ducks show on the map', off: true, icon: ['duck', 0] },   // off: needs the explored map (group 4)
+  ducks:    { rarity: 'rare', name: 'Duck Sense', text: 'Golden ducks show on the map', stat: 'sense', add: 1, max: 1, icon: ['duck', 0] },   // sense: golden ducks within EXPLORE.ducks tiles are remembered on the map (src/map.js)
 };
+// The explored map (src/map.js, scenes/Map.js). reveal = radius in tiles around the hero that count as seen, ducks = how far Duck Sense reaches (tiles).
+// land / obj = the colours of the terrain classes (water, grass, raised, cliff, stairs) and of the blobs on them (tree, rock, building; index 0 = none),
+// door = a door's tile, shore = the pale rim on land next to seen water, fog = the unseen part of the map (over the paper), ink = outlines.
+const EXPLORE = { reveal: 6.5, ducks: 12, land: ['#47aba9', '#9bb94e', '#6f9a4c', '#506a69', '#c9a46a'], obj: [null, '#3d6b3a', '#8f9c9a', '#af7960'],
+  door: '#f2c33a', shore: '#e4f3df', fog: 'rgba(90,62,43,0.16)', ink: '#161c2e' };
 const HIT2 = { delay: 0.1, mult: 1 };                // Twin Strike: the second hit lands `delay` s after the first, for `mult` of its damage
 
-if (typeof module === 'object') module.exports = { ISLAND, CAMP, FENCE, RARITY, POWER_SCALE, STAT0, POWERUPS, HIT2, WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };
+if (typeof module === 'object') module.exports = { EXPLORE, ISLAND, CAMP, FENCE, RARITY, POWER_SCALE, STAT0, POWERUPS, HIT2, WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };

@@ -36,12 +36,12 @@ assert.deepStrictEqual(side.filter(p => p.gate).map(p => p.type + p.r), ['vl12',
 
 // the cards: n distinct ids, never an `off` one, never one at its max, drawn by rarity weight
 let seed = 7; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32;
-assert(POWERUPS.ducks.off, 'golden ducks on the map is listed but off');
+assert(!POWERUPS.ducks.off && POWERUPS.ducks.stat === 'sense' && powerPool([]).includes('ducks'), 'Duck Sense is in the pool and is a kept stat');
 for (let i = 0; i < 5000; i++) { const d = drawCards(3, [], rnd); assert.strictEqual(new Set(d).size, 3, 'three distinct: ' + d); assert(d.every(id => POWERUPS[id] && !POWERUPS[id].off)) }
 const full = [{ id: 'twin', k: 1 }, { id: 'twin', k: 1 }, { id: 'echo', k: 1 }, { id: 'pockets', k: 1 }];
 for (let i = 0; i < 2000; i++) assert(!drawCards(3, full, rnd).some(id => ['twin', 'echo', 'pockets'].includes(id)), 'maxed power-ups are not offered');
 assert.strictEqual(drawCards(3, [], () => 0.999999).length, 3);
-assert.strictEqual(powerPool([]).length, Object.keys(POWERUPS).length - 1, 'the whole list but the off one');
+assert.strictEqual(powerPool([]).length, Object.keys(POWERUPS).filter(id => !POWERUPS[id].off).length, 'the whole list but the off ones');
 assert.strictEqual(drawCards(30, [], rnd).length, powerPool([]).length, 'asking for more than there is gives the pool');
 const first = { common: 0, uncommon: 0, rare: 0 }, N = 60000;                       // the first card of a draw: each id weighs its rarity's weight
 for (let i = 0; i < N; i++) first[POWERUPS[drawCards(1, [], rnd)[0]].rarity]++;
