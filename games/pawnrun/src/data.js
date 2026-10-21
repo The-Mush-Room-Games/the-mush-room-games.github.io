@@ -13,6 +13,10 @@ const WEAPONS = {
   knife:   { damage: 1, speed: 1.4,  recover: 0,    hitFrame: { new: 1 }, hit: { new: [8, -48, 44, 4] }, anim: { new: 'pawn-interact-knife' } },
 };
 
+// Weapon tiers 0-3 in the kit's colour order: blue, red, yellow, purple (ui.js TIER_COLOUR; tint = the hex of each, for the ground base and the HUD badge).
+// A tier adds `dmg` of the base damage and `speed` of the base swing speed per step: tier 2 = +50% damage, +16% speed.
+const TIER = { names: ['blue', 'red', 'yellow', 'purple'], tint: [0x4a8fe0, 0xe0503a, 0xf2c33a, 0xa060e0], dmg: 0.25, speed: 0.08 };
+
 const HERO = {
   old: { hp: 5, speed: 140, idle: 'opawn-idle', run: 'opawn-run', roll: 'opawn-roll', texture: 'opawn', originY: 128 / 192, bodyY: 30 },
   new: { hp: 7, speed: 155, originY: 135 / 192, bodyY: 36 },                      // new Pawn anims are 'pawn-idle-<tool>' / 'pawn-run-<tool>'
@@ -41,6 +45,7 @@ const LOOT = {
   gold: { tex: 'gold', glint: 'gold-highlight', dy: -12 },
   meat: { tex: 'meat', dy: -14 },
   duck: { tex: 'duck', anim: 'duck', tint: 0xffd34d, dy: -14 },
+  weapon: { dy: -16 },                              // art = the Tool icon of its weapon (ui.js TOOL_ICON) over a base in the tier colour
 };
 // Map props that react to weapons: hp, and damage per weapon (a weapon that is not listed clanks off). chips = debris colours.
 // tree = a `secret` tree (felled into a stump), rock = a `secret` rock (rock pile: broken for good; blast = dynamite breaks it),
@@ -58,4 +63,4 @@ const SHEEP = {                                     // acts: weight and seconds 
 const PICKUP = { r: 14, arc: 22, pop: 380, scatter: [18, 34] };   // r = reach around the ground point, arc/pop = drop arc height (px) and time (ms)
 const BAG = 3, MEAT_HEAL = 2;                        // item slots, hp one meat heals
 
-if (typeof module === 'object') module.exports = { WEAPONS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };
+if (typeof module === 'object') module.exports = { WEAPONS, TIER, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };

@@ -1,5 +1,6 @@
 // Loot: drop rolls, pickups on the ground, the bag. Tunables in data.js (DROPS, LOOT, PICKUP, BAG, MEAT_HEAL).
 // Gold and ducks live in scene.registry ('gold', 'ducks', so they outlive a restart); the bag is hero.items (carried by Hero.state/load).
+// Weapons lie there too ({ kind: 'weapon', weapon, tier }): a free slot takes them, else a prompt over the pickup (scene.prompt) offers F to swap.
 // Scene contract: scene.hero, scene.loot (array), scene.walkable(unit, bx, by).
 
 // Pure. Rows of a drop table -> [{ kind, n }]; rnd() is in [0, 1).
@@ -16,9 +17,12 @@ function eatMeat(h, i, heal = MEAT_HEAL) {
 }
 
 // A pickup at ground point (x, y). `from` = [x, y] it pops out of (arcs down to the ground); without it, it is just there.
-function spawnLoot(scene, kind, x, y, high, n = 1, from) {
-  const L = LOOT[kind], c = scene.add.container(x, y), p = { c, kind, n, x, y, high: !!high, landed: false };
-  const art = scene.add.sprite(0, L.dy, L.tex);
+function spawnLoot(scene, kind, x, y, high, n = 1, from, extra) {
+  const L = LOOT[kind], c = scene.add.container(x, y), p = { c, kind, n, x, y, high: !!high, landed: false, ...extra };
+  if (kind === 'weapon')                                                    // a base in the tier colour, and the tier number on it
+    c.add([scene.add.ellipse(0, -3, 38, 14, TIER.tint[p.tier], 0.8).setStrokeStyle(2, 0x161c2e),
+      ...(p.tier ? [scene.add.text(0, -3, p.tier, txt(11, undefined, undefined, NUMFONT)).setOrigin(0.5)] : [])]);
+  const art = scene.add.sprite(0, L.dy, L.tex || TOOL_ICON[p.weapon]);
   if (L.anim) art.play(L.anim);
   if (L.tint) art.setTint(L.tint);
   c.add(art);
@@ -48,21 +52,52 @@ function dropLoot(scene, table, x, y, high) {
     spawnLoot(scene, kind, tx, ty, high, n, [x, y - 16]);
   }
 }
-// Take pickup p if the bag has room (meat). Gold and ducks add to the registry.
+// Take pickup p: a weapon into a free slot, meat into the bag if it has room. Gold and ducks add to the registry.
 function collect(scene, p) {
   const h = scene.hero, reg = scene.registry;
-  if (p.kind === 'meat') { if (h.items.length >= BAG) return false; h.items.push('meat') }
+  if (p.kind === 'weapon') { if (weaponAction(h, p.weapon) !== 'take') return false; giveWeapon(h, p.weapon, p.tier) }
+  else if (p.kind === 'meat') { if (h.items.length >= BAG) return false; h.items.push('meat') }
   else { const k = p.kind === 'duck' ? 'ducks' : 'gold'; reg.set(k, (reg.get(k) || 0) + p.n) }
   scene.tweens.killTweensOf(p.c);
   scene.tweens.add({ targets: p.c, y: p.c.y - 14, scale: 1.5, alpha: 0, duration: 160, onComplete: () => p.c.destroy() });
   return true;
 }
-// Per frame: collect what the hero's feet box touches (landed pickups only).
+// Per frame: collect what the hero's feet box touches (landed pickups only). A weapon he stands on but cannot take gets the prompt.
 function tickLoot(scene) {
   const h = scene.hero;
-  if (h.dead) return;
+  if (h.dead) return setPrompt(scene);
   const F = h.high ? FEET_HIGH : FEET;
   scene.loot = scene.loot.filter(p => !(p.landed && pickedUp(F, h, p) && collect(scene, p)));
+  const w = scene.loot.find(p => p.kind === 'weapon' && p.landed && pickedUp(F, h, p));
+  setPrompt(scene, w, w && weaponAction(h, w.weapon));
+}
+// The prompt over weapon pickup p: 'swap' = "F swap" (a tap on touch), 'cant' = the kit's forbidden cursor and "can't use". No p hides it.
+function setPrompt(scene, p, action) {
+  let pr = scene.prompt;
+  if (!pr) {
+    const c = scene.add.container(0, 0).setDepth(1e5).setVisible(false), t = scene.add.text(0, 0, '', txt(16)).setOrigin(0.5), no = scene.add.image(0, 0, 'cursor03');
+    c.add([no, t]);
+    if (uiTouch(scene)) { c.setSize(90, 36); c.setInteractive(); c.on('pointerdown', () => scene.pend.pick = true) }   // a tap on the prompt swaps
+    pr = scene.prompt = { c, t, no, action: null };
+  }
+  pr.action = p ? action : null;
+  pr.p = p;
+  pr.c.setVisible(!!p);
+  if (!p) return;
+  pr.no.setVisible(action === 'cant').setPosition(-42, 0);
+  pr.t.setText(action === 'cant' ? "can't use" : uiTouch(scene) ? 'tap: swap' : 'F swap').setX(action === 'cant' ? 8 : 0);
+  pr.c.setPosition(p.x, p.y - 92 + Math.sin(scene.time.now / 200) * 2);
+}
+// F (or a tap on the prompt): swap the weapon under the hero with his active one; the old one lies where the new one was.
+function swapPickup(scene) {
+  const pr = scene.prompt, h = scene.hero;
+  if (!pr || pr.action !== 'swap' || h.dead) return false;
+  const p = pr.p, old = giveWeapon(h, p.weapon, p.tier);
+  scene.tweens.killTweensOf(p.c); p.c.destroy();
+  scene.loot = scene.loot.filter(q => q !== p);
+  spawnLoot(scene, 'weapon', p.x, p.y, p.high, 1, undefined, { weapon: old.key, tier: old.tier });
+  setPrompt(scene);
+  return true;
 }
 
 if (typeof module === 'object') module.exports = { rollDrops, pickedUp, eatMeat };

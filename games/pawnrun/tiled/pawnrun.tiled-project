@@ -15,7 +15,8 @@
    "values": [
     "duck",
     "weapon",
-    "item",
+    "dynamite",
+    "bomb",
     "gold",
     "meat",
     "random"
@@ -140,6 +141,16 @@
      "name": "n",
      "type": "int",
      "value": 1
+    },
+    {
+     "name": "weapon",
+     "type": "string",
+     "value": ""
+    },
+    {
+     "name": "tier",
+     "type": "int",
+     "value": 0
     }
    ],
    "useAs": [

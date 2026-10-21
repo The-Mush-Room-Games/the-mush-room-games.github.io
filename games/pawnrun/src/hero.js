@@ -2,11 +2,26 @@
 // Scene contract: scene.moveFeet(unit, dx, dy) -> [x, y], scene.depthOf(unit), scene.walkable(unit, bx, by) (TestMap, Interior). Events on scene.events:
 //   'hero-hit' { rect: {x0,y0,x1,y1}, high, damage, weapon }   'hero-hurt' { hp, dmg, x, y }   'hero-dead'   'hero-swap' { weapon }
 // update(dt, input): dt in SECONDS; input = { move: Vector2 (len <= 1), swing, dash, swap } (last 3 = pressed this frame).
+// Pure. Can this form swing weapon `key`? (the old Pawn has no pickaxe or knife)
+const canUse = (form, key) => !!(WEAPONS[key] && WEAPONS[key].anim[form]);
+// Pure. A weapon at a tier: damage and swing speed (animation timeScale). Tier steps are TIER.dmg / TIER.speed of the base each.
+const weaponStat = (key, tier = 0) => ({ damage: WEAPONS[key].damage * (1 + TIER.dmg * tier), speed: WEAPONS[key].speed * (1 + TIER.speed * tier) });
+// Pure. What a weapon on the ground offers hero h (anything with form, weapons): 'cant', 'take' (a free slot), or 'swap' (both slots full: F).
+const weaponAction = (h, key) => !canUse(h.form, key) ? 'cant' : h.weapons.length < 2 ? 'take' : 'swap';
+// Pure. Give h the weapon: a free slot takes it (null back), else it replaces the active one and that one is returned as { key, tier }.
+function giveWeapon(h, key, tier) {
+  if (h.weapons.length < 2) { h.weapons.push(key); h.tiers.push(tier); return null }
+  const old = { key: h.weapons[h.active], tier: h.tiers[h.active] };
+  h.weapons[h.active] = key; h.tiers[h.active] = tier;
+  return old;
+}
+
 class Hero {
-  constructor(scene, x, y, { form = 'old', weapons = ['axe', 'hammer'], high = false } = {}) {
+  constructor(scene, x, y, { form = 'old', weapons = ['axe', 'hammer'], tiers = [], high = false } = {}) {
     this.scene = scene; this.form = form;
-    this.weapons = weapons.filter(k => WEAPONS[k] && WEAPONS[k].anim[form]).slice(0, 2);   // the old Pawn has no pickaxe or knife
-    if (!this.weapons.length) this.weapons = ['axe'];
+    const ws = weapons.map((k, i) => [k, tiers[i] || 0]).filter(([k]) => canUse(form, k)).slice(0, 2);
+    if (!ws.length) ws.push(['axe', 0]);
+    this.weapons = ws.map(w => w[0]); this.tiers = ws.map(w => w[1]);    // two slots; tiers[i] = tier of weapons[i]
     this.active = 0;
     const st = HERO[form];
     this.maxHp = this.hp = st.hp; this.speed = st.speed;
@@ -26,9 +41,10 @@ class Hero {
   }
   get x() { return this.sprite.x } get y() { return this.sprite.y }
   get weapon() { return this.weapons[this.active] }
-  get state() { return { form: this.form, weapons: this.weapons, active: this.active, hp: this.hp, flip: this.sprite.flipX, items: this.items.slice() } }   // carried between scenes
+  get tier() { return this.tiers[this.active] }
+  get state() { return { form: this.form, weapons: this.weapons.slice(), tiers: this.tiers.slice(), active: this.active, hp: this.hp, flip: this.sprite.flipX, items: this.items.slice() } }   // carried between scenes
   load(st) {
-    this.active = st.active; this.hp = st.hp; this.items = st.items.slice(); this.sprite.setFlipX(st.flip);
+    this.weapons = st.weapons.slice(); this.tiers = st.tiers.slice(); this.active = st.active; this.hp = st.hp; this.items = st.items.slice(); this.sprite.setFlipX(st.flip);
     this.swing = null; this.dashT = this.kbT = this.buf = 0; this.sprite.play(this.anim('idle'));
   }
   get dashFrac() { return 1 - Math.max(0, this.dashCd) / DASH.cooldown }
@@ -95,10 +111,10 @@ class Hero {
   }
 
   startSwing() {
-    const w = WEAPONS[this.weapon], s = this.sprite;
+    const w = WEAPONS[this.weapon], s = this.sprite, st = weaponStat(this.weapon, this.tier);
     this.buf = 0;
-    this.swing = { w, key: this.weapon, hit: false };
-    s.anims.timeScale = w.speed;
+    this.swing = { w, key: this.weapon, hit: false, ...st };           // damage and speed at this tier
+    s.anims.timeScale = st.speed;
     const v = this.aim.y < 0 ? 'up' : this.aim.y > 0 ? 'down' : '';   // up/down have their own back/front-view strips
     if (v) s.setFlipX(false);                                         // up/down strips are drawn right-handed: never mirror them
     s.play(v ? `${this.form === 'old' ? 'o' : ''}pawn-${this.weapon}-${v}` : w.anim[this.form]);
@@ -112,7 +128,7 @@ class Hero {
       const [rx0, ry0, rx1, ry1] = a.x > 0 ? [x0, y0, x1, y1] : a.x < 0 ? [-x1, y0, -x0, y1]   // mirrored for left,
         : a.y < 0 ? [-w, -c - x1, w, -c - x0] : [-w, -c + x0, w, -c + x1];                       // up/down: around the body's middle
       const rect = { x0: this.x + rx0, x1: this.x + rx1, y0: this.y + ry0, y1: this.y + ry1 };
-      this.scene.events.emit('hero-hit', { rect, high: this.high, damage: sw.w.damage, weapon: sw.key });
+      this.scene.events.emit('hero-hit', { rect, high: this.high, damage: sw.damage, weapon: sw.key });
     }
     if (done) { this.swingCd = sw.w.recover; this.swing = null; }
   }
@@ -148,3 +164,5 @@ class Hero {
     this.scene.events.emit('hero-dead');
   }
 }
+
+if (typeof module === 'object') module.exports = { canUse, weaponStat, weaponAction, giveWeapon };

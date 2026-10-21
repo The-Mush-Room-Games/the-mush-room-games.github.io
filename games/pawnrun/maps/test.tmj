@@ -13,7 +13,7 @@
  "tileheight": 64,
  "nextlayerid": 9,
  "backgroundcolor": "#47aba9",
- "nextobjectid": 38,
+ "nextobjectid": 41,
  "properties": [
   {
    "name": "kind",
@@ -5049,6 +5049,96 @@
     },
     {
      "id": 35,
+     "name": "loot",
+     "class": "loot",
+     "x": 416,
+     "y": 1056,
+     "width": 0,
+     "height": 0,
+     "point": true,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "kind",
+       "type": "string",
+       "propertytype": "lootKind",
+       "value": "weapon"
+      },
+      {
+       "name": "weapon",
+       "type": "string",
+       "value": "axe"
+      },
+      {
+       "name": "tier",
+       "type": "int",
+       "value": 1
+      }
+     ]
+    },
+    {
+     "id": 36,
+     "name": "loot",
+     "class": "loot",
+     "x": 544,
+     "y": 1056,
+     "width": 0,
+     "height": 0,
+     "point": true,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "kind",
+       "type": "string",
+       "propertytype": "lootKind",
+       "value": "weapon"
+      },
+      {
+       "name": "weapon",
+       "type": "string",
+       "value": "hammer"
+      },
+      {
+       "name": "tier",
+       "type": "int",
+       "value": 2
+      }
+     ]
+    },
+    {
+     "id": 37,
+     "name": "loot",
+     "class": "loot",
+     "x": 672,
+     "y": 1056,
+     "width": 0,
+     "height": 0,
+     "point": true,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "kind",
+       "type": "string",
+       "propertytype": "lootKind",
+       "value": "weapon"
+      },
+      {
+       "name": "weapon",
+       "type": "string",
+       "value": "pickaxe"
+      },
+      {
+       "name": "tier",
+       "type": "int",
+       "value": 0
+      }
+     ]
+    },
+    {
+     "id": 38,
      "name": "",
      "gid": 233,
      "x": 416,
@@ -5060,7 +5150,7 @@
      "properties": []
     },
     {
-     "id": 36,
+     "id": 39,
      "name": "door",
      "class": "door",
      "x": 880,
@@ -5078,7 +5168,7 @@
      ]
     },
     {
-     "id": 37,
+     "id": 40,
      "name": "door",
      "class": "door",
      "x": 400,

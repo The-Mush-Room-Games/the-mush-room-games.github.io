@@ -83,7 +83,10 @@ function bar(s, x, y, w = 192, size = 'big') {
 // Returns a container (interactive hit area on .hit); .setItem(key, frame, scale) / .setActive(bool).
 function slot(s, x, y, size = 'tiny') {
   const key = 'btn-' + size + '-square', fr = s.add.image(0, 0, key).setScrollFactor(0), it = s.add.image(0, 0, 'meat').setVisible(false).setScrollFactor(0);
-  const c = uiBox(s, x, y, [fr, it]);
+  const tm = s.add.rectangle(19, 19, 20, 20, 0).setStrokeStyle(2, 0x161c2e).setScrollFactor(0).setVisible(false);   // tier badge, bottom right
+  const tn = s.add.text(19, 19, '', txt(11, undefined, undefined, NUMFONT)).setOrigin(0.5).setScrollFactor(0);
+  const c = uiBox(s, x, y, [fr, it, tm, tn]);
+  c.setTier = t => { tm.setVisible(t >= 0).setFillStyle(TIER.tint[t] ?? 0); tn.setText(t > 0 ? t : ''); return c };   // the weapon's tier: the colour (blue = 0), the number from 1
   c.setItem = (k, f, sc = 1) => { k ? it.setTexture(k, f).setScale(sc).setVisible(true) : it.setVisible(false); return c };
   c.setActive = a => { if (size === 'small') { fr.setTexture(a ? key + '-pressed' : key); it.y = a ? 5 : -6 } return c };
   c.setActive(false);
@@ -218,7 +221,7 @@ class Hud {
     Object.assign(this.v, { weapons: slots, active });
     this.w.forEach((sl, i) => {
       const d = slots[i];
-      sl.setItem(d && TOOL_ICON[d.key], 0).setVisible(!!d).setAlpha(i === active ? 1 : 0.55).setY(sl.baseY ?? (sl.baseY = sl.y));
+      sl.setItem(d && TOOL_ICON[d.key], 0).setTier(d ? d.tier : -1).setVisible(!!d).setAlpha(i === active ? 1 : 0.55).setY(sl.baseY ?? (sl.baseY = sl.y));
       if (i === active) sl.y -= 8;
     });
   }

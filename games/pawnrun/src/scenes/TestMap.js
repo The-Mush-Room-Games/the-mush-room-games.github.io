@@ -123,7 +123,7 @@ class TestMap extends Phaser.Scene {
       }
     }
     for (const f of flock) new Sheep(this, f.x, f.y, f.high);
-    for (const o of m.objects) if (o.cls === 'loot' && LOOT[o.props.kind]) spawnLoot(this, o.props.kind, o.x, o.y, onRaised(o.x, o.y - 1), +o.props.n || 1);
+    for (const o of m.objects) if (o.cls === 'loot' && LOOT[o.props.kind]) spawnLoot(this, o.props.kind, o.x, o.y, onRaised(o.x, o.y - 1), +o.props.n || 1, undefined, { weapon: o.props.weapon, tier: +o.props.tier || 0 });
 
     const spawn = m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
     const q = new URLSearchParams(location.search), form = q.get('hero') === 'new' ? 'new' : 'old';
@@ -163,9 +163,9 @@ class TestMap extends Phaser.Scene {
     this.sig = null;                                                // syncHud refills the weapon slots
     const kb = this.input.keyboard;
     this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,SHIFT,K,Q,H,E');
-    this.pend = { swing: false, dash: false, swap: false };
+    this.pend = { swing: false, dash: false, swap: false, pick: false };
     // presses come from keydown events, not JustDown polling, so a tap shorter than one frame is not lost
-    const press = { SPACE: 'swing', J: 'swing', SHIFT: 'dash', K: 'dash', Q: 'swap' };
+    const press = { SPACE: 'swing', J: 'swing', SHIFT: 'dash', K: 'dash', Q: 'swap', F: 'pick' };   // F swaps for the weapon on the ground
     for (const [key, act] of Object.entries(press))
       this.on(kb, 'keydown-' + key, e => { if (!e.repeat) this.pend[act] = true });
     this.on(kb, 'keydown-E', e => { if (!e.repeat) eatMeat(this.hero, this.hero.items.indexOf('meat')) });
@@ -233,9 +233,9 @@ class TestMap extends Phaser.Scene {
     }
     if (this.hurtTest) { this.hurtTest = false; const a = Math.random() * Math.PI * 2; h.hurt(1, h.x + Math.cos(a) * 50, h.y + Math.sin(a) * 50) }
 
-    const inp = { move: mv, swing: pend.swing, dash: pend.dash, swap: pend.swap };
-    pend.swing = pend.dash = pend.swap = false;
-    if (this.leaving) { mv.reset(); return { move: mv, swing: false, dash: false, swap: false } }
+    const inp = { move: mv, swing: pend.swing, dash: pend.dash, swap: pend.swap, pick: pend.pick };
+    pend.swing = pend.dash = pend.swap = pend.pick = false;
+    if (this.leaving) { mv.reset(); return { move: mv, swing: false, dash: false, swap: false, pick: false } }
     return inp;
   }
   syncHud() {
@@ -246,8 +246,8 @@ class TestMap extends Phaser.Scene {
     if (gold !== this.hud.v.gold) this.hud.setGold(gold);
     if (ducks !== this.hud.v.ducks) this.hud.setDucks(ducks);
     if (bag.join() !== this.hud.v.items.join()) this.hud.setItems(bag);
-    const sig = h.weapons.join() + h.active;
-    if (sig !== this.sig) { this.sig = sig; this.hud.setWeapons(h.weapons.map(key => ({ key, tier: 0 })), h.active) }
+    const sig = h.weapons.join() + h.tiers.join() + h.active;
+    if (sig !== this.sig) { this.sig = sig; this.hud.setWeapons(h.weapons.map((key, i) => ({ key, tier: h.tiers[i] })), h.active) }
   }
   // a door is entered by walking up into it; the hero's feet box (ground level) must overlap its rect
   enter(d) {
@@ -262,9 +262,11 @@ class TestMap extends Phaser.Scene {
   update(time, dt) {
     if (!this.ready) return;
     const h = this.hero;
-    h.update(dt / 1000, this.readInput());
+    const inp = this.readInput();
+    h.update(dt / 1000, inp);
     for (const e of [...this.enemies, ...this.herd]) e.update(dt / 1000);
     tickLoot(this);
+    if (inp.pick) swapPickup(this);
     if (!this.leaving && !h.high && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }
 
     if (this.dbg) {

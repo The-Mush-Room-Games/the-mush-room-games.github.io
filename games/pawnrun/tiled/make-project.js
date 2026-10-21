@@ -7,14 +7,14 @@ const enm = (name, type, value) => ({ name, type: 'string', propertyType: type, 
 const cls = (name, color, members, useAs = ['property', 'map', 'object', 'tile']) =>
   ({ id: ++id, name, type: 'class', color, members, useAs, drawFill: true });
 const types = [
-  en('lootKind', ['duck', 'weapon', 'item', 'gold', 'meat', 'random']),
+  en('lootKind', ['duck', 'weapon', 'dynamite', 'bomb', 'gold', 'meat', 'random']),
   en('secretKind', ['tree', 'rock', 'stones']),
   en('chunkKind', ['landmark', 'set']),
   cls('entrance', '#ff40c0ff', []),
   cls('enemy', '#ffff4040', [str('kind'), { name: 'count', type: 'int', value: 1 }]),
   cls('camp', '#ffff8040', [str('kind')]),
   cls('boss', '#ffc000c0', [str('kind')]),
-  cls('loot', '#ffffd020', [enm('kind', 'lootKind', 'random'), { name: 'n', type: 'int', value: 1 }]),
+  cls('loot', '#ffffd020', [enm('kind', 'lootKind', 'random'), { name: 'n', type: 'int', value: 1 }, str('weapon'), { name: 'tier', type: 'int', value: 0 }]),   // weapon/tier: only for kind weapon (axe, hammer, pickaxe, knife; tier 0-3)
   cls('secret', '#ff20c040', [enm('kind', 'secretKind', 'tree')]),
   cls('stepstone', '#ff40a0ff', [], ['property', 'object', 'tile']),   // a Water Rock in the water that feet can stand on (they must overlap to form a path)
   cls('npc', '#ffffffff', [str('role')]),

@@ -80,6 +80,7 @@ const objects = [
 ];
 // Resources and secrets (the field south of the first island)
 const kind = k => [P('kind', k, 'string', 'secretKind')];
+const weapon = (w, tier, [x, y]) => point('loot', [x, y], [P('kind', 'weapon', 'string', 'lootKind'), P('weapon', w), P('tier', tier, 'int')]);
 const loot = (k, [x, y], n) => point('loot', [x, y], [P('kind', k, 'string', 'lootKind'), ...(n ? [P('n', n, 'int')] : [])]);
 objects.push(
   // gold stones: a pickaxe pops gold and steps each down a size (the old Pawn has no pickaxe: ?hero=new)
@@ -95,6 +96,8 @@ objects.push(
   tileObj('water-rocks4', [128, 1183], 'stepstone'), tileObj('water-rocks2', [174, 1183], 'stepstone'),
   tileObj('water-rocks4', [222, 1183], 'stepstone'), tileObj('water-rocks2', [265, 1183], 'stepstone'),
   loot('gold', [44, 1140], 10), loot('meat', [84, 1170]),
+  // weapons on the ground, row 16 (tier colours: 0 blue, 1 red, 2 yellow, 3 purple). The old Pawn takes the axe and hammer, not the pickaxe
+  weapon('axe', 1, centre(6, 16)), weapon('hammer', 2, centre(8, 16)), weapon('pickaxe', 0, centre(10, 16)),
 );
 // two enterable houses near the spawn. A door is a rect over the doorway in the art (house1.png: door x 51-77, y 126-162 in the
 // 128x192 frame) that reaches down past the base shadow, where the walking-up hero's feet stop. Its `interior` is a map path.
