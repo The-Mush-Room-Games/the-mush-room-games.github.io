@@ -11,6 +11,10 @@ UI, terrain, props, characters and sheep (`img/tinyswords`, night palette swap i
 
 - **Tiny Swords** by Pixel Frog. https://pixelfrog-assets.itch.io/tiny-swords
 
+Pawn Run interiors (`games/pawnrun/assets/interiors`, rooms edited by The Mush Room):
+
+- **Modern Interiors** by LimeZu. https://limezu.itch.io/moderninteriors
+
 Sky (`img/space`: twinkle stars, comet, meteor recoloured pink, asteroids, planet):
 
 - **2d PixelArt Stars** by S a t u r n. https://s-a-t-u-r-n.itch.io/2d-pixelart-stars

@@ -1,6 +1,7 @@
 // Pure Tiled .tmj reader for Pawn Run: shared by the browser (fetch loader) and node (fs loader).
-// readMap(path, loadJson) -> { w, h, cls, props, ground, raised, stairs, water, stairTiles, objects }
+// readMap(path, loadJson) -> { w, h, tw, cls, props, ground, raised, stairs, water, stairTiles, objects, images }
 // Tile layers are read by NAME (Ground/Raised/Stairs/Water): any tile = 1. Missing layers = all zero.
+// Image layers (interiors) come back as images: [{ name, image (path from the game root), x, y, props }], bottom to top.
 // Note: Tiled may omit class members left at their default, so callers should apply their own defaults.
 async function readMap(path, loadJson) {
   const dir = p => p.slice(0, p.lastIndexOf('/') + 1);
@@ -31,7 +32,7 @@ async function readMap(path, loadJson) {
   };
 
   const FLIP_X = 0x80000000, MASK = 0x1fffffff;
-  const out = { w, h, cls: map.class || '', props: propsOf(map.properties),
+  const out = { w, h, tw: map.tilewidth, images: [], cls: map.class || '', props: propsOf(map.properties),
     ground: new Uint8Array(w * h), raised: new Uint8Array(w * h), stairs: new Uint8Array(w * h), water: new Uint8Array(w * h),
     stairTiles: new Int16Array(w * h).fill(-1), objects: [] };
   const mask = { ground: 'ground', raised: 'raised', stairs: 'stairs', water: 'water' };
@@ -51,6 +52,8 @@ async function readMap(path, loadJson) {
           out[m][i] = 1;
           if (m === 'stairs') out.stairTiles[i] = tileOf(gid).local;
         });
+      } else if (l.type === 'imagelayer') {
+        if (l.visible !== false) out.images.push({ name: l.name, image: join(path, l.image), x: l.offsetx || 0, y: l.offsety || 0, props: propsOf(l.properties) });
       } else if (l.type === 'objectgroup') {
         for (const o of l.objects) out.objects.push(readObject(o));
       }

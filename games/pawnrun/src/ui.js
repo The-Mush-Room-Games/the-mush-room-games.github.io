@@ -177,6 +177,7 @@ class Hud {
       pointerup: end, pointerupoutside: end,
     };
     for (const [e, f] of Object.entries(this.h)) s.input.on(e, f);
+    this.resetStick = () => end(this.sp);                       // a scene that slept never saw the finger lift
   }
 
   setHp(cur, max) { this.hp.set(cur / max); this.hpText.setText(`${cur}/${max}`) }

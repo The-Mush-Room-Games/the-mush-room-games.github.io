@@ -285,6 +285,72 @@
     "map"
    ],
    "drawFill": true
+  },
+  {
+   "id": 16,
+   "name": "door",
+   "type": "class",
+   "color": "#ffff8000",
+   "members": [
+    {
+     "name": "interior",
+     "type": "string",
+     "value": ""
+    }
+   ],
+   "useAs": [
+    "property",
+    "object"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 17,
+   "name": "floor",
+   "type": "class",
+   "color": "#8040ff40",
+   "members": [],
+   "useAs": [
+    "property",
+    "object"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 18,
+   "name": "block",
+   "type": "class",
+   "color": "#80ff4040",
+   "members": [],
+   "useAs": [
+    "property",
+    "object"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 19,
+   "name": "exit",
+   "type": "class",
+   "color": "#ff4080ff",
+   "members": [],
+   "useAs": [
+    "property",
+    "object"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 20,
+   "name": "interior",
+   "type": "class",
+   "color": "#ffa0e0ff",
+   "members": [],
+   "useAs": [
+    "property",
+    "map"
+   ],
+   "drawFill": true
   }
  ]
 }

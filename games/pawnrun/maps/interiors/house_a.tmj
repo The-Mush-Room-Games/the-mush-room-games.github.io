@@ -1,0 +1,261 @@
+{
+ "type": "map",
+ "version": "1.10",
+ "tiledversion": "1.12.2",
+ "class": "interior",
+ "orientation": "orthogonal",
+ "renderorder": "right-down",
+ "infinite": false,
+ "compressionlevel": -1,
+ "width": 11,
+ "height": 14,
+ "tilewidth": 48,
+ "tileheight": 48,
+ "nextlayerid": 4,
+ "nextobjectid": 19,
+ "backgroundcolor": "#0b0612",
+ "layers": [
+  {
+   "id": 1,
+   "name": "Layer_1",
+   "type": "imagelayer",
+   "image": "../../assets/interiors/house_a_1.png",
+   "imagewidth": 528,
+   "imageheight": 642,
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0
+  },
+  {
+   "id": 2,
+   "name": "Layer_2",
+   "type": "imagelayer",
+   "image": "../../assets/interiors/house_a_2.png",
+   "imagewidth": 528,
+   "imageheight": 642,
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "properties": [
+    {
+     "name": "depth",
+     "type": "string",
+     "value": "sort"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "name": "Collision",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "objects": [
+    {
+     "id": 1,
+     "name": "",
+     "class": "floor",
+     "x": 48,
+     "y": 96,
+     "width": 432,
+     "height": 288,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 2,
+     "name": "",
+     "class": "floor",
+     "x": 240,
+     "y": 384,
+     "width": 48,
+     "height": 96,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 3,
+     "name": "",
+     "class": "floor",
+     "x": 48,
+     "y": 480,
+     "width": 432,
+     "height": 144,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 4,
+     "name": "",
+     "class": "floor",
+     "x": 240,
+     "y": 624,
+     "width": 48,
+     "height": 36,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 5,
+     "name": "",
+     "class": "block",
+     "x": 98,
+     "y": 96,
+     "width": 92,
+     "height": 29,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 6,
+     "name": "",
+     "class": "block",
+     "x": 52,
+     "y": 96,
+     "width": 36,
+     "height": 22,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 7,
+     "name": "",
+     "class": "block",
+     "x": 196,
+     "y": 96,
+     "width": 38,
+     "height": 22,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 8,
+     "name": "",
+     "class": "block",
+     "x": 292,
+     "y": 96,
+     "width": 43,
+     "height": 29,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 9,
+     "name": "",
+     "class": "block",
+     "x": 349,
+     "y": 96,
+     "width": 117,
+     "height": 44,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 10,
+     "name": "",
+     "class": "block",
+     "x": 52,
+     "y": 322,
+     "width": 91,
+     "height": 62,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 11,
+     "name": "",
+     "class": "block",
+     "x": 386,
+     "y": 348,
+     "width": 94,
+     "height": 36,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 12,
+     "name": "",
+     "class": "block",
+     "x": 54,
+     "y": 480,
+     "width": 128,
+     "height": 30,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 13,
+     "name": "",
+     "class": "block",
+     "x": 342,
+     "y": 480,
+     "width": 129,
+     "height": 30,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 14,
+     "name": "",
+     "class": "block",
+     "x": 298,
+     "y": 486,
+     "width": 32,
+     "height": 14,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 15,
+     "name": "",
+     "class": "block",
+     "x": 54,
+     "y": 598,
+     "width": 36,
+     "height": 26,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 16,
+     "name": "",
+     "class": "block",
+     "x": 437,
+     "y": 598,
+     "width": 38,
+     "height": 26,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 17,
+     "name": "spawn",
+     "class": "spawn",
+     "x": 264,
+     "y": 596,
+     "width": 0,
+     "height": 0,
+     "point": true,
+     "rotation": 0,
+     "visible": true
+    },
+    {
+     "id": 18,
+     "name": "exit",
+     "class": "exit",
+     "x": 240,
+     "y": 636,
+     "width": 48,
+     "height": 24,
+     "rotation": 0,
+     "visible": true
+    }
+   ]
+  }
+ ]
+}

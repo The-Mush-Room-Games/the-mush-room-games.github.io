@@ -75,6 +75,12 @@ const objects = [
   { id: oid++, name: 'entrance', class: 'entrance', x: 19 * T, y: 7 * T, width: T, height: 2 * T, rotation: 0, visible: true, properties: [] },
   point('loot', centre(6, 12), [P('kind', 'duck', 'string', 'lootKind')]),
 ];
+// two enterable houses near the spawn. A door is a rect over the doorway in the art (house1.png: door x 51-77, y 126-162 in the
+// 128x192 frame) that reaches down past the base shadow, where the walking-up hero's feet stop. Its `interior` is a map path.
+const house2 = tileObj('house1', [416, 768]);
+objects.push(house2);
+for (const [h, interior] of [[[896, 768], 'maps/interiors/house_a.tmj'], [[416, 768], 'maps/interiors/house_b.tmj']])
+  objects.push({ id: oid++, name: 'door', class: 'door', x: h[0] - 64 + 48, y: h[1] - 192 + 126, width: 32, height: 52, rotation: 0, visible: true, properties: [P('interior', interior)] });
 
 const map = {
   type: 'map', version: '1.10', tiledversion: '1.12.2', class: 'chunk', orientation: 'orthogonal', renderorder: 'right-down',

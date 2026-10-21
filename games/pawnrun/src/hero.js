@@ -1,5 +1,5 @@
 // The hero: movement, swing, dash, hurt, death. One class for both forms (old Pawn / new Pawn).
-// Scene contract: scene.moveFeet(unit, dx, dy) -> [x, y], scene.depthOf(unit). Events on scene.events:
+// Scene contract: scene.moveFeet(unit, dx, dy) -> [x, y], scene.depthOf(unit), scene.walkable(unit, bx, by) (TestMap, Interior). Events on scene.events:
 //   'hero-hit' { rect: {x0,y0,x1,y1}, high, damage, weapon }   'hero-hurt' { hp, dmg, x, y }   'hero-dead'   'hero-swap' { weapon }
 // update(dt, input): dt in SECONDS; input = { move: Vector2 (len <= 1), aim: Vector2|null, swing, dash, swap } (last 3 = pressed this frame).
 class Hero {
@@ -26,6 +26,11 @@ class Hero {
   }
   get x() { return this.sprite.x } get y() { return this.sprite.y }
   get weapon() { return this.weapons[this.active] }
+  get state() { return { form: this.form, weapons: this.weapons, active: this.active, hp: this.hp, flip: this.sprite.flipX } }   // carried between scenes
+  load(st) {
+    this.active = st.active; this.hp = st.hp; this.sprite.setFlipX(st.flip);
+    this.swing = null; this.dashT = this.kbT = this.buf = 0; this.sprite.play(this.anim('idle'));
+  }
   get dashFrac() { return 1 - Math.max(0, this.dashCd) / DASH.cooldown }
 
   anim(kind) {                                       // 'idle' | 'run'

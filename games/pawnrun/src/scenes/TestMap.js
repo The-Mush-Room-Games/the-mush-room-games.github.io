@@ -40,10 +40,13 @@ function objectRects(o, box) {
 }
 const HITTABLE = /^(tree|rock|bush|sheep|pig)/;
 
+// Does the unit's feet box (ground level) overlap rect r = { x, y, w, h }?
+const feetHit = (r, u) => u.x + FEET.x > r.x && u.x - FEET.x < r.x + r.w && u.y + FEET.bottom > r.y && u.y - FEET.top < r.y + r.h;
+
 class TestMap extends Phaser.Scene {
-  constructor() { super('TestMap') }
+  constructor(key = 'TestMap') { super(key) }
   create() {
-    this.ready = false;
+    this.ready = this.leaving = false;
     this.cameras.main.setBackgroundColor('#47aba9');          // the pack's water colour
     this.input.keyboard.once('keydown-R', () => this.scene.restart());
     const name = new URLSearchParams(location.search).get('map') || 'test';
@@ -101,7 +104,36 @@ class TestMap extends Phaser.Scene {
     this.hero = new Hero(this, spawn.x, spawn.y, { form, weapons, high: onRaised(spawn.x, spawn.y) });
     this.cameras.main.setBounds(0, 0, m.w * T, m.h * T).startFollow(this.hero.sprite, true, 0.15, 0.15);
 
-    // input: pend holds "pressed this frame" flags (keys, mouse and HUD buttons all feed it)
+    this.initInput();
+
+    // doors: Tiled rects of class `door` with an `interior` map path; walking up into one (update) enters it. Coming back
+    // out (wake) puts the hero just below the door, facing down.
+    this.doors = m.objects.filter(o => o.cls === 'door' && o.props.interior);
+    this.on(this.events, 'wake', (sys, d) => {
+      const h = this.hero, cam = this.cameras.main;
+      h.load(d.hero); h.sprite.setPosition(d.x, d.y); h.aim.set(0, 1);
+      this.leaving = false; this.hud?.resetStick?.();
+      cam.centerOn(d.x, d.y); cam.fadeIn(250);
+    });
+
+    // things to hit
+    this.hits = 0;
+    this.on(this.events, 'hero-hit', h => this.onHit(h));
+    this.on(this.events, 'hero-hurt', () => this.cameras.main.shake(90, 0.004));
+    this.on(this.events, 'hero-dead', () => this.time.delayedCall(2500, () => this.scene.restart()));
+    this.dbg = q.has('dbg') && this.add.graphics().setDepth(1e6 - 1);   // ?dbg draws collision rects, the feet box and hit circles
+
+    if (this.dbg || !this.hud) {                                    // dev labels, clear of the HUD's top row
+      const y = this.hud ? 112 : 8;
+      this.add.text(8, y, `${name}.tmj  ${m.w}×${m.h}  R reloads`, txt(14)).setScrollFactor(0).setDepth(1e6);
+      this.readout = this.add.text(8, y + 20, '', txt(14)).setScrollFactor(0).setDepth(1e6);
+    }
+    this.ready = true;
+    document.title = `ready ${m.w}x${m.h} objects ${m.objects.length}`;   // for headless checks
+  }
+  // keys, mouse and HUD buttons feed `pend` ("pressed this frame" flags); shared with Interior
+  initInput() {
+    this.sig = null;                                                // syncHud refills the weapon slots
     const kb = this.input.keyboard;
     this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,SHIFT,K,Q,H');
     this.pend = { swing: false, dash: false, swap: false };
@@ -115,24 +147,10 @@ class TestMap extends Phaser.Scene {
     this.on(this.input, 'pointermove', p => { if (!p.wasTouch) this.mouseAim = true });
     this.on(this.input, 'pointerdown', p => { if (!p.wasTouch && p.leftButtonDown()) { this.mouseAim = true; this.pend.swing = true } });
 
-    // things to hit
-    this.hits = 0;
-    this.on(this.events, 'hero-hit', h => this.onHit(h));
-    this.on(this.events, 'hero-hurt', () => this.cameras.main.shake(90, 0.004));
-    this.on(this.events, 'hero-dead', () => this.time.delayedCall(2500, () => this.scene.restart()));
-    this.dbg = q.has('dbg') && this.add.graphics().setDepth(1e6 - 1);   // ?dbg draws collision rects, the feet box and hit circles
-
-    if (typeof Hud !== 'undefined') {                               // HUD glue: the other agent's ui.js
+    if (typeof Hud !== 'undefined') {                               // HUD glue: ui.js
       this.hud = new Hud(this);
       for (const [ev, k] of [['hud-swing', 'swing'], ['hud-dash', 'dash'], ['hud-swap', 'swap']]) this.on(this.events, ev, () => this.pend[k] = true);
     }
-    if (this.dbg || !this.hud) {                                    // dev labels, clear of the HUD's top row
-      const y = this.hud ? 112 : 8;
-      this.add.text(8, y, `${name}.tmj  ${m.w}×${m.h}  R reloads`, txt(14)).setScrollFactor(0).setDepth(1e6);
-      this.readout = this.add.text(8, y + 20, '', txt(14)).setScrollFactor(0).setDepth(1e6);
-    }
-    this.ready = true;
-    document.title = `ready ${m.w}x${m.h} objects ${m.objects.length}`;   // for headless checks
   }
   // listener that removes itself when the scene shuts down (scene.events outlive a restart)
   on(emitter, ev, fn) {
@@ -156,8 +174,8 @@ class TestMap extends Phaser.Scene {
       p.once('animationcomplete', () => p.destroy());
     }
   }
-  update(time, dt) {
-    if (!this.ready) return;
+  // this frame's hero input; zero while a fade is running
+  readInput() {
     const k = this.keys, h = this.hero, ptr = this.input.activePointer, pend = this.pend, mv = this.move;
     mv.set((k.D.isDown || k.RIGHT.isDown) - (k.A.isDown || k.LEFT.isDown),
            (k.S.isDown || k.DOWN.isDown) - (k.W.isDown || k.UP.isDown));
@@ -177,12 +195,38 @@ class TestMap extends Phaser.Scene {
       this.aim.set(ptr.worldX - h.x, ptr.worldY - h.y);
       if (this.aim.lengthSq() > 16) aim = this.aim;
     }
-    h.update(dt / 1000, { move: mv, aim, swing: pend.swing, dash: pend.dash, swap: pend.swap });
+    const inp = { move: mv, aim, swing: pend.swing, dash: pend.dash, swap: pend.swap };
     pend.swing = pend.dash = pend.swap = false;
+    if (this.leaving) { mv.reset(); return { move: mv, aim: null, swing: false, dash: false, swap: false } }
+    return inp;
+  }
+  syncHud() {
+    const h = this.hero;
+    if (!this.hud) return;
+    this.hud.setHp(h.hp, h.maxHp); this.hud.setDash(h.dashFrac);
+    const sig = h.weapons.join() + h.active;
+    if (sig !== this.sig) { this.sig = sig; this.hud.setWeapons(h.weapons.map(key => ({ key, tier: 0 })), h.active) }
+  }
+  // a door is entered by walking up into it; the hero's feet box (ground level) must overlap its rect
+  enter(d) {
+    this.leaving = true;
+    const cam = this.cameras.main;
+    cam.fadeOut(250);
+    cam.once('camerafadeoutcomplete', () => {
+      this.scene.sleep();                                             // the outdoor scene keeps its state
+      this.scene.launch('Interior', { map: d.props.interior, door: d, from: this.scene.key, hero: this.hero.state });
+    });
+  }
+  update(time, dt) {
+    if (!this.ready) return;
+    const h = this.hero;
+    h.update(dt / 1000, this.readInput());
+    if (!this.leaving && !h.high && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }
 
     if (this.dbg) {
       const g = this.dbg.clear();
       g.lineStyle(1, 0xff4040); for (const R of this.rects) g.strokeRect(R.x0, R.y0, R.x1 - R.x0, R.y1 - R.y0);
+      g.lineStyle(1, 0xffa020); for (const d of this.doors) g.strokeRect(d.x, d.y, d.w, d.h);
       const F = h.high ? FEET_HIGH : FEET;
       g.lineStyle(1, 0x60ff60).strokeRect(h.x - F.x, h.y - F.top, 2 * F.x, F.top + F.bottom);
       g.lineStyle(1, 0x60b0ff); for (const { hb: b } of this.hittables) g.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
@@ -190,10 +234,6 @@ class TestMap extends Phaser.Scene {
       if (d && this.time.now < d.until) g.lineStyle(2, 0xffe066).strokeRect(d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0);
     }
     this.readout?.setText(`${h.weapon}  HP ${h.hp}/${h.maxHp}  hits ${this.hits}  dash ${Math.round(h.dashFrac * 100)}%`);
-    if (this.hud) {
-      this.hud.setHp(h.hp, h.maxHp); this.hud.setDash(h.dashFrac);
-      const sig = h.weapons.join() + h.active;
-      if (sig !== this.sig) { this.sig = sig; this.hud.setWeapons(h.weapons.map(key => ({ key, tier: 0 })), h.active) }
-    }
+    this.syncHud();
   }
 }

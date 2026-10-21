@@ -38,8 +38,9 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   assert(tiles.length >= 10 && tiles.every(o => o.key && Number.isFinite(o.x) && Number.isFinite(o.y) && Array.isArray(o.block)), 'tile objects');
   const one = (list, f, what) => { const r = list.filter(f); assert.strictEqual(r.length, 1, what + ' x' + r.length); return r[0]; };
 
-  const house = one(tiles, o => o.key === 'house1', 'house');
-  assert.deepStrictEqual(house.block, [2, 2]);
+  const houses = tiles.filter(o => o.key === 'house1');
+  assert.strictEqual(houses.length, 2, 'two enterable houses');
+  assert.deepStrictEqual(houses[0].block, [2, 2]);
   assert.deepStrictEqual(one(tiles, o => o.key === 'tree2', 'tree2').block, [1, 1]);
   assert.deepStrictEqual(one(tiles, o => o.key === 'bush1', 'bush1').block, [0, 0]);
 
@@ -55,6 +56,33 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   assert(ent.w > 0 && ent.h > 0 && ent.x + ent.w === m.w * 64, 'entrance on the east edge');
   const loot = one(shapes, o => o.cls === 'loot', 'loot');
   assert.strictEqual(loot.props.kind, 'duck');
+
+  // each house has a door rect over its doorway (inside the house's art) naming an interior map that reads and is playable
+  const doors = shapes.filter(o => o.cls === 'door');
+  assert.strictEqual(doors.length, 2);
+  for (const h of houses) {
+    const d = doors.filter(d => d.x >= h.x - 64 && d.x + d.w <= h.x + 64 && d.y >= h.y - 192 && d.y < h.y);
+    assert.strictEqual(d.length, 1, 'one door per house');
+  }
+  for (const d of doors) {
+    assert(d.w > 0 && d.h > 0 && d.props.interior, 'door needs a rect and an interior');
+    const r = await readMap(d.props.interior, loadJson);
+    assert.strictEqual(r.cls, 'interior');
+    assert.strictEqual(r.tw, 48);
+    assert(r.images.length >= 1 && r.images.every(i => fs.existsSync(path.join(root, i.image))), 'interior images exist: ' + JSON.stringify(r.images.map(i => i.image)));
+    const of = c => r.objects.filter(o => o.cls === c);
+    const floors = of('floor'), blocks = of('block'), [spawn] = of('spawn'), [exit] = of('exit');
+    assert(floors.length && spawn && exit && of('spawn').length === 1 && of('exit').length === 1, 'floor, spawn, exit');
+    const inside = (rs, x, y) => rs.some(f => x >= f.x && x < f.x + f.w && y >= f.y && y < f.y + f.h);
+    assert(inside(floors, spawn.x, spawn.y) && !inside(blocks, spawn.x, spawn.y), 'spawn stands on free floor');
+    assert(inside(floors, exit.x + exit.w / 2, exit.y + exit.h / 2), 'the exit can be reached on the floor');
+    const g = r.images.map(i => i.props.depth || 'under');
+    assert(g.every(v => ['under', 'sort', 'over'].includes(v)), 'image depth: ' + g);
+  }
+  const A = await readMap('maps/interiors/house_a.tmj', loadJson);
+  assert.deepStrictEqual(A.images.map(i => [i.name, i.image, i.props.depth || 'under']),
+    [['Layer_1', 'assets/interiors/house_a_1.png', 'under'], ['Layer_2', 'assets/interiors/house_a_2.png', 'sort']]);
+  assert.strictEqual(A.objects.filter(o => o.cls === 'block').length, 12);
 
   console.log('tmj-check OK:', m.objects.length, 'objects,',
     ['ground', 'raised', 'stairs', 'water'].map(k => k + '=' + m[k].reduce((a, b) => a + b, 0)).join(' '));
