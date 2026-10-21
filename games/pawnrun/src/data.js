@@ -22,4 +22,11 @@ const HERO = {
 
 const DASH = { time: 0.3, mult: 1.85, invuln: 0.3, cooldown: 0.9 };
 
-if (typeof module === 'object') module.exports = { WEAPONS, HERO, DASH };
+// Enemies (distances in px, 64 = one tile). hp is in weapon damage (axe 2, hammer 5). hitFrame = attack frame where the club lands,
+// hitRange = how close the hero must still be then. hurtbox = [x0, y0, x1, y1] from the feet. drops = key in DROPS.
+const ENEMIES = {
+  gnome: { hp: 4, speed: 80, sight: 5 * 64, lose: 8 * 64, reach: 44, hitRange: 56, hitFrame: 3, damage: 1, cooldown: 0.8,
+    stun: 0.3, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 0.35, originY: 127 / 192, hurtbox: [-18, -40, 18, 2], drops: 'gnome',
+    idle: 'gnome-idle', run: 'gnome-run', attack: 'gnome-attack' },
+};
+if (typeof module === 'object') module.exports = { WEAPONS, HERO, DASH, ENEMIES };

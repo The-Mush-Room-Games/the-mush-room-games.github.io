@@ -61,13 +61,15 @@ class TestMap extends Phaser.Scene {
     const lv = heightGrid(m), wg = walkGrids(m), rectsAt = new Map(), rects = [];   // rectsAt: cell index -> collision rects touching it
     const onRaised = (px, py) => lv[Math.floor(py / T) * m.w + Math.floor(px / T)] === LV.RAISED;   // objects: placed on a plateau
 
-    this.hittables = [];
+    this.hittables = []; this.enemies = [];
+    const foes = [];                                               // enemy objects: spawned once walkable exists
     for (const o of m.objects) {
       if (!o.key) continue;                                        // markers: spawn, entrance, loot...
       const box = artBox(this, o.key), top = o.y - box.fh, left = o.x - box.fw / 2;   // frame top-left in the world
       const fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box;   // the art box as drawn (mirrored when flipped)
       const gap = box.fh - (box.y + box.h);                        // transparent rows under the art: the drawn feet sit that much higher
       const high = onRaised(o.x, o.y - 1);
+      if (o.cls === 'enemy') { foes.push({ o, y: o.y - gap, high }); continue }   // an Enemy draws and moves itself
       const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.y - gap + (high ? HIGH_DEPTH : 0));
       if (HITTABLE.test(o.key) || o.cls === 'enemy') {        // hurtbox: the art as drawn; tall art (trees) only its trunk end
         const tall = box.h > 64, w = tall ? 0.4 * box.w : box.w, cx = left + fb.x + box.w / 2, y1 = top + box.y + box.h;
@@ -97,6 +99,17 @@ class TestMap extends Phaser.Scene {
     this.depthOf = u => u.rail ? u.rail.r.depth : u.y + (u.high ? HIGH_DEPTH : 0);
     const ramps = rampsOf(m);
     this.moveFeet = (u, dx, dy) => moveFeet(ramps, this.walkable, u, dx, dy);   // ramps carry units along their centre line
+
+    // enemies: `count` on the object = a pack, standing in a ring; loot markers drop their `kind` at the start
+    for (const { o, y, high } of foes) {
+      const kind = o.key.replace(/-idle$/, ''), n = o.props.count || 1;
+      if (!ENEMIES[kind]) { console.warn('no ENEMIES.' + kind); continue }
+      for (let i = 0; i < n; i++) {
+        const a = 2 * Math.PI * i / n, p = n > 1 ? [o.x + 28 * Math.cos(a), y + 28 * Math.sin(a)] : [o.x, y];
+        const [x, py] = this.walkable({ high }, ...p) ? p : [o.x, y];
+        new Enemy(this, kind, x, py, high);
+      }
+    }
 
     const spawn = m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
     const q = new URLSearchParams(location.search), form = q.get('hero') === 'new' ? 'new' : 'old';
@@ -169,6 +182,7 @@ class TestMap extends Phaser.Scene {
       const b = t.hb;                                              // the slash box must overlap the hurtbox, same level only
       if (t.high !== high || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
       this.hits++;
+      if (t.enemy) { t.enemy.hurt(damage, this.hero.x, this.hero.y); continue }
       const s = t.s;
       this.tweens.killTweensOf(s); s.x = t.ox;
       s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
@@ -221,6 +235,7 @@ class TestMap extends Phaser.Scene {
     if (!this.ready) return;
     const h = this.hero;
     h.update(dt / 1000, this.readInput());
+    for (const e of [...this.enemies]) e.update(dt / 1000);
     if (!this.leaving && !h.high && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }
 
     if (this.dbg) {
