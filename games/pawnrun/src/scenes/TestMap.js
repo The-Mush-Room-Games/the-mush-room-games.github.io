@@ -39,7 +39,7 @@ class TestMap extends Phaser.Scene {
     this.ready = this.leaving = false;
     this.cameras.main.setBackgroundColor('#47aba9');          // the pack's water colour
     this.input.keyboard.once('keydown-R', () => this.scene.restart({}));
-    const name = new URLSearchParams(location.search).get('map') || 'test';
+    const name = this.mapName || new URLSearchParams(location.search).get('map') || 'test';
     readMap(`maps/${name}.tmj`, loadJson).then(m => this.build(m, name), e => this.fail(e));
   }
   fail(e) {
@@ -53,7 +53,7 @@ class TestMap extends Phaser.Scene {
     const lv = heightGrid(m), wg = walkGrids(m), rectsAt = new Map(), rects = [];   // rectsAt: cell index -> collision rects touching it
     const onRaised = (px, py) => lv[Math.floor(py / T) * m.w + Math.floor(px / T)] === LV.RAISED;   // objects: placed on a plateau
 
-    this.hittables = []; this.enemies = []; this.loot = []; this.herd = []; this.shots = [];
+    this.hittables = []; this.enemies = []; this.loot = []; this.herd = []; this.shots = []; this.npcs = [];
     let boatArt = null;
     const foes = [], flock = [], stones = [];                     // enemy and sheep objects: spawned once walkable exists
     // the art of `key` standing at o: its hurtbox (tall art, trees: only the trunk end) and collision rects (rs: frame-pixel rects, else objectRects)
@@ -70,6 +70,7 @@ class TestMap extends Phaser.Scene {
         }
       return R;
     };
+    this.place = place;
     this.addRects = (o, key, high, rs) => {
       return worldRects({ ...o, key }, artBox(this, key), rs).map(r => place({ ...r, high, gone: false }));
     };
@@ -83,6 +84,10 @@ class TestMap extends Phaser.Scene {
       if (/^sheep/.test(o.key)) { flock.push({ x: o.x, y: o.y - gap, high }); continue }   // so does a Sheep
       const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.cls === 'stepstone' ? -5 : o.cls === 'boat' ? -4 : o.y - gap + (high ? HIGH_DEPTH : 0));
       if (o.cls === 'boat') boatArt = s;
+      if (o.cls === 'npc' && NPCS[o.props.role]) {                    // townsfolk: idle where they stand, and solid at the feet
+        this.npcs.push(new Npc(this, s, o.props.role, o.x, o.y - gap));
+        place({ x0: o.x - 14, y0: o.y - gap - 8, x1: o.x + 14, y1: o.y - gap + 4, high, gone: false });
+      }
       if (o.cls === 'stepstone') stones.push({ x0: left + fb.x, y0: top + fb.y, x1: left + fb.x + fb.w, y1: top + fb.y + fb.h });   // feet may stand on the art
       const pk = o.cls === 'secret' ? o.props.kind : /^gold-stone\d$/.test(o.key) ? 'stone' : '';   // tree, rock, stone: PROPS
       let t = null;
@@ -133,15 +138,17 @@ class TestMap extends Phaser.Scene {
       c.adopt(this.enemies);
       return c;
     });
-    for (const f of flock) new Sheep(this, f.x, f.y, f.high);
+    for (const f of flock) { const sh = new Sheep(this, f.x, f.y, f.high); if (this.town) sh.paid = true }   // no gold from the town's sheep
     for (const o of m.objects) if (o.cls === 'loot' && LOOT[o.props.kind]) spawnLoot(this, o.props.kind, o.x, o.y, onRaised(o.x, o.y - 1), +o.props.n || 1, undefined, { weapon: o.props.weapon, tier: +o.props.tier || 0 });
 
-    // ?at=<name> (dev): start at the `spawn` point of that name (camp, field, arena...)
-    const spawn = m.objects.find(o => o.cls === 'spawn' && q.get('at') && o.name === q.get('at')) || m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
-    const form = this.run.hero?.form || (q.get('hero') === 'new' ? 'new' : 'old');
-    const weapons = q.get('w') ? q.get('w').split(',') : form === 'new' ? ['axe', 'pickaxe'] : ['axe', 'hammer'];
-    this.hero = new Hero(this, spawn.x, spawn.y, { form, weapons, high: onRaised(spawn.x, spawn.y) });
-    if (this.run.hero) this.hero.load(this.run.hero);               // the run carries over from the last island: weapons, items, power-ups, hp
+    // ?at=<name> (dev): start at the `spawn` point of that name (camp, field, arena... in town: gate, blacksmith, healer, market, steward, trainer, beach)
+    const at = this.run.at || q.get('at'), spawn = m.objects.find(o => o.cls === 'spawn' && at && o.name === at) || m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
+    const st = this.run.hero || this.startHero?.();                 // a run carries over from the last island (weapons, items, power-ups, hp); the town starts one from the save. Without either (?map=test): the dev loadout
+    const form = st?.form || (q.get('hero') === 'new' ? 'new' : 'old');
+    const weapons = st?.weapons || (q.get('w') ? q.get('w').split(',') : form === 'new' ? ['axe', 'pickaxe'] : ['axe', 'hammer']);
+    this.hero = new Hero(this, this.run.pos?.[0] ?? spawn.x, this.run.pos?.[1] ?? spawn.y, { form, weapons, high: onRaised(spawn.x, spawn.y), perm: st?.perm, revive: st?.revive });
+    if (st) this.hero.load(st);
+    if (this.run.hero && SAVE && !this.town) { SAVE.best = Math.max(SAVE.best, this.island); writeSave(SAVE) }   // the best island is the furthest you sailed to
     this.exp = { w: m.w, h: m.h, cls: terrainClass(m), obj: objectClass(m), seen: new Uint8Array(m.w * m.h),     // the explored map: made per island, so a death or a new island starts it empty
       doors: m.objects.filter(o => o.cls === 'door' && o.props.interior).map(o => [Math.floor((o.x + o.w / 2) / T), Math.floor((o.y + o.h / 2) / T)]) };
     this.ducksSeen = new Set(); this.tile = [-1, -1];
@@ -167,7 +174,8 @@ class TestMap extends Phaser.Scene {
     this.on(this.events, 'hero-hit', h => this.onHit(h));
     this.on(this.events, 'resume', () => { this.hud?.resetStick?.(); Object.assign(this.pend, { swing: false, dash: false, swap: false, pick: false }) });   // after the cards: no stuck stick or key
     this.on(this.events, 'hero-hurt', () => this.cameras.main.shake(90, 0.004));
-    this.on(this.events, 'hero-dead', () => this.time.delayedCall(2500, () => this.scene.restart({})));   // a death starts over on island 1 (gold and ducks live in the registry and stay)
+    this.on(this.events, 'hero-dead', () => this.onDead());
+    this.on(this.events, 'hero-rise', p => this.rise(p));
     this.dbg = q.has('dbg') && this.add.graphics().setDepth(1e6 - 1);   // ?dbg draws collision rects, the feet box and hit circles
 
     if (this.dbg) {                                                 // dev labels, under the HUD's top row
@@ -176,6 +184,22 @@ class TestMap extends Phaser.Scene {
     }
     this.ready = true;
     document.title = `ready ${m.w}x${m.h} objects ${m.objects.length}`;   // for headless checks
+  }
+  // the hero fell for good: the best island is kept, the run's weapons, items and power-ups are lost with the hero, gold and ducks (the registry, the save) stay,
+  // and he washes up on the town beach
+  onDead() {
+    if (SAVE) { SAVE.best = Math.max(SAVE.best, this.island); writeSave(SAVE) }
+    this.time.delayedCall(2200, () => {
+      const cam = this.cameras.main;
+      cam.fadeOut(600);
+      cam.once('camerafadeoutcomplete', () => this.scene.start('Town', { washup: true }));
+    });
+  }
+  // Second Wind: a flash of sparks and a line over the hero
+  rise({ x, y }) {
+    chips(this, x, y - 30, [0xffe888, 0xffffff, 0x9be37a], 18, 1.6);
+    const t = this.add.text(x, y - 70, 'Second Wind!', txt(20)).setOrigin(0.5).setDepth(1e5);
+    this.tweens.add({ targets: t, y: t.y - 30, alpha: 0, delay: 600, duration: 700, onComplete: () => t.destroy() });
   }
   // keys, mouse and HUD buttons feed `pend` ("pressed this frame" flags); shared with Interior
   initInput() {
@@ -187,8 +211,8 @@ class TestMap extends Phaser.Scene {
     const press = { SPACE: 'swing', J: 'swing', SHIFT: 'dash', K: 'dash', Q: 'swap', F: 'pick' };   // F swaps for the weapon on the ground
     for (const [key, act] of Object.entries(press))
       this.on(kb, 'keydown-' + key, e => { if (!e.repeat) this.pend[act] = true });
-    for (const [key, i] of [['E', 0], ['ONE', 0], ['TWO', 1], ['THREE', 2], ['FOUR', 3]])   // bag slots: E and 1 use the first (E boards the boat on the dock)
-      this.on(kb, 'keydown-' + key, e => { if (!e.repeat) key === 'E' && this.boat?.state === 'board' ? this.boat.board() : useItem(this, i) });
+    for (const [key, i] of [['E', 0], ['ONE', 0], ['TWO', 1], ['THREE', 2], ['FOUR', 3]])   // bag slots: E and 1 use the first (E talks to an NPC in reach, and boards the boat on the dock)
+      this.on(kb, 'keydown-' + key, e => { if (e.repeat || key === 'E' && this.near?.talk()) return; key === 'E' && this.boat?.state === 'board' ? this.boat.board() : useItem(this, i) });
     this.on(kb, 'keydown-H', e => { if (!e.repeat) this.hurtTest = true });
     this.on(kb, 'keydown-M', e => { if (!e.repeat) this.openMap() });
     this.move = new Phaser.Math.Vector2();
@@ -222,7 +246,7 @@ class TestMap extends Phaser.Scene {
       this.hits++;
       if (t.enemy) { t.enemy.hurt(damage, this.hero.x, this.hero.y, t.enemy.d.knockback * this.hero.pw.kb); continue }
       if (t.sheep) { t.sheep.hurt(this.hero.x, this.hero.y); continue }
-      if (t.drop) { dropLoot(this, DROPS[t.drop], t.ox, b.y1 + 4, high); t.drop = false }   // once per bush: rolled on the first hit
+      if (t.drop && !this.town) { dropLoot(this, DROPS[t.drop], t.ox, b.y1 + 4, high); t.drop = false }   // once per bush: rolled on the first hit
       const s = t.s;                                               // every prop wobbles and flashes white; props with hp (t.prop) also react
       this.tweens.killTweensOf(s); s.x = t.ox;
       s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
@@ -318,6 +342,7 @@ class TestMap extends Phaser.Scene {
     const tx = Math.floor(h.x / T), ty = Math.floor(h.y / T);
     if (tx !== this.tile[0] || ty !== this.tile[1]) { this.tile = [tx, ty]; revealAround(this.exp.seen, this.exp.w, this.exp.h, tx, ty); this.senseDucks() }   // a new tile: reveal around it
     this.boat?.update();
+    tickNpcs(this);
     if (inp.pick) swapPickup(this);
     for (const c of this.camps) c.update();
     if (!this.leaving && !h.high && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }

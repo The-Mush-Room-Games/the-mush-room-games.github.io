@@ -58,6 +58,13 @@ class Interior extends TestMap {
     this.moveFeet = (u, dx, dy) => moveFeet([], this.walkable, u, dx, dy);
 
     const spawn = rects('spawn')[0] || { x: W / 2, y: H / 2 };
+    this.npcs = []; this.near = null;
+    const dp = this.data.door.props, n = NPCS[dp.npc];                   // the door names who is home (and where he stands: `npcAt` = "x,y", the feet, in room px)
+    if (n) {
+      const [nx, ny] = String(dp.npcAt).split(',').map(Number), b = artBox(this, n.key);
+      this.npcs.push(new Npc(this, this.add.sprite(nx, ny, n.key).setOrigin(0.5, (b.y + b.h) / b.fh).setDepth(ny).play(n.key), dp.npc, nx, ny));
+      blocks.push({ x: nx - 14, y: ny - 8, w: 28, h: 12 });
+    }
     this.hero = new Hero(this, spawn.x, spawn.y, this.data.hero);
     this.hero.load(this.data.hero); this.hero.aim.set(0, -1);
     const cam = this.cameras.main;
@@ -83,6 +90,7 @@ class Interior extends TestMap {
     if (!this.ready) return;
     const h = this.hero;
     h.update(dt / 1000, this.readInput());
+    tickNpcs(this);
     if (!this.leaving && this.move.y > 0.1 && this.exit && feetHit(this.exit, h)) this.leave();
     if (this.dbg) {
       const g = this.dbg.clear(), box = (c, list) => { g.lineStyle(1, c).fillStyle(c, 0.3); for (const r of list) g.fillRect(r.x, r.y, r.w, r.h).strokeRect(r.x, r.y, r.w, r.h) };

@@ -74,6 +74,7 @@ assert.strictEqual(st.hp, 3 + 5); assert(Math.abs(st.gold - 1.3) < 1e-9 && Math.
 assert.deepStrictEqual([st.slots, st.charges], [2, 2], 'two bags, a second dash charge');
 assert.strictEqual(S.runStart(Object.assign(fresh(), { up: { meat: 2 } })).items.length, 2); assert(S.runStart(Object.assign(fresh(), { up: { meat: 2 } })).items.length <= BAG);
 assert.deepStrictEqual(S.runStart(Object.assign(fresh(), { up: { hammer: 1 } })).weapons, ['axe', 'hammer']);
+assert.strictEqual(S.upgradeText('shield', 2), 'Max HP +2 in every run'); assert.strictEqual(S.upgradeText('coin', 3), 'Gold pickups +30%'); assert.strictEqual(S.upgradeText('meat', 2), 'Start every run with 2 meat'); assert.strictEqual(S.upgradeText('whetstone', 1), 'Weapons start at tier 1');
 // the perm stats do not alias the save, and a hero (no phaser needed) of that state would read them
 const q = S.runStart(all); q.perm.hp = 99; assert.strictEqual(S.permStats(all).hp, 8, 'a fresh perm every call');
 console.log('save-check OK: ' + Object.keys(UPGRADES).length + ' upgrades, ' + Object.keys(SKILLS).length + ' skills, ' + Object.keys(NPCS).length + ' npcs, level ' + S.level(all) + ' with everything');

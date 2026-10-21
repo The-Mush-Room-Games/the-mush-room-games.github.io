@@ -21,6 +21,8 @@ const saveStore = () => { try { return localStorage } catch { return null } };
 function loadSave(store = saveStore()) { try { return mergeSave(JSON.parse(store.getItem(SAVE_KEY))) } catch { return defaultSave() } }
 function writeSave(save, store = saveStore()) { try { store.setItem(SAVE_KEY, JSON.stringify(save)); return true } catch { return false } }
 let SAVE;                                                       // the live save (main.js loads it)
+// after a purchase: the registry (what the HUD shows) follows the save, and the save is written
+function commit(scene) { scene.registry.set('gold', SAVE.gold); scene.registry.set('ducks', SAVE.ducks); writeSave(SAVE) }
 
 // Pure. The rank of a shop item and what its next rank costs: { rank, max, cost (null at the cap), cur, state }, state = 'buy' | 'poor' | 'max'.
 function shopInfo(save, id) {
@@ -64,6 +66,11 @@ function pickClass(save, id) {
   save.cls = id;
   return true;
 }
+// Pure. The effect line of rank `rank` of a shop item: {v} = the total of that many ranks (its perm amount, else the rank itself), {p} = the same as a percentage.
+function upgradeText(id, rank) {
+  const u = UPGRADES[id], v = +((Object.values(u.perm || {})[0] || 1) * rank).toFixed(2);
+  return u.text.replace('{v}', v).replace('{p}', Math.round(v * 100));
+}
 // Pure. What the shop upgrades and skills add to the hero's stats (STAT0 keys: hp, gold, slots, dmg, speed, dashRate, charges), summed over ranks.
 function permStats(save) {
   const out = {};
@@ -79,4 +86,4 @@ function runStart(save) {
     items: Array((save.up.meat || 0) && Math.min(save.up.meat, BAG + (perm.slots || 0))).fill('meat') };
 }
 
-if (typeof module === 'object') module.exports = { defaultSave, mergeSave, loadSave, writeSave, level, shopInfo, buy, skillCost, skillInfo, buySkill, refundSkill, classState, pickClass, permStats, runStart };
+if (typeof module === 'object') module.exports = { defaultSave, mergeSave, loadSave, writeSave, level, shopInfo, buy, skillCost, skillInfo, buySkill, refundSkill, classState, pickClass, permStats, runStart, upgradeText };
