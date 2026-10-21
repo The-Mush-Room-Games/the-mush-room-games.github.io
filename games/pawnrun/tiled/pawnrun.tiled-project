@@ -1,0 +1,290 @@
+{
+ "automappingRulesFile": "rules.txt",
+ "commands": [],
+ "compatibilityVersion": 1120,
+ "extensionsPath": "extensions",
+ "folders": [
+  "../maps"
+ ],
+ "propertyTypes": [
+  {
+   "id": 1,
+   "name": "lootKind",
+   "type": "enum",
+   "storageType": "string",
+   "values": [
+    "duck",
+    "weapon",
+    "item",
+    "gold",
+    "random"
+   ],
+   "valuesAsFlags": false
+  },
+  {
+   "id": 2,
+   "name": "secretKind",
+   "type": "enum",
+   "storageType": "string",
+   "values": [
+    "tree",
+    "rock",
+    "stones"
+   ],
+   "valuesAsFlags": false
+  },
+  {
+   "id": 3,
+   "name": "chunkKind",
+   "type": "enum",
+   "storageType": "string",
+   "values": [
+    "landmark",
+    "set"
+   ],
+   "valuesAsFlags": false
+  },
+  {
+   "id": 4,
+   "name": "entrance",
+   "type": "class",
+   "color": "#ff40c0ff",
+   "members": [],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 5,
+   "name": "enemy",
+   "type": "class",
+   "color": "#ffff4040",
+   "members": [
+    {
+     "name": "kind",
+     "type": "string",
+     "value": ""
+    },
+    {
+     "name": "count",
+     "type": "int",
+     "value": 1
+    }
+   ],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 6,
+   "name": "camp",
+   "type": "class",
+   "color": "#ffff8040",
+   "members": [
+    {
+     "name": "kind",
+     "type": "string",
+     "value": ""
+    }
+   ],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 7,
+   "name": "boss",
+   "type": "class",
+   "color": "#ffc000c0",
+   "members": [
+    {
+     "name": "kind",
+     "type": "string",
+     "value": ""
+    }
+   ],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 8,
+   "name": "loot",
+   "type": "class",
+   "color": "#ffffd020",
+   "members": [
+    {
+     "name": "kind",
+     "type": "string",
+     "propertyType": "lootKind",
+     "value": "random"
+    }
+   ],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 9,
+   "name": "secret",
+   "type": "class",
+   "color": "#ff20c040",
+   "members": [
+    {
+     "name": "kind",
+     "type": "string",
+     "propertyType": "secretKind",
+     "value": "tree"
+    }
+   ],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 10,
+   "name": "npc",
+   "type": "class",
+   "color": "#ffffffff",
+   "members": [
+    {
+     "name": "role",
+     "type": "string",
+     "value": ""
+    }
+   ],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 11,
+   "name": "shop",
+   "type": "class",
+   "color": "#ffe0a060",
+   "members": [
+    {
+     "name": "shop",
+     "type": "string",
+     "value": ""
+    }
+   ],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 12,
+   "name": "gate",
+   "type": "class",
+   "color": "#ffa0a0a0",
+   "members": [],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 13,
+   "name": "washup",
+   "type": "class",
+   "color": "#ff4080ff",
+   "members": [],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 14,
+   "name": "spawn",
+   "type": "class",
+   "color": "#ff40ff40",
+   "members": [],
+   "useAs": [
+    "property",
+    "map",
+    "object",
+    "tile"
+   ],
+   "drawFill": true
+  },
+  {
+   "id": 15,
+   "name": "chunk",
+   "type": "class",
+   "color": "#ffff80ff",
+   "members": [
+    {
+     "name": "kind",
+     "type": "string",
+     "propertyType": "chunkKind",
+     "value": "landmark"
+    },
+    {
+     "name": "biomes",
+     "type": "string",
+     "value": ""
+    },
+    {
+     "name": "minIsland",
+     "type": "int",
+     "value": 1
+    },
+    {
+     "name": "weight",
+     "type": "float",
+     "value": 1
+    },
+    {
+     "name": "mirror",
+     "type": "bool",
+     "value": false
+    }
+   ],
+   "useAs": [
+    "property",
+    "map"
+   ],
+   "drawFill": true
+  }
+ ]
+}

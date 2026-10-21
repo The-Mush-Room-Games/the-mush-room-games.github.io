@@ -1,0 +1,2504 @@
+{
+ "type": "tileset",
+ "name": "objects",
+ "tiledversion": "1.12.2",
+ "version": "1.10",
+ "objectalignment": "bottom",
+ "columns": 0,
+ "tilecount": 111,
+ "margin": 0,
+ "spacing": 0,
+ "tilewidth": 576,
+ "tileheight": 320,
+ "grid": {
+  "orientation": "orthogonal",
+  "width": 1,
+  "height": 1
+ },
+ "tiles": [
+  {
+   "id": 0,
+   "image": "../assets/terrain/obridge.png",
+   "imagewidth": 192,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "obridge"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "image": "../assets/terrain/water-rocks1.png",
+   "imagewidth": 1024,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "water-rocks1"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "image": "../assets/terrain/water-rocks2.png",
+   "imagewidth": 1024,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "water-rocks2"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "image": "../assets/terrain/water-rocks3.png",
+   "imagewidth": 1024,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "water-rocks3"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "image": "../assets/terrain/water-rocks4.png",
+   "imagewidth": 1024,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "water-rocks4"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "image": "../assets/props/tree1.png",
+   "imagewidth": 1536,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "tree1"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "image": "../assets/props/stump1.png",
+   "imagewidth": 192,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "stump1"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "image": "../assets/props/bush1.png",
+   "imagewidth": 1024,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "bush1"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "image": "../assets/props/rock1.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "rock1"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "image": "../assets/props/tree2.png",
+   "imagewidth": 1536,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "tree2"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "image": "../assets/props/stump2.png",
+   "imagewidth": 192,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "stump2"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "image": "../assets/props/bush2.png",
+   "imagewidth": 1024,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "bush2"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "image": "../assets/props/rock2.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "rock2"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "image": "../assets/props/tree3.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "tree3"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "image": "../assets/props/stump3.png",
+   "imagewidth": 192,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "stump3"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "image": "../assets/props/bush3.png",
+   "imagewidth": 1024,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "bush3"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "image": "../assets/props/rock3.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "rock3"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "image": "../assets/props/tree4.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "tree4"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 18,
+   "image": "../assets/props/stump4.png",
+   "imagewidth": 192,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "stump4"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 19,
+   "image": "../assets/props/bush4.png",
+   "imagewidth": 1024,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "bush4"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 20,
+   "image": "../assets/props/rock4.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "rock4"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 21,
+   "image": "../assets/props/gold-stone1.png",
+   "imagewidth": 128,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone1"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 22,
+   "image": "../assets/props/gold-stone1-highlight.png",
+   "imagewidth": 768,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone1-highlight"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 23,
+   "image": "../assets/props/gold-stone2.png",
+   "imagewidth": 128,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone2"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 24,
+   "image": "../assets/props/gold-stone2-highlight.png",
+   "imagewidth": 768,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone2-highlight"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 25,
+   "image": "../assets/props/gold-stone3.png",
+   "imagewidth": 128,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone3"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 26,
+   "image": "../assets/props/gold-stone3-highlight.png",
+   "imagewidth": 768,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone3-highlight"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 27,
+   "image": "../assets/props/gold-stone4.png",
+   "imagewidth": 128,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone4"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 28,
+   "image": "../assets/props/gold-stone4-highlight.png",
+   "imagewidth": 768,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone4-highlight"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 29,
+   "image": "../assets/props/gold-stone5.png",
+   "imagewidth": 128,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone5"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 30,
+   "image": "../assets/props/gold-stone5-highlight.png",
+   "imagewidth": 768,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone5-highlight"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 31,
+   "image": "../assets/props/gold-stone6.png",
+   "imagewidth": 128,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone6"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 32,
+   "image": "../assets/props/gold-stone6-highlight.png",
+   "imagewidth": 768,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-stone6-highlight"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 33,
+   "image": "../assets/props/sheep-idle.png",
+   "imagewidth": 768,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "sheep-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 34,
+   "image": "../assets/props/sheep-grass.png",
+   "imagewidth": 1536,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "sheep-grass"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 35,
+   "image": "../assets/props/sheep-move.png",
+   "imagewidth": 512,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "sheep-move"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 36,
+   "image": "../assets/props/odeco01.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco01"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 37,
+   "image": "../assets/props/odeco02.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco02"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 38,
+   "image": "../assets/props/odeco03.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco03"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 39,
+   "image": "../assets/props/odeco04.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco04"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 40,
+   "image": "../assets/props/odeco05.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco05"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 41,
+   "image": "../assets/props/odeco06.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco06"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 42,
+   "image": "../assets/props/odeco07.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco07"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 43,
+   "image": "../assets/props/odeco08.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco08"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 44,
+   "image": "../assets/props/odeco09.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco09"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 45,
+   "image": "../assets/props/odeco10.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco10"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 46,
+   "image": "../assets/props/odeco11.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco11"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 47,
+   "image": "../assets/props/odeco12.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco12"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 48,
+   "image": "../assets/props/odeco13.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco13"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 49,
+   "image": "../assets/props/odeco14.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco14"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 50,
+   "image": "../assets/props/odeco15.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco15"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 51,
+   "image": "../assets/props/odeco16.png",
+   "imagewidth": 64,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco16"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 52,
+   "image": "../assets/props/odeco17.png",
+   "imagewidth": 64,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco17"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 53,
+   "image": "../assets/props/odeco18.png",
+   "imagewidth": 192,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "odeco18"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 54,
+   "image": "../assets/props/clouds1.png",
+   "imagewidth": 576,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 576,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "clouds1"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 55,
+   "image": "../assets/props/clouds2.png",
+   "imagewidth": 576,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 576,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "clouds2"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 56,
+   "image": "../assets/props/clouds3.png",
+   "imagewidth": 576,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 576,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "clouds3"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 57,
+   "image": "../assets/props/clouds4.png",
+   "imagewidth": 576,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 576,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "clouds4"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 58,
+   "image": "../assets/props/clouds5.png",
+   "imagewidth": 576,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 576,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "clouds5"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 59,
+   "image": "../assets/props/clouds6.png",
+   "imagewidth": 576,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 576,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "clouds6"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 60,
+   "image": "../assets/props/clouds7.png",
+   "imagewidth": 576,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 576,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "clouds7"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 61,
+   "image": "../assets/props/clouds8.png",
+   "imagewidth": 576,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 576,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "clouds8"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 62,
+   "image": "../assets/props/dead-tree.png",
+   "imagewidth": 384,
+   "imageheight": 320,
+   "x": 0,
+   "y": 0,
+   "width": 384,
+   "height": 320,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "dead-tree"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "1,1"
+    }
+   ]
+  },
+  {
+   "id": 63,
+   "image": "../assets/props/cave.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "cave"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "3,2"
+    }
+   ]
+  },
+  {
+   "id": 64,
+   "image": "../assets/props/gnome-hut.png",
+   "imagewidth": 128,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gnome-hut"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "2,2"
+    }
+   ]
+  },
+  {
+   "id": 65,
+   "image": "../assets/props/gnome-tower.png",
+   "imagewidth": 128,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gnome-tower"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "2,2"
+    }
+   ]
+  },
+  {
+   "id": 66,
+   "image": "../assets/props/fence.png",
+   "imagewidth": 256,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "fence"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 67,
+   "image": "../assets/props/boat.png",
+   "imagewidth": 2048,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "boat"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 68,
+   "image": "../assets/pickups/gold.png",
+   "imagewidth": 128,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 69,
+   "image": "../assets/pickups/gold-highlight.png",
+   "imagewidth": 768,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gold-highlight"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 70,
+   "image": "../assets/pickups/meat.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "meat"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 71,
+   "image": "../assets/pickups/tool1.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "tool1"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 72,
+   "image": "../assets/pickups/tool2.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "tool2"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 73,
+   "image": "../assets/pickups/tool3.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "tool3"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 74,
+   "image": "../assets/pickups/tool4.png",
+   "imagewidth": 64,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "tool4"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 75,
+   "image": "../assets/pickups/duck.png",
+   "imagewidth": 96,
+   "imageheight": 32,
+   "x": 0,
+   "y": 0,
+   "width": 32,
+   "height": 32,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "duck"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 76,
+   "image": "../assets/pickups/ogold-spawn.png",
+   "imagewidth": 896,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "ogold-spawn"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 77,
+   "image": "../assets/pickups/omeat-spawn.png",
+   "imagewidth": 896,
+   "imageheight": 128,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 128,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "omeat-spawn"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 78,
+   "image": "../assets/enemies/gnome-attack.png",
+   "imagewidth": 1344,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gnome-attack"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 79,
+   "image": "../assets/enemies/gnome-idle.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gnome-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    },
+    {
+     "name": "kind",
+     "type": "string",
+     "value": "gnome-idle"
+    }
+   ],
+   "class": "enemy"
+  },
+  {
+   "id": 80,
+   "image": "../assets/enemies/gnome-run.png",
+   "imagewidth": 1152,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gnome-run"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 81,
+   "image": "../assets/enemies/gnome-avatar.png",
+   "imagewidth": 256,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "gnome-avatar"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 82,
+   "image": "../assets/enemies/snake-attack.png",
+   "imagewidth": 1152,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "snake-attack"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 83,
+   "image": "../assets/enemies/snake-idle.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "snake-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    },
+    {
+     "name": "kind",
+     "type": "string",
+     "value": "snake-idle"
+    }
+   ],
+   "class": "enemy"
+  },
+  {
+   "id": 84,
+   "image": "../assets/enemies/snake-run.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "snake-run"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 85,
+   "image": "../assets/enemies/snake-avatar.png",
+   "imagewidth": 256,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "snake-avatar"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 86,
+   "image": "../assets/enemies/spider-attack.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "spider-attack"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 87,
+   "image": "../assets/enemies/spider-idle.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "spider-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    },
+    {
+     "name": "kind",
+     "type": "string",
+     "value": "spider-idle"
+    }
+   ],
+   "class": "enemy"
+  },
+  {
+   "id": 88,
+   "image": "../assets/enemies/spider-run.png",
+   "imagewidth": 960,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "spider-run"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 89,
+   "image": "../assets/enemies/spider-avatar.png",
+   "imagewidth": 256,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "spider-avatar"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 90,
+   "image": "../assets/enemies/slingshot-idle.png",
+   "imagewidth": 1920,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "slingshot-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    },
+    {
+     "name": "kind",
+     "type": "string",
+     "value": "slingshot-idle"
+    }
+   ],
+   "class": "enemy"
+  },
+  {
+   "id": 91,
+   "image": "../assets/enemies/slingshot-run.png",
+   "imagewidth": 1152,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "slingshot-run"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 92,
+   "image": "../assets/enemies/slingshot-shoot.png",
+   "imagewidth": 1728,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "slingshot-shoot"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 93,
+   "image": "../assets/enemies/slingshot-avatar.png",
+   "imagewidth": 256,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "slingshot-avatar"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 94,
+   "image": "../assets/enemies/bear-attack.png",
+   "imagewidth": 2304,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "bear-attack"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 95,
+   "image": "../assets/enemies/bear-idle.png",
+   "imagewidth": 2048,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "bear-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    },
+    {
+     "name": "kind",
+     "type": "string",
+     "value": "bear-idle"
+    }
+   ],
+   "class": "enemy"
+  },
+  {
+   "id": 96,
+   "image": "../assets/enemies/bear-run.png",
+   "imagewidth": 1280,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "bear-run"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 97,
+   "image": "../assets/enemies/bear-avatar.png",
+   "imagewidth": 256,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "bear-avatar"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 98,
+   "image": "../assets/enemies/panda-attack.png",
+   "imagewidth": 3328,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "panda-attack"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 99,
+   "image": "../assets/enemies/panda-idle.png",
+   "imagewidth": 2560,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "panda-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    },
+    {
+     "name": "kind",
+     "type": "string",
+     "value": "panda-idle"
+    }
+   ],
+   "class": "enemy"
+  },
+  {
+   "id": 100,
+   "image": "../assets/enemies/panda-run.png",
+   "imagewidth": 1536,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "panda-run"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 101,
+   "image": "../assets/enemies/panda-avatar.png",
+   "imagewidth": 256,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 256,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "panda-avatar"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 102,
+   "image": "../assets/enemies/acorn.png",
+   "imagewidth": 256,
+   "imageheight": 64,
+   "x": 0,
+   "y": 0,
+   "width": 64,
+   "height": 64,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "acorn"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    },
+    {
+     "name": "kind",
+     "type": "string",
+     "value": "acorn"
+    }
+   ],
+   "class": "enemy"
+  },
+  {
+   "id": 103,
+   "image": "../assets/town/castle.png",
+   "imagewidth": 320,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 320,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "castle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "5,2"
+    }
+   ]
+  },
+  {
+   "id": 104,
+   "image": "../assets/town/barracks.png",
+   "imagewidth": 192,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "barracks"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "3,2"
+    }
+   ]
+  },
+  {
+   "id": 105,
+   "image": "../assets/town/monastery.png",
+   "imagewidth": 192,
+   "imageheight": 320,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 320,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "monastery"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "3,2"
+    }
+   ]
+  },
+  {
+   "id": 106,
+   "image": "../assets/town/house1.png",
+   "imagewidth": 128,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "house1"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "2,2"
+    }
+   ]
+  },
+  {
+   "id": 107,
+   "image": "../assets/town/tower.png",
+   "imagewidth": 128,
+   "imageheight": 256,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 256,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "tower"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "2,2"
+    }
+   ]
+  },
+  {
+   "id": 108,
+   "image": "../assets/town/warrior-idle.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "warrior-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 109,
+   "image": "../assets/town/monk-idle.png",
+   "imagewidth": 1152,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "monk-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 110,
+   "image": "../assets/town/archer-idle.png",
+   "imagewidth": 1152,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "archer-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  }
+ ]
+}

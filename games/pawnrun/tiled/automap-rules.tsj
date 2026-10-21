@@ -1,0 +1,65 @@
+{
+ "type": "tileset",
+ "name": "AutoMap Rules",
+ "tiledversion": "1.12.2",
+ "version": "1.10",
+ "image": "automap-rules.png",
+ "imagewidth": 160,
+ "imageheight": 32,
+ "tilewidth": 32,
+ "tileheight": 32,
+ "columns": 5,
+ "tilecount": 5,
+ "tiles": [
+  {
+   "id": 0,
+   "properties": [
+    {
+     "name": "MatchType",
+     "type": "string",
+     "value": "Negate"
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "properties": [
+    {
+     "name": "MatchType",
+     "type": "string",
+     "value": "Ignore"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "properties": [
+    {
+     "name": "MatchType",
+     "type": "string",
+     "value": "NonEmpty"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "properties": [
+    {
+     "name": "MatchType",
+     "type": "string",
+     "value": "Empty"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "properties": [
+    {
+     "name": "MatchType",
+     "type": "string",
+     "value": "Other"
+    }
+   ]
+  }
+ ]
+}
