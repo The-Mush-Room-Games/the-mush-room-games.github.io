@@ -12,14 +12,16 @@ const types = [
   en('chunkKind', ['landmark', 'set']),
   cls('entrance', '#ff40c0ff', []),
   cls('enemy', '#ffff4040', [str('kind'), { name: 'count', type: 'int', value: 1 }]),
-  cls('camp', '#ffff8040', [str('kind')]),
+  // a gnome camp (src/camp.js): a tile-aligned rect that is the INSIDE. The enemies standing in it must die to clear it. A Wooden Fence ring is drawn on the cells
+  // around it; each `gate` rect (tile-aligned, on that ring) is a gap whose fence only appears while the camp is closed
+  cls('camp', '#ffff8040', [str('kind', 'gnome')], ['property', 'object']),
   cls('boss', '#ffc000c0', [str('kind')]),
   cls('loot', '#ffffd020', [enm('kind', 'lootKind', 'random'), { name: 'n', type: 'int', value: 1 }, str('weapon'), { name: 'tier', type: 'int', value: 0 }]),   // weapon/tier: only for kind weapon (axe, hammer, pickaxe, knife; tier 0-3)
   cls('secret', '#ff20c040', [enm('kind', 'secretKind', 'tree')]),
   cls('stepstone', '#ff40a0ff', [], ['property', 'object', 'tile']),   // a Water Rock in the water that feet can stand on (they must overlap to form a path)
   cls('npc', '#ffffffff', [str('role')]),
   cls('shop', '#ffe0a060', [str('shop')]),
-  cls('gate', '#ffa0a0a0', []),
+  cls('gate', '#ffa0a0a0', [], ['property', 'object']),
   cls('washup', '#ff4080ff', []),
   cls('spawn', '#ff40ff40', []),
   cls('chunk', '#ffff80ff', [enm('kind', 'chunkKind', 'landmark'), str('biomes'),

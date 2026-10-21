@@ -6,7 +6,7 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
 
 (async () => {
   const m = await readMap('maps/test.tmj', loadJson);
-  assert.deepStrictEqual([m.w, m.h], [24, 26]);
+  assert.deepStrictEqual([m.w, m.h], [40, 26]);
 
   for (const k of ['ground', 'raised', 'stairs', 'water']) {
     assert(m[k] instanceof Uint8Array && m[k].length === m.w * m.h, k + ' size');
@@ -44,7 +44,7 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   assert.deepStrictEqual(one(tiles, o => o.key === 'tree2', 'tree2').block, [1, 1]);
   assert.deepStrictEqual(one(tiles, o => o.key === 'bush1', 'bush1').block, [0, 0]);
 
-  const gnome = one(tiles, o => o.cls === 'enemy', 'enemy');
+  const gnome = one(tiles, o => o.cls === 'enemy' && o.x < 24 * 64, 'the island gnome pack');   // the camp's gnomes are in camp-check
   assert.strictEqual(gnome.key, 'gnome-idle');
   assert.deepStrictEqual(gnome.props, { kind: 'gnome-idle', count: 2 });
   // secrets and resources: a choppable tree (north tip), the pocket's tree, a rock pile (2 rocks), a plug of 3 rocks and a rock on the tiny islet
@@ -62,7 +62,7 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   const lootOf = k => shapes.filter(o => o.cls === 'loot' && o.props.kind === k);
   assert.strictEqual(lootOf('duck').length, 2, 'a duck in the open and one in the tree pocket');
   assert.deepStrictEqual(lootOf('gold').map(o => o.props.n).sort((a, b) => a - b), [5, 8, 10, 12], 'gold behind the rocks and on the islet');
-  assert.strictEqual(lootOf('meat').length, 2);
+  assert.strictEqual(lootOf('meat').length, 3, 'two behind secrets and one in the camp meadow');
   // weapons (tier 1 axe, tier 2 hammer, a pickaxe the old Pawn can't use) and one-use items on the field
   const ws = lootOf('weapon').map(o => o.props.weapon + o.props.tier).sort();
   assert.deepStrictEqual(ws, ['axe1', 'hammer2', 'pickaxe0']);

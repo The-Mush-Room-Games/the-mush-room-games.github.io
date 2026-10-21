@@ -1,8 +1,8 @@
-// Writes maps/test.tmj, a 24x26 test island. Run: node tiled/make-test-map.js (after make-rules.js and make-objects.js)
+// Writes maps/test.tmj, a 40x26 test island. Run: node tiled/make-test-map.js (after make-rules.js and make-objects.js)
 const fs = require('fs'), path = require('path');
 const C = require('./common.js'), TR = require('../src/terrain.js');
 const R = path.join(__dirname, '..');
-const W = 24, H = 26, T = 64;
+const W = 40, H = 26, T = 64;
 const objTs = JSON.parse(fs.readFileSync(path.join(R, 'maps/objects.tsj'), 'utf8'));
 const keyOf = t => (t.properties || []).find(p => p.name === 'key')?.value || t.image.split('/').pop().replace(/\.png$/i, '');
 const findTile = key => objTs.tiles.find(t => keyOf(t) === key);
@@ -11,10 +11,11 @@ const F = C.FIRST;
 
 // island: row -> [firstCol, lastCol] (or a list of those). Rows 2-13 are the first island; below it a field with:
 // a tree-walled pocket (rows 14-16, cols 19-20), two 1-tile dead ends (cols 7 and 10, rows 22-24), an islet (cols 0-1) across the water
-// and a tiny islet (cols 13-14, rows 24-25) two water tiles south of the field: only a thrown dynamite reaches it
-const rows = { 2: [7, 12], 3: [5, 14], 4: [4, 15], 5: [4, 16], 6: [3, 16], 7: [3, 19], 8: [3, 19], 9: [4, 16], 10: [4, 15], 11: [5, 15], 12: [6, 14], 13: [7, 13],
-  14: [[7, 13], [19, 20]], 15: [[5, 15], [19, 20]], 16: [[4, 16], [19, 20]], 17: [[0, 1], [4, 21]], 18: [[0, 1], [4, 21]], 19: [4, 17], 20: [5, 15], 21: [7, 13],
-  22: [[7, 7], [10, 10]], 23: [[7, 7], [10, 10]], 24: [[7, 7], [10, 10], [13, 14]], 25: [13, 14] };
+// and a tiny islet (cols 13-14, rows 24-25) two water tiles south of the field: only a thrown dynamite reaches it.
+// The field's rows 17-18 run on east (cols 22-24) to a meadow (cols 25-38, rows 11-23) with a gnome camp in it
+const rows = { 2: [7, 12], 3: [5, 14], 4: [4, 15], 5: [4, 16], 6: [3, 16], 7: [3, 19], 8: [3, 19], 9: [4, 16], 10: [4, 15], 11: [[5, 15], [25, 38]], 12: [[6, 14], [25, 38]], 13: [[7, 13], [25, 38]],
+  14: [[7, 13], [19, 20], [25, 38]], 15: [[5, 15], [19, 20], [25, 38]], 16: [[4, 16], [19, 20], [25, 38]], 17: [[0, 1], [4, 38]], 18: [[0, 1], [4, 38]], 19: [[4, 17], [25, 38]], 20: [[5, 15], [25, 38]], 21: [[7, 13], [25, 38]],
+  22: [[7, 7], [10, 10], [25, 38]], 23: [[7, 7], [10, 10], [25, 38]], 24: [[7, 7], [10, 10], [13, 14]], 25: [13, 14] };
 const idx = (x, y) => y * W + x;
 const ground = new Uint8Array(W * H), raised = new Uint8Array(W * H), water = new Uint8Array(W * H);
 for (const [y, r] of Object.entries(rows)) for (const [a, b] of typeof r[0] === 'number' ? [r] : r) for (let x = a; x <= b; x++) ground[idx(x, +y)] = 1;
@@ -106,6 +107,19 @@ objects.push(
   loot('gold', [480, 23 * T + 40], 12), loot('gold', [480, 24 * T + 32], 8),
   // a rock pile on the tiny islet across 2 water tiles from the field's south shore (col 13, row 21): out of reach of any swing, a dynamite thrown south lands next to it
   tileObj('rock2', bottom(13, 25), 'secret', kind('rock')),
+);
+// The gnome camp (src/camp.js): the `camp` rect is the inside (cols 29-34, rows 14-19); the Wooden Fence ring stands on the cells around it
+// (cols 28-35, rows 13-20), and a `gate` rect on the ring is a gap that closes when the hero steps in: north (32,13) and south (31,20).
+// A Gnome Hut in the north-east corner, 4 gnomes in the rest. Reach it along the field's rows 17-18 to the east, then round to the south gate.
+const rect = (cls, c0, r0, c1, r1, props = []) => ({ id: oid++, name: cls, class: cls, x: c0 * T, y: r0 * T, width: (c1 - c0 + 1) * T, height: (r1 - r0 + 1) * T, rotation: 0, visible: true, properties: props });
+const GNOME_GAP = 65;                                                  // transparent rows under a gnome's feet in its 192 px frame
+const gnome = (cx, cy, n) => tileObj('gnome-idle', [cx * T + T / 2, (cy + 1) * T - T / 2 + GNOME_GAP], undefined, n > 1 ? [P('count', n, 'int')] : []);
+objects.push(
+  rect('camp', 29, 14, 34, 19, [P('kind', 'gnome')]), rect('gate', 32, 13, 32, 13), rect('gate', 31, 20, 31, 20),
+  tileObj('gnome-hut', [34 * T, 17 * T]),
+  gnome(31, 16, 2), gnome(30, 18, 1), gnome(33, 19, 1),
+  tileObj('bush3', bottom(26, 12)), tileObj('bush2', bottom(37, 22)), tileObj('rock3', bottom(26, 21)), tileObj('tree3', bottom(37, 12)),
+  loot('meat', centre(36, 21)),
 );
 // two enterable houses near the spawn. A door is a rect over the doorway in the art (house1.png: door x 51-77, y 126-162 in the
 // 128x192 frame) that reaches down past the base shadow, where the walking-up hero's feet stop. Its `interior` is a map path.

@@ -75,4 +75,48 @@ const SHEEP = {                                     // acts: weight and seconds 
 const PICKUP = { r: 14, arc: 22, pop: 380, scatter: [18, 34] };   // r = reach around the ground point, arc/pop = drop arc height (px) and time (ms)
 const BAG = 3, MEAT_HEAL = 2;                        // item slots, hp one meat heals
 
-if (typeof module === 'object') module.exports = { WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };
+// Camps (src/camp.js). A Tiled `camp` rect is the inside; a Wooden Fence ring (the 4x3 sheet `fence`, 64 px tiles) stands on the cells around it,
+// with gaps where `gate` rects lie on the ring. The gate pieces only exist while the camp is closed. delay = s from the last gnome to the cards,
+// rise / drop = ms for a gate piece to pop up / sink (it moves `sink` px), push = px steps a unit stuck in a closing gate is moved inwards.
+// The cards (scenes/Cards.js) ignore input for `lock` ms after they open (a swing or Space from the last fight must not pick), and show the pick for `confirm` ms.
+const CAMP = { delay: 0.5, rise: 240, drop: 200, sink: 18, push: 4, lock: 450, confirm: 560 };
+// Fence tiles: the frame [row, col] in the sheet and the collision bands [x0, y0, x1, y1] from the tile's top-left (rails, posts). c = corners,
+// hz0/hz1 = a top or bottom run, vl/vr = the left / right side, endL/endR = the post that ends a run next to a gate (rail on its left / right).
+const FENCE = {
+  tl: [[0, 0], [[20, 30, 64, 48], [24, 30, 42, 64]]], tr: [[0, 3], [[0, 30, 44, 48], [22, 30, 42, 64]]],
+  bl: [[2, 0], [[24, 0, 42, 50], [20, 30, 64, 48]]], br: [[2, 3], [[22, 0, 42, 50], [0, 30, 44, 48]]],
+  hz0: [[0, 1], [[0, 30, 64, 48]]], hz1: [[0, 2], [[0, 30, 64, 48]]], vl: [[1, 0], [[24, 0, 42, 64]]], vr: [[1, 3], [[22, 0, 43, 64]]],
+  endL: [[2, 1], [[0, 30, 46, 48]]], endR: [[2, 2], [[18, 30, 64, 48]]],
+};
+
+// Power-ups: 3 cards are drawn when a camp is cleared, by rarity weight (per card), none twice. They stack and last for the run.
+// stat = the key of STAT0 it changes by `add` per stack (a % card shows add x 100; `scale` ones grow with the island: add x powerK(island) when taken),
+// max = most stacks, heal = hp it gives at once, full = heals to full (an instant card is not kept), off = left out of the draw for now.
+// icon = [texture, frame, scale] of the kit art (ui.js icon(); the Tool icons hold 27 px of art, so they are drawn at 2x).
+const RARITY = {
+  common:   { weight: 6,   ribbon: 'blue',   label: 'Common',   tint: 0x4a8fe0 },
+  uncommon: { weight: 3,   ribbon: 'yellow', label: 'Uncommon', tint: 0xf2c33a },
+  rare:     { weight: 1.5, ribbon: 'purple', label: 'Rare',     tint: 0xa060e0, special: true },   // special = paper_special
+};
+const POWER_SCALE = { perIsland: 0.1, cap: 2 };      // powerK(island) = min(cap, 1 + perIsland x (island - 1)): island 1 = 1, island 6 = 1.5
+const STAT0 = { dmg: 1, hp: 0, speed: 1, swing: 1, gold: 1, dashRate: 1, reach: 1, kb: 1, meat: 1, charges: 1, twice: 0, thorns: 0, slots: 0 };   // stats with no power-up
+const POWERUPS = {
+  damage:   { rarity: 'common', name: 'Sharp Edge', text: '+{v}% damage', stat: 'dmg', add: 0.15, pct: true, scale: true, icon: ['tool2', 0, 2] },
+  vigor:    { rarity: 'common', name: 'Tough Hide', text: '+1 max HP, heal 1', stat: 'hp', add: 1, heal: 1, icon: ['icon06'] },
+  swift:    { rarity: 'common', name: 'Light Boots', text: '+{v}% move speed', stat: 'speed', add: 0.1, pct: true, scale: true, icon: ['icon07'] },
+  quick:    { rarity: 'common', name: 'Quick Hands', text: '+{v}% swing speed', stat: 'swing', add: 0.15, pct: true, scale: true, icon: ['tool3', 0, 2] },
+  greed:    { rarity: 'common', name: 'Gold Fever', text: '+{v}% gold', stat: 'gold', add: 0.25, pct: true, scale: true, icon: ['icon03'] },
+  heal:     { rarity: 'common', name: 'Second Wind', text: 'Heal to full', full: true, icon: ['icon04'] },
+  recharge: { rarity: 'uncommon', name: 'Fresh Legs', text: 'Dash recharges {v}% faster', stat: 'dashRate', add: 0.3, pct: true, scale: true, icon: ['icon10'] },
+  reach:    { rarity: 'uncommon', name: 'Long Arm', text: 'Longer reach, +{v}%', stat: 'reach', add: 0.25, pct: true, scale: true, icon: ['icon02'] },
+  shove:    { rarity: 'uncommon', name: 'Heavy Blows', text: 'Knockback +{v}%', stat: 'kb', add: 0.5, pct: true, scale: true, icon: ['icon01'] },
+  feast:    { rarity: 'uncommon', name: 'Big Appetite', text: 'Meat heals double', stat: 'meat', add: 1, icon: ['meat'] },
+  twin:     { rarity: 'rare', name: 'Double Dash', text: '+1 dash charge', stat: 'charges', add: 1, max: 2, icon: ['icon08'] },
+  echo:     { rarity: 'rare', name: 'Twin Strike', text: 'Every swing hits twice', stat: 'twice', add: 1, max: 1, icon: ['icon05'] },
+  thorns:   { rarity: 'rare', name: 'Thorns', text: 'Enemies that hurt you take 1', stat: 'thorns', add: 1, icon: ['icon09'] },
+  pockets:  { rarity: 'rare', name: 'Deep Pockets', text: '+1 item slot', stat: 'slots', add: 1, max: 1, icon: ['btn-tiny-square'] },
+  ducks:    { rarity: 'rare', name: 'Duck Sense', text: 'Golden ducks show on the map', off: true, icon: ['duck', 0] },   // off: needs the explored map (group 4)
+};
+const HIT2 = { delay: 0.1, mult: 1 };                // Twin Strike: the second hit lands `delay` s after the first, for `mult` of its damage
+
+if (typeof module === 'object') module.exports = { CAMP, FENCE, RARITY, POWER_SCALE, STAT0, POWERUPS, HIT2, WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };

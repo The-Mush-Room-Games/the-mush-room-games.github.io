@@ -23,7 +23,7 @@ const blinkOn = (t, fuse) => Math.floor((2 * t + 5 * t * t / fuse) * 2) % 2 === 
 function useItem(scene, i) {
   const h = scene.hero, k = h.items[i];
   if (!k || h.dead || scene.leaving) return;
-  if (k === 'meat') return eatMeat(h, i);
+  if (k === 'meat') return eatMeat(h, i, MEAT_HEAL * h.pw.meat);
   if (!scene.hittables) return;
   h.items.splice(i, 1);
   if (k === 'dynamite') throwDynamite(scene); else plantBomb(scene);

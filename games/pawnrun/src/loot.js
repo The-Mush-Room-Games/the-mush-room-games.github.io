@@ -1,4 +1,4 @@
-// Loot: drop rolls, pickups on the ground, the bag. Tunables in data.js (DROPS, LOOT, PICKUP, BAG, MEAT_HEAL).
+// Loot: drop rolls, pickups on the ground, the bag. Tunables in data.js (DROPS, LOOT, PICKUP, BAG, MEAT_HEAL); the bag's size is hero.bag (BAG + power-ups).
 // Gold and ducks live in scene.registry ('gold', 'ducks', so they outlive a restart); the bag is hero.items (carried by Hero.state/load).
 // Weapons lie there too ({ kind: 'weapon', weapon, tier }): a free slot takes them, else a prompt over the pickup (scene.prompt) offers F to swap.
 // Scene contract: scene.hero, scene.loot (array), scene.walkable(unit, bx, by).
@@ -56,8 +56,8 @@ function dropLoot(scene, table, x, y, high) {
 function collect(scene, p) {
   const h = scene.hero, reg = scene.registry;
   if (p.kind === 'weapon') { if (weaponAction(h, p.weapon) !== 'take') return false; giveWeapon(h, p.weapon, p.tier) }
-  else if (ITEMS[p.kind]) { if (h.items.length >= BAG) return false; h.items.push(p.kind) }   // meat, dynamite, bomb: the bag, if it has room
-  else { const k = p.kind === 'duck' ? 'ducks' : 'gold'; reg.set(k, (reg.get(k) || 0) + p.n) }
+  else if (ITEMS[p.kind]) { if (h.items.length >= h.bag) return false; h.items.push(p.kind) }   // meat, dynamite, bomb: the bag, if it has room
+  else { const k = p.kind === 'duck' ? 'ducks' : 'gold'; reg.set(k, (reg.get(k) || 0) + (k === 'gold' ? Math.round(p.n * h.pw.gold) : p.n)) }   // Gold Fever
   scene.tweens.killTweensOf(p.c);
   scene.tweens.add({ targets: p.c, y: p.c.y - 14, scale: 1.5, alpha: 0, duration: 160, onComplete: () => p.c.destroy() });
   return true;

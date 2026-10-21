@@ -94,14 +94,12 @@
     {
      "name": "kind",
      "type": "string",
-     "value": ""
+     "value": "gnome"
     }
    ],
    "useAs": [
     "property",
-    "map",
-    "object",
-    "tile"
+    "object"
    ],
    "drawFill": true
   },
@@ -243,9 +241,7 @@
    "members": [],
    "useAs": [
     "property",
-    "map",
-    "object",
-    "tile"
+    "object"
    ],
    "drawFill": true
   },

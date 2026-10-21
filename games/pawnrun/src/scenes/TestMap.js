@@ -69,17 +69,17 @@ class TestMap extends Phaser.Scene {
       const cx = o.x - box.fw / 2 + fb.x + box.w / 2, y1 = o.y - box.fh + box.y + box.h;
       return { x0: cx - w / 2, x1: cx + w / 2, y0: y1 - (tall ? 56 : box.h), y1 };
     };
+    const place = R => {                                           // a collision rect { x0, y0, x1, y1, high, gone } (gone: broken, no longer blocks)
+      rects.push(R);
+      for (let cy = Math.floor(R.y0 / T); cy <= Math.floor((R.y1 - 1e-6) / T); cy++)
+        for (let cx = Math.floor(R.x0 / T); cx <= Math.floor((R.x1 - 1e-6) / T); cx++) {
+          const k = cy * m.w + cx; (rectsAt.get(k) || rectsAt.set(k, []).get(k)).push(R);
+        }
+      return R;
+    };
     this.addRects = (o, key, high, rs) => {
       const box = artBox(this, key), fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box, top = o.y - box.fh, left = o.x - box.fw / 2;
-      return (rs || objectRects({ ...o, key }, fb)).map(r => {
-        const R = { x0: left + r.x, y0: top + r.y, x1: left + r.x + r.w, y1: top + r.y + r.h, high, gone: false };   // gone: broken, no longer blocks
-        rects.push(R);
-        for (let cy = Math.floor(R.y0 / T); cy <= Math.floor((R.y1 - 1e-6) / T); cy++)
-          for (let cx = Math.floor(R.x0 / T); cx <= Math.floor((R.x1 - 1e-6) / T); cx++) {
-            const k = cy * m.w + cx; (rectsAt.get(k) || rectsAt.set(k, []).get(k)).push(R);
-          }
-        return R;
-      });
+      return (rs || objectRects({ ...o, key }, fb)).map(r => place({ x0: left + r.x, y0: top + r.y, x1: left + r.x + r.w, y1: top + r.y + r.h, high, gone: false }));
     };
     for (const o of m.objects) {
       if (!o.key) continue;                                        // markers: spawn, entrance, loot...
@@ -122,6 +122,13 @@ class TestMap extends Phaser.Scene {
         new Enemy(this, kind, x, py, high);
       }
     }
+    // camps: the enemies standing inside a camp rect are the ones to clear; its fence ring and gates are built here
+    const gates = m.objects.filter(o => o.cls === 'gate' && o.w > 0);
+    this.camps = m.objects.filter(o => o.cls === 'camp' && o.w > 0).map(o => {
+      const c = new Camp(this, o, gates, place, T);
+      c.foes = this.enemies.filter(e => c.has(e.x, e.y));
+      return c;
+    });
     for (const f of flock) new Sheep(this, f.x, f.y, f.high);
     for (const o of m.objects) if (o.cls === 'loot' && LOOT[o.props.kind]) spawnLoot(this, o.props.kind, o.x, o.y, onRaised(o.x, o.y - 1), +o.props.n || 1, undefined, { weapon: o.props.weapon, tier: +o.props.tier || 0 });
 
@@ -132,6 +139,7 @@ class TestMap extends Phaser.Scene {
     this.fitBounds(m.w * T, m.h * T);
     this.cameras.main.startFollow(this.hero.sprite, true, 0.15, 0.15);
 
+    this.island = +q.get('island') || 1;                            // island number: power-ups scale with it (powerK)
     this.initInput();
 
     // doors: Tiled rects of class `door` with an `interior` map path; walking up into one (update) enters it. Coming back
@@ -147,6 +155,7 @@ class TestMap extends Phaser.Scene {
     // things to hit
     this.hits = 0;
     this.on(this.events, 'hero-hit', h => this.onHit(h));
+    this.on(this.events, 'resume', () => { this.hud?.resetStick?.(); Object.assign(this.pend, { swing: false, dash: false, swap: false, pick: false }) });   // after the cards: no stuck stick or key
     this.on(this.events, 'hero-hurt', () => this.cameras.main.shake(90, 0.004));
     this.on(this.events, 'hero-dead', () => this.time.delayedCall(2500, () => this.scene.restart()));
     this.dbg = q.has('dbg') && this.add.graphics().setDepth(1e6 - 1);   // ?dbg draws collision rects, the feet box and hit circles
@@ -160,15 +169,15 @@ class TestMap extends Phaser.Scene {
   }
   // keys, mouse and HUD buttons feed `pend` ("pressed this frame" flags); shared with Interior
   initInput() {
-    this.sig = null;                                                // syncHud refills the weapon slots
+    this.sig = this.pj = this.dj = null;                             // syncHud refills the weapon slots, power-up row and dash pips
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,SHIFT,K,Q,H,E,ONE,TWO,THREE');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,SHIFT,K,Q,H,E,ONE,TWO,THREE,FOUR');
     this.pend = { swing: false, dash: false, swap: false, pick: false };
     // presses come from keydown events, not JustDown polling, so a tap shorter than one frame is not lost
     const press = { SPACE: 'swing', J: 'swing', SHIFT: 'dash', K: 'dash', Q: 'swap', F: 'pick' };   // F swaps for the weapon on the ground
     for (const [key, act] of Object.entries(press))
       this.on(kb, 'keydown-' + key, e => { if (!e.repeat) this.pend[act] = true });
-    for (const [key, i] of [['E', 0], ['ONE', 0], ['TWO', 1], ['THREE', 2]])          // bag slots: E and 1 use the first
+    for (const [key, i] of [['E', 0], ['ONE', 0], ['TWO', 1], ['THREE', 2], ['FOUR', 3]])   // bag slots: E and 1 use the first
       this.on(kb, 'keydown-' + key, e => { if (!e.repeat) useItem(this, i) });
     this.on(kb, 'keydown-H', e => { if (!e.repeat) this.hurtTest = true });
     this.move = new Phaser.Math.Vector2();
@@ -199,7 +208,7 @@ class TestMap extends Phaser.Scene {
       const b = t.hb;                                              // the slash box must overlap the hurtbox, same level only
       if (t.high !== high || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
       this.hits++;
-      if (t.enemy) { t.enemy.hurt(damage, this.hero.x, this.hero.y); continue }
+      if (t.enemy) { t.enemy.hurt(damage, this.hero.x, this.hero.y, t.enemy.d.knockback * this.hero.pw.kb); continue }
       if (t.sheep) { t.sheep.hurt(this.hero.x, this.hero.y); continue }
       if (t.drop) { dropLoot(this, DROPS[t.drop], t.ox, b.y1 + 4, high); t.drop = false }   // once per bush: rolled on the first hit
       const s = t.s;                                               // every prop wobbles and flashes white; props with hp (t.prop) also react
@@ -243,12 +252,27 @@ class TestMap extends Phaser.Scene {
     const h = this.hero;
     if (!this.hud) return;
     this.hud.setHp(h.hp, h.maxHp);
-    const gold = this.registry.get('gold') || 0, ducks = this.registry.get('ducks') || 0, bag = Array.from({ length: BAG }, (_, i) => h.items[i] || null);
+    const gold = this.registry.get('gold') || 0, ducks = this.registry.get('ducks') || 0, bag = Array.from({ length: h.bag }, (_, i) => h.items[i] || null);
     if (gold !== this.hud.v.gold) this.hud.setGold(gold);
     if (ducks !== this.hud.v.ducks) this.hud.setDucks(ducks);
     if (bag.join() !== this.hud.v.items.join()) this.hud.setItems(bag);
+    const pj = h.powers.length + h.powers.map(p => p.id).join(), dj = h.dashHave + '/' + h.dashMax;
+    if (pj !== this.pj) { this.pj = pj; this.hud.setPowers(powerCounts(h.powers).map(([id, n]) => ({ icon: POWERUPS[id].icon, n, tint: RARITY[POWERUPS[id].rarity].tint }))) }
+    if (dj !== this.dj) { this.dj = dj; this.hud.setDash(h.dashHave, h.dashMax) }
     const sig = h.weapons.join() + h.tiers.join() + h.active;
     if (sig !== this.sig) { this.sig = sig; this.hud.setWeapons(h.weapons.map((key, i) => ({ key, tier: h.tiers[i] })), h.active) }
+  }
+  // the camp's power-up choice: 3 cards drawn by rarity (powers.js) in the Cards scene over this one, which stands still until a card is picked
+  openCards(ids = drawCards(3, this.hero.powers)) {
+    this.scene.launch('Cards', { from: this.scene.key, cards: ids, island: this.island });
+    this.scene.pause();
+  }
+  // the card that was picked: the hero takes it, and a line of what it gave floats up
+  takePower(id) {
+    const h = this.hero;
+    h.addPower(id, this.island);
+    const t = this.add.text(h.x, h.y - 70, powerText(id, this.island), txt(18)).setOrigin(0.5).setDepth(1e5);
+    this.tweens.add({ targets: t, y: t.y - 30, alpha: 0, delay: 500, duration: 700, onComplete: () => t.destroy() });
   }
   // a door is entered by walking up into it; the hero's feet box (ground level) must overlap its rect
   enter(d) {
@@ -268,6 +292,7 @@ class TestMap extends Phaser.Scene {
     for (const e of [...this.enemies, ...this.herd]) e.update(dt / 1000);
     tickLoot(this);
     if (inp.pick) swapPickup(this);
+    for (const c of this.camps) c.update();
     if (!this.leaving && !h.high && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }
 
     if (this.dbg) {

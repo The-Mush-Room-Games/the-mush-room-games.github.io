@@ -18,7 +18,7 @@ const BTN_HIT = { 'btn-small-round': new Phaser.Geom.Circle(64, 64, 44), 'btn-sm
   'btn-tiny-round': new Phaser.Geom.Circle(32, 32, 32), 'btn-tiny-square': new Phaser.Geom.Rectangle(2, 2, 60, 60) };
 const uiHand = (s, o, hit = BTN_HIT[o.texture.key]) => {
   const cfg = hit ? { hitArea: hit, hitAreaCallback: hit.type === Phaser.Geom.CIRCLE ? Phaser.Geom.Circle.Contains : Phaser.Geom.Rectangle.Contains } : {};
-  return o.setInteractive(uiDesktop(s) ? { ...cfg, cursor: UI_CUR.hand } : cfg);
+  return o.setInteractive(uiDesktop(s) ? { ...cfg, cursor: UI_CUR.hand } : hit ? cfg : undefined);   // (an empty config trips Phaser's hit test on touch: no config = the whole piece)
 };
 const uiNine = (s, x, y, key, w, h, l, r, t, b) => s.add.nineslice(x, y, key, undefined, w, h, l, r, t, b).setScrollFactor(0);
 const uiBox = (s, x, y, objs) => s.add.container(x, y, objs).setScrollFactor(0);   // children of a container are placed relative to x,y
@@ -140,7 +140,7 @@ class Hud {
     const s = this.scene = scene;
     this._stick = new Phaser.Math.Vector2();
     this.touch = opts.touch ?? uiTouch(s);
-    this.v = { hp: 5, max: 5, gold: 0, ducks: 0, weapons: [null, null], active: 0, items: [null, null, null], boss: null };
+    this.v = { hp: 5, max: 5, gold: 0, ducks: 0, weapons: [null, null], active: 0, items: [null, null, null], powers: [], dash: [1, 1], boss: null };
     uiCursor(s);
     this.onResize = () => { this.clear(); this.build() };
     s.scale.on('resize', this.onResize);
@@ -161,6 +161,10 @@ class Hud {
     this.duck = A(icon(s, W - 36, 84, 'duck', 0).setScale(2));
     this.duckText = label(W - 68, 86, '', 24, 1);
 
+    // power-ups: the owned ones as a row of kit icons under the HP bar (a badge in the rarity colour counts stacks), the dash charges as pips beside the bar
+    this.pRow = A(uiBox(s, 160, 126, []), 1);
+    this.pips = A(uiBox(s, 336, 62, []), 1);
+
     // boss: big ribbon top centre (hidden until showBoss)
     this.boss = A(uiBox(s, W / 2, 150, []), 2);
     const rib = ribbon(s, 0, 0, 440, 'red', 'big', ''), name = s.add.text(30, -18, '', txt(20)).setOrigin(0.5).setScrollFactor(0);
@@ -176,15 +180,15 @@ class Hud {
       uiHand(s, sl.fr); sl.fr.on('pointerdown', () => s.events.emit('hud-swap'));
       return sl;
     });
-    this.it = [0, 1, 2].map(i => {
-      const sl = A(slot(s, 224 + i * 72, y, 'tiny'), 1);
+    this.it = v.items.map((_, i) => {                           // 3 slots; a power-up adds one (on touch the 4th sits above the 1st: the dash button covers the row's end)
+      const up = this.touch && i >= 3, sl = A(slot(s, 224 + (up ? i - 3 : i) * 72, up ? y - 72 : y, 'tiny'), 1);
       uiHand(s, sl.fr); sl.fr.on('pointerdown', () => s.events.emit('hud-item', i));
       return sl;
     });
 
     if (this.touch) this._touchControls(A, W, H);
     this.setHp(v.hp, v.max); this.setGold(v.gold); this.setDucks(v.ducks);
-    this.setWeapons(v.weapons, v.active); this.setItems(v.items);
+    this.setWeapons(v.weapons, v.active); this.setItems(v.items); this.setPowers(v.powers); this.setDash(...v.dash);
     v.boss ? this.showBoss(...v.boss) : this.boss.setVisible(false);
   }
 
@@ -226,8 +230,26 @@ class Hud {
     });
   }
   setItems(items) {
+    const grew = items.length !== this.v.items.length;
     this.v.items = items;
-    this.it.forEach((sl, i) => { const d = ITEM_ICON[items[i]]; sl.setItem(d && d[0], d && d[1]).setVisible(items.some(Boolean)) });
+    if (grew) { this.clear(); return this.build() }              // a bigger bag: more slots
+    this.it.forEach((sl, i) => { const d = ITEM_ICON[items[i]]; sl.setItem(d && d[0], d && d[1]).setVisible(items.some(Boolean) || items.length > BAG) });
+  }
+  // list = [{ icon: [texture, frame], n, tint }]: one icon per power-up owned, n stacks as a number in a badge
+  setPowers(list) {
+    const s = this.scene;
+    this.v.powers = list; this.pRow.removeAll(true);
+    const per = Math.max(4, Math.floor((s.scale.width - 270) / 50));     // icons per row: it wraps before the gold counter
+    list.forEach((p, i) => {
+      const x = i % per * 50, y = Math.floor(i / per) * 58;
+      this.pRow.add(icon(s, x, y, p.icon[0], p.icon[1]).setScale(p.icon[2] || 1));
+      if (p.n > 1) this.pRow.add([s.add.rectangle(x + 16, y + 16, 20, 20, p.tint).setStrokeStyle(2, 0x161c2e).setScrollFactor(0), s.add.text(x + 16, y + 16, p.n, numTxt(11)).setOrigin(0.5).setScrollFactor(0)]);
+    });
+  }
+  // dash charges: one pip each, lit while it is ready (only with more than one charge)
+  setDash(have, max) {
+    this.v.dash = [have, max]; this.pips.removeAll(true);
+    if (max > 1) for (let i = 0; i < max; i++) this.pips.add(this.scene.add.rectangle(i * 22, 0, 16, 16, i < have ? 0x6ccf5a : 0x2a3550).setStrokeStyle(2, 0x161c2e).setScrollFactor(0));
   }
   showBoss(name, avatarKey) { this.v.boss = [name, avatarKey]; this.bossName.setText(name); this.bossFace.set(avatarKey); this.bossBar.set(1); this.boss.setVisible(true) }
   setBossHp(frac) { this.bossBar.set(frac) }

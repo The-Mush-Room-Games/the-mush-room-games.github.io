@@ -24,7 +24,8 @@ class Hero {
     this.weapons = ws.map(w => w[0]); this.tiers = ws.map(w => w[1]);    // two slots; tiers[i] = tier of weapons[i]
     this.active = 0;
     const st = HERO[form];
-    this.maxHp = this.hp = st.hp; this.speed = st.speed;
+    this.powers = [];                                // power-up stacks { id, k } (powers.js); applyPowers() turns them into stats
+    this.applyPowers(); this.hp = this.maxHp; this.dashHave = this.dashMax;
     this.sprite = scene.add.sprite(x, y, form === 'old' ? 'opawn' : 'pawn-idle-' + this.weapons[0]).setOrigin(0.5, st.originY);
     this.aim = new Phaser.Math.Vector2(1, 0);       // facing, one of the 4 directions: swings go this way
     this.swing = null;                               // { w, key, hit } while swinging
@@ -36,18 +37,35 @@ class Hero {
     this.hurtT = 0; this.flashT = 0;                 // blink time, red flash time
     this.kbT = 0; this.kbV = new Phaser.Math.Vector2();
     this.dead = false;
-    this.items = [];                                 // the bag: item keys, at most BAG
+    this.items = [];                                 // the bag: item keys, at most `bag`
     this.sprite.play(this.anim('idle'));
   }
   get x() { return this.sprite.x } get y() { return this.sprite.y }
   get weapon() { return this.weapons[this.active] }
   get tier() { return this.tiers[this.active] }
-  get state() { return { form: this.form, weapons: this.weapons.slice(), tiers: this.tiers.slice(), active: this.active, hp: this.hp, flip: this.sprite.flipX, items: this.items.slice() } }   // carried between scenes
+  get state() { return { form: this.form, weapons: this.weapons.slice(), tiers: this.tiers.slice(), active: this.active, hp: this.hp, flip: this.sprite.flipX, items: this.items.slice(), powers: this.powers.map(p => ({ ...p })) } }   // carried between scenes
   load(st) {
-    this.weapons = st.weapons.slice(); this.tiers = st.tiers.slice(); this.active = st.active; this.hp = st.hp; this.items = st.items.slice(); this.sprite.setFlipX(st.flip);
-    this.swing = null; this.dashT = this.kbT = this.buf = 0; this.sprite.play(this.anim('idle'));
+    this.powers = (st.powers || []).map(p => ({ ...p })); this.applyPowers();
+    this.weapons = st.weapons.slice(); this.tiers = st.tiers.slice(); this.active = st.active; this.hp = Math.min(st.hp, this.maxHp); this.items = st.items.slice(); this.sprite.setFlipX(st.flip);
+    this.swing = null; this.dashT = this.kbT = this.buf = 0; this.dashHave = this.dashMax; this.sprite.play(this.anim('idle'));
   }
-  get dashFrac() { return 1 - Math.max(0, this.dashCd) / DASH.cooldown }
+  // the power-up stats (this.pw) and what hangs on them: max hp, speed, dash charges
+  applyPowers() {
+    const pw = this.pw = powerStats(this.powers), st = HERO[this.form];
+    this.maxHp = st.hp + pw.hp; this.speed = st.speed * pw.speed; this.dashMax = pw.charges;
+  }
+  // take a power-up (the card the hero picked): its stacks join the list, and what it gives at once (hp, a dash charge) comes with it
+  addPower(id, island = 1) {
+    const p = POWERUPS[id], charges = this.dashMax;
+    if (!addPower(this.powers, id, island)) return false;
+    this.applyPowers();
+    this.hp = p.full ? this.maxHp : Math.min(this.maxHp, this.hp + (p.heal || 0));
+    this.dashHave += this.dashMax - charges;
+    return true;
+  }
+  get bag() { return BAG + this.pw.slots }          // item slots
+  get dashTime() { return DASH.cooldown / this.pw.dashRate }   // seconds to win one dash charge back
+  get dashFrac() { return this.dashHave >= this.dashMax ? 1 : 1 - Math.max(0, this.dashCd) / this.dashTime }
 
   anim(kind) {                                       // 'idle' | 'run' | 'roll' (the new Pawn tucks his tool away to roll)
     if (this.form === 'old' && this.aim.y < 0 && (kind === 'idle' || kind === 'run')) return `opawn-back-${kind}`;   // facing up: his back
@@ -67,6 +85,7 @@ class Hero {
     const s = this.sprite, scene = this.scene;
     this.dashCd -= dt; this.swingCd -= dt; this.buf -= dt; this.inv -= dt; this.hurtT -= dt; this.flashT -= dt; this.kbT -= dt;
     if (this.dead) return;
+    if (this.dashHave < this.dashMax && this.dashCd <= 0) { this.dashHave++; this.dashCd += this.dashTime }   // a charge is back; the next one starts at once
 
     const move = input.move, moving = move.lengthSq() > 0.01;
     // facing (Zelda): the direction walked; on a diagonal keep the facing if it is one of the two directions held
@@ -82,7 +101,7 @@ class Hero {
       scene.events.emit('hero-swap', { weapon: this.weapon });
     }
     if (input.swing) this.buf = 0.2;                 // a press during a swing fires right after it
-    if (input.dash && this.dashCd <= 0 && this.kbT <= 0) this.startDash(moving ? move : this.aim);
+    if (input.dash && this.dashHave > 0 && this.kbT <= 0) this.startDash(moving ? move : this.aim);
     if (this.buf > 0 && !this.swing && this.swingCd <= 0 && this.dashT <= 0 && this.kbT <= 0) this.startSwing();
 
     // movement
@@ -97,7 +116,7 @@ class Hero {
       this.step(move.x * k, move.y * k);
     }
 
-    if (this.swing) this.tickSwing();
+    if (this.swing) this.tickSwing(dt);
     else if (this.dashT <= 0) {                      // the roll plays out on its own (startDash)
       s.anims.timeScale = 1;
       s.play(this.anim(moving ? 'run' : 'idle'), true);
@@ -112,6 +131,7 @@ class Hero {
 
   startSwing() {
     const w = WEAPONS[this.weapon], s = this.sprite, st = weaponStat(this.weapon, this.tier);
+    st.damage *= this.pw.dmg; st.speed *= this.pw.swing;                // power-ups
     this.buf = 0;
     this.swing = { w, key: this.weapon, hit: false, ...st };           // damage and speed at this tier
     s.anims.timeScale = st.speed;
@@ -119,22 +139,32 @@ class Hero {
     if (v) s.setFlipX(false);                                         // up/down strips are drawn right-handed: never mirror them
     s.play(v ? `${this.form === 'old' ? 'o' : ''}pawn-${this.weapon}-${v}` : w.anim[this.form]);
   }
-  tickSwing() {
+  tickSwing(dt) {
     const sw = this.swing, s = this.sprite;
     const frame = s.anims.currentFrame ? s.anims.currentFrame.index - 1 : 0, done = !s.anims.isPlaying;
     if (!sw.hit && (frame >= sw.w.hitFrame[this.form] || done)) {
       sw.hit = true;                                 // the slash box from the art (facing right), turned to the facing:
-      const [x0, y0, x1, y1] = sw.w.hit[this.form], a = this.aim, c = HERO[this.form].bodyY, w = (y1 - y0) / 2;
-      const [rx0, ry0, rx1, ry1] = a.x > 0 ? [x0, y0, x1, y1] : a.x < 0 ? [-x1, y0, -x0, y1]   // mirrored for left,
-        : a.y < 0 ? [-w, -c - x1, w, -c - x0] : [-w, -c + x0, w, -c + x1];                       // up/down: around the body's middle
-      const rect = { x0: this.x + rx0, x1: this.x + rx1, y0: this.y + ry0, y1: this.y + ry1 };
-      this.scene.events.emit('hero-hit', { rect, high: this.high, damage: sw.damage, weapon: sw.key });
+      let [x0, y0, x1, y1] = sw.w.hit[this.form];
+      const k = this.pw.reach, a = this.aim, c = HERO[this.form].bodyY;
+      if (k !== 1) { const my = (y0 + y1) / 2, hh = (y1 - y0) / 2 * k; x1 = x0 + (x1 - x0) * k; y0 = my - hh; y1 = my + hh }   // Long Arm: a bigger box
+      const w = (y1 - y0) / 2;
+      sw.off = a.x > 0 ? [x0, y0, x1, y1] : a.x < 0 ? [-x1, y0, -x0, y1]       // mirrored for left,
+        : a.y < 0 ? [-w, -c - x1, w, -c - x0] : [-w, -c + x0, w, -c + x1];     // up/down: around the body's middle
+      this.emitHit(sw.damage);
+      if (this.pw.twice) sw.again = HIT2.delay;      // Twin Strike
     }
+    if (sw.again > 0 && (done || (sw.again -= dt) <= 0)) { sw.again = 0; this.emitHit(sw.damage * HIT2.mult) }
     if (done) { this.swingCd = sw.w.recover; this.swing = null; }
+  }
+  emitHit(damage) {                                  // the slash box (sw.off, from the feet) where the hero stands now
+    const sw = this.swing, [x0, y0, x1, y1] = sw.off;
+    this.scene.events.emit('hero-hit', { rect: { x0: this.x + x0, x1: this.x + x1, y0: this.y + y0, y1: this.y + y1 }, high: this.high, damage, weapon: sw.key });
   }
 
   startDash(dir) {
-    this.dashT = DASH.time; this.dashCd = DASH.cooldown; this.inv = Math.max(this.inv, DASH.invuln);
+    if (this.dashHave >= this.dashMax) this.dashCd = this.dashTime;   // a charge spent starts the recharge unless one is already running
+    this.dashHave--;
+    this.dashT = DASH.time; this.inv = Math.max(this.inv, DASH.invuln);
     this.dashDir.copy(dir).normalize();
     if (Math.abs(this.dashDir.x) > 0.1) this.sprite.setFlipX(this.dashDir.x < 0);
     this.swing = null; this.buf = 0;

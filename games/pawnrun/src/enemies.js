@@ -64,7 +64,7 @@ class Enemy {
     const s = this.sprite, d = this.d, h = this.scene.hero, f = s.anims.currentFrame ? s.anims.currentFrame.index - 1 : 0;
     if (!this.hit && f >= d.hitFrame) {
       this.hit = true;
-      if (dist <= d.hitRange && !!h.high === !!this.high) h.hurt(d.damage, this.x, this.y);
+      if (dist <= d.hitRange && !!h.high === !!this.high && h.hurt(d.damage, this.x, this.y) && h.pw.thorns) this.hurt(h.pw.thorns, h.x, h.y);   // Thorns
     }
     if (!s.anims.isPlaying) { this.mode = 'chase'; this.cd = d.cooldown }
   }
