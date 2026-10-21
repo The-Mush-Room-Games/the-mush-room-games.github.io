@@ -95,15 +95,27 @@ const icon = (s, x, y, key, frame) => s.add.image(x, y, key, frame).setScrollFac
 // portrait: a 256 avatar is far too big at 1x and can't be shrunk, so show a w x h window of it at 1x.
 // framed (default): the 64 window sits in a btn-small-square frame, cropped to the face. frame=false: a big window (about the whole head) for the boss ribbon.
 const PORTRAIT_CENTRE = { avatar01: [120, 122], avatar02: [126, 122], avatar03: [134, 109], avatar04: [129, 121], avatar05: [134, 119], 'gnome-avatar': [133, 124], 'snake-avatar': [124, 129], 'spider-avatar': [125, 128], 'slingshot-avatar': [131, 118], 'bear-avatar': [120, 118], 'panda-avatar': [122, 118] };   // alpha-bbox centres of the 256 images
-const PORTRAIT_FACE = { avatar05: [150, 138] };                // the Blue Pawn's face is low and right of its bbox centre
+const PORTRAIT_FACE = { avatar05: [146, 131] };                // the Blue Pawn: hair and face, without the far corners of its blue banner
 function portrait(s, x, y, key, w = 64, h = 64, frame = true) {
   const img = s.add.image(0, 0, key).setOrigin(0).setScrollFactor(0);
   const c = uiBox(s, x, y, frame ? [s.add.image(0, 0, 'btn-small-square').setScrollFactor(0), img] : [img]);
   c.set = k => {
-    const [fx, fy] = (frame && PORTRAIT_FACE[k]) || PORTRAIT_CENTRE[k] || [128, 124], dy = frame ? 2 : 0;
+    const [fx, fy] = PORTRAIT_FACE[k] || PORTRAIT_CENTRE[k] || [128, 124], dy = frame ? 2 : 0;
     img.setTexture(k).setPosition(-fx, -fy + dy).setCrop(fx - w / 2, fy - h / 2 - dy, w, h); return c;
   };
   return c.set(key);
+}
+
+// round portrait: a d px disc cut out of the avatar around its head (drawn once to a canvas texture), thin dark outline, no frame
+function roundPortrait(s, x, y, key, d = 96) {
+  const k = key + '-round' + d;
+  if (!s.textures.exists(k)) {
+    const [fx, fy] = PORTRAIT_FACE[key] || PORTRAIT_CENTRE[key] || [128, 124], t = s.textures.createCanvas(k, d, d), g = t.getContext();
+    g.save(); g.beginPath(); g.arc(d / 2, d / 2, d / 2 - 3, 0, 2 * Math.PI); g.clip();
+    g.drawImage(s.textures.get(key).getSourceImage(), d / 2 - fx, d / 2 - fy); g.restore();
+    g.lineWidth = 3; g.strokeStyle = '#161c2e'; g.beginPath(); g.arc(d / 2, d / 2, d / 2 - 1.5, 0, 2 * Math.PI); g.stroke(); t.refresh();
+  }
+  return s.add.image(x, y, k).setScrollFactor(0);
 }
 
 // ---------------------------------------------------------------- HUD (screen space, depth >= 1e6)
@@ -130,9 +142,9 @@ class Hud {
     const A = (o, d = 0) => { o.setDepth(UI_D + d); o.icon?.setDepth(UI_D + d + 1); this.list.push(o); return o };
     const label = (x, y, str, size, ox = 0.5) => A(s.add.text(x, y, str, numTxt(size)).setOrigin(ox, 0.5).setScrollFactor(0), 3);   // HUD labels are all numbers
 
-    A(portrait(s, 52, 52, 'avatar05'));                                // top left: hero portrait (Blue Pawn) and HP bar
-    this.hp = A(bar(s, 188, 34, 176, 'big'), 1);
-    this.hpText = label(284, 36, '', 18, 0);
+    A(roundPortrait(s, 52, 52, 'avatar05'));                 // top left: hero portrait (Blue Pawn, no frame) and the HP bar beside it, the number on the bar
+    this.hp = A(bar(s, 220, 52, 240, 'big'), 1);
+    this.hpText = label(220, 53, '', 20);
     this.coin = A(icon(s, W - 36, 32, 'icon03'));                      // top right: gold, ducks under it once you have one
     this.goldText = label(W - 68, 34, '', 24, 1);
     this.duck = A(icon(s, W - 36, 84, 'duck', 0).setScale(2));
