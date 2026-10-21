@@ -203,7 +203,8 @@ def comp_right_of(a, xmin):
     return best if best is not None else np.zeros(a.shape[:2], bool)
 
 
-WEAPONS = {"axe": dict(row=3, head=(50, 78), hand=(58, 92)), "hammer": dict(row=2, head=(110, 60), hand=(121, 79))}
+WEAPONS = {"axe": dict(row=3), "hammer": dict(row=2)}
+BROWN = (151, 123, 107)
 HAND = layer(art(FRONT), box(art(FRONT), 111, 124, 105, 116))     # his own hand, outline and all
 
 
@@ -211,49 +212,104 @@ def hand_at(x, y):
     return xform(HAND, dx=x - 117, dy=y - 110)
 
 
-def frames_for(weapon, direction, S):
+def bbox(m):
+    ys, xs = np.where(m)
+    return xs.min(), ys.min(), xs.max(), ys.max()
+
+
+def tool_group(a, with_hand=True):
+    """Tool head (the biggest swoosh-cream blob) and, if asked, the small brown hand next to it, outline included."""
+    lab, n = ndi.label(is_col(a, [(237, 230, 172)]), structure=np.ones((3, 3)))
+    big = 1 + int(np.argmax(ndi.sum(lab > 0, lab, range(1, n + 1))))
+    ys, xs = np.where(lab == big)
+    m = region(a, (xs[0], ys[0]))
+    if with_hand:
+        hx0, hy0, hx1, hy1 = bbox(m)
+        bl, bn = ndi.label(is_col(a, [BROWN]), structure=np.ones((3, 3)))
+        for i in range(1, bn + 1):
+            yy, xx = np.where(bl == i)
+            r = region(a, (xx[0], yy[0]))
+            near = hx0 - 22 <= xx.mean() <= hx1 + 22 and hy0 - 8 <= yy.mean() <= hy1 + 30
+            if r.sum() < 110 and near:
+                m |= r
+    return m
+
+
+def with_outline(a, m):
+    """m plus the dark outline hugging it (two pixels thick at most)."""
+    return m | (ndi.binary_dilation(m, structure=np.ones((3, 3)), iterations=2) & is_col(a, [NAVY]))
+
+
+def tool_mask(weapon, k, a):
+    """Every tool/swoosh/hand-on-tool pixel of side frame k (so what is left is his body)."""
+    if weapon == "axe":
+        m = tool_group(a) if k < 3 else outside_body(a) if k < 5 else tool_group(a, False)
+    else:
+        m = (tool_group(a) if k < 3 else box(a, 124, 175, 58, 150) if k == 3 else
+             comp_right_of(a, 117) if k == 4 else box(a, 127, 175, 80, 112))
+    return with_outline(a, m)
+
+
+def side_body(a, k, weapon, view):
+    """His body from side frame k with the tool taken off (his lean, bob and steps stay), as front or back view."""
+    tm = tool_mask(weapon, k, a)
+    keep = (a[..., 3] == 255) & ~tm
+    lab, n = ndi.label(keep, structure=np.ones((3, 3)))
+    keep &= np.isin(lab, [i + 1 for i, z in enumerate(ndi.sum(keep, lab, range(1, n + 1))) if z >= 20])   # no flecks left over
+    b = np.where(keep[..., None], a, 0).astype(np.uint8)
+    hole = (b[..., 3] == 0) & (F0[..., 3] == 255)                 # where the swoosh hid legs/tunic: use his idle ones
+    hole[:112] = False
+    hole[:, :90] = False
+    hole[:, 125:] = False
+    b[hole] = F0[hole]
+    return b if view == "front" else back_from_side(b)
+
+
+def to_arc(lay, weapon, up, ref, top=None, bottom=None, cx=96, dy=0):
+    """Turn a swoosh layer into a horizontal arc centred on his body line (up: flipped to sweep over the head)."""
+    t = lambda l: xform(xform(l, rot=270 if weapon == "hammer" else 0, pivot=(96, 96)), flip="v" if up else None, pivot=(96, 96))
+    r, m = t(ref), t(lay)
+    x0, y0, x1, y1 = bbox(r[..., 3] == 255)
+    sx = cx - (x0 + x1) // 2
+    sy = (bottom - y1) if up else (top - y0)
+    return xform(m, dx=sx, dy=sy + dy)
+
+
+def frames_for(weapon, up, S):
     """[(pieces, behind_body)] for the 6 frames; pieces are full-frame layers."""
-    group = layer(S[1], region(S[1], WEAPONS[weapon]["head"]) | region(S[1], WEAPONS[weapon]["hand"]))
-    down = direction == "down"
-    if weapon == "hammer":
-        smear = layer(S[3], box(S[3], 124, 160, 58, 128))
-        resid = layer(S[4], comp_right_of(S[4], 117))
-        rest = layer(S[5], box(S[5], 127, 160, 80, 112))
-        if down:
-            return [([xform(group, dx=-6 - 2 * i, dy=-2 * i)], False) for i in range(3)] + [
-                ([xform(smear, dx=-16), hand_at(113, 106)], False),
-                ([xform(resid, dx=-12), hand_at(113, 112)], False),
-                ([xform(rest, dx=-8, dy=4), hand_at(112, 112)], False)]
-        low = xform(group, flip="v", pivot=(112, 70))
-        return [([xform(low, dx=-4 + i, dy=26 + 2 * i)], False) for i in range(3)] + [
-            ([xform(smear, dx=-16, flip="v", pivot=(140, 93)), hand_at(113, 76)], True),
-            ([xform(resid, dx=-12, flip="v", pivot=(140, 93)), hand_at(113, 76)], True),
-            ([xform(rest, dx=-8, dy=8), hand_at(112, 112)], False)]
-    smear = layer(S[3], outside_body(S[3]))
-    resid = layer(S[4], outside_body(S[4]))
-    rest = layer(S[5], cream(S[5]))
-    turn = lambda lay, r: xform(lay, rot=r, pivot=(106, 76))
-    if down:
-        up_group = xform(group, flip="h", pivot=(96, 0))
-        return [([xform(up_group, dx=-22 - 2 * i, dy=-2 * i)], False) for i in range(3)] + [
-            ([xform(turn(smear, 90), flip="h", pivot=(96, 0)), hand_at(113, 106)], False),
-            ([xform(turn(resid, 90), flip="h", pivot=(96, 0)), hand_at(113, 108)], False),
-            ([xform(rest, flip="h", pivot=(96, 0), dx=-22, dy=-4), hand_at(113, 114)], False)]
-    return [([xform(rest, flip="h", pivot=(96, 0), dx=-22 + i, dy=-4 + 2 * i), hand_at(114, 112)], False) for i in range(3)] + [
-        ([turn(smear, 270), hand_at(113, 76)], True),
-        ([turn(resid, 270), hand_at(113, 76)], True),
-        ([xform(rest, flip="h", pivot=(96, 0), dx=-22, dy=-4), hand_at(113, 114)], False)]
+    L = lambda k: layer(S[k], tool_mask(weapon, k, S[k]))
+    group = [L(k) for k in range(3)]
+    smear, resid, rest = L(3), L(4), L(5)
+    arc = lambda lay, dy=0: to_arc(lay, weapon, up, smear, top=114, bottom=70, dy=dy)
+    trail = lambda dy: layer(arc(smear, dy), np.arange(F)[None, :] >= 100) if weapon == "axe" else np.zeros_like(smear)
+    if not up:                                         # front view: tool raised clear above the head, then down across his feet
+        gx0, gy0, gx1, gy1 = bbox(group[1][..., 3] == 255)
+        wind = []
+        for i in range(3):
+            g = xform(group[i], flip="h", pivot=(96, 0)) if weapon == "axe" else group[i]
+            x0, y0, x1, y1 = bbox(g[..., 3] == 255)
+            wind.append(([xform(g, dx=104 - (x0 + x1) // 2, dy=(76 - 3 * i) - y1)], False))
+        home = xform(rest, flip="h", pivot=(96, 0), dx=-22, dy=-4) if weapon == "axe" else xform(rest, dx=-8, dy=4)
+        return wind + [([arc(smear), hand_at(113, 108)], False), ([trail(5), arc(resid, 5), hand_at(113, 110)], False), ([home], False)]
+    low = []
+    for i in range(3):                                 # back view: tool low behind his shoulder, pulled back
+        g = xform(group[i], flip="v", pivot=(96, 96) if weapon == "hammer" else (96, 96))
+        if weapon == "axe":
+            g = xform(g, flip="h", pivot=(96, 0))
+        x0, y0, x1, y1 = bbox(g[..., 3] == 255)
+        low.append(([xform(g, dx=134 - (x0 + x1) // 2 + i, dy=(110 + 2 * i) - (y0 + y1) // 2)], True))
+    home = xform(rest, flip="h", pivot=(96, 0), dx=-22, dy=-4) if weapon == "axe" else xform(rest, dx=-8, dy=4)
+    return low + [([arc(smear), hand_at(110, 74)], True), ([trail(-5), arc(resid, -5), hand_at(110, 76)], True), ([low[0][0][0]], True)]
 
 
 def swing(weapon, direction):
+    up = direction == "up"
     S = [side(sheet(), WEAPONS[weapon]["row"], c) for c in range(6)]
     shadow = np.where(((S[0][..., 3] > 0) & (S[0][..., 3] < 255))[..., None], S[0], 0).astype(np.uint8)
-    body0 = swing_body("front" if direction == "down" else "back")
-    rows = [0, -1, -2, 3, 3, 1] if direction == "down" else [1, 2, 2, -2, -2, 0]
     out = []
-    for i, (pieces, behind) in enumerate(frames_for(weapon, direction, S)):
+    for k, (pieces, behind) in enumerate(frames_for(weapon, up, S)):
         f = shadow.copy()
-        body = posed(body0, rows[i])
+        body = side_body(S[k], k, weapon, "back" if up else "front")
         for lay in (pieces + [body] if behind else [body] + pieces):
             m = lay[..., 3] == 255
             f[m] = lay[m]
