@@ -70,11 +70,11 @@ function iconButton(s, x, y, shape, size, iconKey, onDown) {
   b.icon = ic;
   return b;
 }
-// bar: bar_big_base / bar_small_base (192x64, insets 64,64,0,0, smallest 128 wide) + the 64x64 fill stretched over the slot, which starts 54 px in.
+// bar: bar_big_base / bar_small_base (192x64, insets 64,64,0,0, smallest 128 wide) + the 64x64 fill stretched over the whole slot (51 px in from each end; small: 59).
 // Returns a container with set(frac 0..1). The fill is cropped (not squeezed) to the fraction.
 function bar(s, x, y, w = 192, size = 'big') {
-  const base = uiNine(s, 0, 0, `bar_${size}_base`, uiMin(w, 128), 64, 64, 64, 0, 0), sw = base.width - 108;
-  const fill = s.add.image(-base.width / 2 + 54, 0, size + 'bar-fill').setOrigin(0, 0.5).setDisplaySize(sw, 64).setScrollFactor(0);
+  const base = uiNine(s, 0, 0, `bar_${size}_base`, uiMin(w, 128), 64, 64, 64, 0, 0), inset = size === 'big' ? 51 : 59, sw = base.width - 2 * inset;
+  const fill = s.add.image(-base.width / 2 + inset, 0, size + 'bar-fill').setOrigin(0, 0.5).setDisplaySize(sw, 64).setScrollFactor(0);
   const c = uiBox(s, x, y, [base, fill]);
   c.set = f => { f = Phaser.Math.Clamp(f, 0, 1); fill.setVisible(f > 0).setCrop(0, 0, Math.round(64 * f), 64); return c };
   return c.set(1);
@@ -152,8 +152,8 @@ class Hud {
     const label = (x, y, str, size, ox = 0.5) => A(s.add.text(x, y, str, numTxt(size)).setOrigin(ox, 0.5).setScrollFactor(0), 3);   // HUD labels are all numbers
 
     A(roundPortrait(s, 62, 62, 'avatar05'), 2);              // top left: hero portrait (Blue Pawn, wood ring) and the HP bar beside it, the number on the bar
-    this.hp = A(bar(s, 196, 62, 240, 'big'), 1);              // the bar's wood starts 40 px into its art: x 196 tucks it 4 px under the ring
-    this.hpText = label(196, 63, '', 20);
+    this.hp = A(bar(s, 188, 62, 240, 'big'), 1);              // the bar's wood starts 40 px into its art: x 188 tucks it 12 px under the ring
+    this.hpText = label(188, 63, '', 20);
     this.coin = A(icon(s, W - 36, 32, 'icon03'));                      // top right: gold, ducks under it once you have one
     this.goldText = label(W - 68, 34, '', 24, 1);
     this.duck = A(icon(s, W - 36, 84, 'duck', 0).setScale(2));
