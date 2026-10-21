@@ -128,15 +128,15 @@ class Hud {
     const s = this.scene, W = s.scale.width, H = s.scale.height, v = this.v;
     this.list = [];
     const A = (o, d = 0) => { o.setDepth(UI_D + d); o.icon?.setDepth(UI_D + d + 1); this.list.push(o); return o };
-    const label = (x, y, str, size, ox = 0.5) => A(s.add.text(x, y, str, txt(size)).setOrigin(ox, 0.5).setScrollFactor(0), 3);
+    const label = (x, y, str, size, ox = 0.5) => A(s.add.text(x, y, str, numTxt(size)).setOrigin(ox, 0.5).setScrollFactor(0), 3);   // HUD labels are all numbers
 
     A(portrait(s, 52, 52, 'avatar05'));                                // top left: hero portrait (Blue Pawn) and HP bar
     this.hp = A(bar(s, 188, 34, 176, 'big'), 1);
-    this.hpText = label(284, 36, '', 22, 0);
+    this.hpText = label(284, 36, '', 18, 0);
     this.coin = A(icon(s, W - 36, 32, 'icon03'));                      // top right: gold, ducks under it once you have one
-    this.goldText = label(W - 68, 34, '', 30, 1);
+    this.goldText = label(W - 68, 34, '', 24, 1);
     this.duck = A(icon(s, W - 36, 84, 'duck', 0).setScale(2));
-    this.duckText = label(W - 68, 86, '', 30, 1);
+    this.duckText = label(W - 68, 86, '', 24, 1);
 
     // boss: big ribbon top centre (hidden until showBoss)
     this.boss = A(uiBox(s, W / 2, 150, []), 2);
