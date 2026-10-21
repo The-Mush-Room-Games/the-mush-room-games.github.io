@@ -144,7 +144,7 @@ const POWERUPS = {
   swift:    { rarity: 'common', name: 'Light Boots', text: '+{v}% move speed', stat: 'speed', add: 0.1, pct: true, scale: true, icon: ['icon07'] },
   quick:    { rarity: 'common', name: 'Quick Hands', text: '+{v}% swing speed', stat: 'swing', add: 0.15, pct: true, scale: true, icon: ['tool3', 0, 2] },
   greed:    { rarity: 'common', name: 'Gold Fever', text: '+{v}% gold', stat: 'gold', add: 0.25, pct: true, scale: true, icon: ['icon03'] },
-  heal:     { rarity: 'common', name: 'Second Wind', text: 'Heal to full', full: true, icon: ['icon04'] },
+  heal:     { rarity: 'common', name: 'Full Heal', text: 'Heal to full', full: true, icon: ['icon04'] },
   recharge: { rarity: 'uncommon', name: 'Fresh Legs', text: 'Dash recharges {v}% faster', stat: 'dashRate', add: 0.3, pct: true, scale: true, icon: ['icon10'] },
   reach:    { rarity: 'uncommon', name: 'Long Arm', text: 'Longer reach, +{v}%', stat: 'reach', add: 0.25, pct: true, scale: true, icon: ['icon02'] },
   shove:    { rarity: 'uncommon', name: 'Heavy Blows', text: 'Knockback +{v}%', stat: 'kb', add: 0.5, pct: true, scale: true, icon: ['icon01'] },
@@ -162,4 +162,60 @@ const EXPLORE = { reveal: 6.5, ducks: 12, land: ['#47aba9', '#9bb94e', '#6f9a4c'
   door: '#f2c33a', shore: '#e4f3df', fog: 'rgba(90,62,43,0.16)', ink: '#161c2e' };
 const HIT2 = { delay: 0.1, mult: 1 };                // Twin Strike: the second hit lands `delay` s after the first, for `mult` of its damage
 
-if (typeof module === 'object') module.exports = { EXPLORE, ISLAND, CAMP, FENCE, RARITY, POWER_SCALE, STAT0, POWERUPS, HIT2, WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };
+// ---- Town (src/save.js, src/npc.js, scenes/Talk.js, Shop.js, Skills.js). Everything bought here is saved (localStorage SAVE_KEY) and applied at the start of each run.
+// UPGRADES: cur = 'gold' | 'ducks'; cost[i] = the price of rank i + 1, so cost.length is the cap. perm = what each rank adds to the hero's stats (STAT0 keys, like a power-up;
+// text {v} = the total of the ranks owned, or the next rank in the shop). Without perm the effect is in runStart() (src/save.js): hammer, meat, whetstone, newpawn, secondwind.
+// stub = bought and saved but nothing reads it yet.
+const SAVE_KEY = 'pawnrun-save';
+const UPGRADES = {
+  hammer:     { name: 'Hammer', text: 'Start every run with the hammer: it breaks rocks', cur: 'gold', cost: [40], icon: ['tool1', 0, 2] },
+  shield:     { name: 'Shield', text: '+{v} max HP in every run', cur: 'gold', cost: [30, 60, 100], perm: { hp: 1 }, icon: ['icon06'] },
+  meat:       { name: 'Meat Ration', text: 'Start every run with {v} meat', cur: 'gold', cost: [25, 50], icon: ['meat'] },
+  coin:       { name: 'Lucky Coin', text: '+{p}% gold from every pickup', cur: 'gold', cost: [40, 90, 160], perm: { gold: 0.1 }, icon: ['icon03'] },
+  bag:        { name: 'Big Bag', text: '+{v} item slot', cur: 'gold', cost: [70, 150], perm: { slots: 1 }, icon: ['btn-tiny-square'] },
+  whetstone:  { name: 'Whetstone', text: 'Weapons start {v} tier up', cur: 'gold', cost: [60, 120], icon: ['icon02'] },
+  newpawn:    { name: 'New Pawn', text: 'The new Pawn: more HP and speed, four tools', cur: 'ducks', cost: [3], icon: ['avatar05'] },
+  secondwind: { name: 'Second Wind', text: 'Get up once per run when you fall', cur: 'ducks', cost: [2], icon: ['icon04'] },
+  spyglass:   { name: 'Spyglass', text: 'Marks the dock on the map once you have seen the coast near it', cur: 'ducks', cost: [2], icon: ['icon12'] },
+  ferry:      { name: 'Ferry Ticket', text: 'Start a run at a biome you have reached', cur: 'ducks', cost: [3], icon: ['icon09'], stub: true },   // ponytail: no biomes yet, the purchase is only recorded
+};
+// The shops: who sells what. The vendors trade outside, at their own stall (the shop opens over the town).
+const SHOPS = {
+  blacksmith: ['hammer', 'shield', 'whetstone'],
+  healer: ['meat', 'secondwind'],
+  market: ['coin', 'bag'],
+  steward: ['newpawn', 'spyglass', 'ferry'],
+};
+// Skills (the trainer): points go into a stat tree. Level = the points bought. The next point costs SKILL_COST.base + step x level (gold, so a refund returns the price of the last
+// point whichever stat it comes from). cap = ranks; perm = what a rank adds to the hero's stats. A class (CLASSES) can be picked from level CLASS_LEVEL.
+const SKILLS = {
+  hp:      { name: 'Vitality', text: '+1 max HP', cap: 5, perm: { hp: 1 }, icon: ['icon06'] },
+  dmg:     { name: 'Might', text: '+8% damage', cap: 5, perm: { dmg: 0.08 }, icon: ['tool2', 0, 2] },
+  speed:   { name: 'Swiftness', text: '+5% move speed', cap: 4, perm: { speed: 0.05 }, icon: ['icon07'] },
+  dash:    { name: 'Agility', text: 'Dash recharges 12% faster', cap: 4, perm: { dashRate: 0.12 }, icon: ['icon10'] },
+  charges: { name: 'Double Dash', text: '+1 dash charge', cap: 1, perm: { charges: 1 }, icon: ['icon08'] },
+};
+const SKILL_COST = { base: 20, step: 15 };
+const CLASS_LEVEL = 5;
+// The classes: art = the idle sheet (a 'frame' px square), perks = [level, text] unlocked as the level climbs. ponytail: only the pick and the perk list exist; the hero stays the Pawn
+// (its own sprites, weapon and special move are a follow-up), so a class changes nothing in a run yet.
+const CLASSES = {
+  warrior: { name: 'Warrior', art: 'warrior-idle', text: 'Heavy blows and a thick shield. Fights up close.', perks: [[7, 'Shield bash'], [10, 'Guard stance'], [14, 'Whirlwind']] },
+  lancer:  { name: 'Lancer', art: 'lancer-idle', text: 'Long reach and charges. Keeps foes at spear length.', perks: [[7, 'Longer thrust'], [10, 'Charge'], [14, 'Skewer']] },
+  archer:  { name: 'Archer', art: 'archer-idle', text: 'Shoots from afar and rolls away. Fragile up close.', perks: [[7, 'Quick draw'], [10, 'Volley'], [14, 'Piercing arrows']] },
+  monk:    { name: 'Monk', art: 'monk-idle', text: 'Heals as he fights and mends his friends.', perks: [[7, 'Small heal'], [10, 'Blessing'], [14, 'Sanctuary']] },
+};
+// The townsfolk (NPCs on the town map: a tile object of class `npc` with a `role`; or inside a house, set by the door). key = the idle sheet, avatar = the Human Avatar on the dialog,
+// shop = a SHOPS id the dialog leads into, train = the skill tree (+ the class pick) instead. lines = what they say, one page each.
+const NPCS = {
+  blacksmith: { name: 'Brann', title: 'Blacksmith', key: 'warrior-idle', avatar: 'avatar02', shop: 'blacksmith', lines: ['Mind the sparks, Pawn.', 'A hammer cracks rock piles like eggs. Take one on your next run.'] },
+  healer: { name: 'Sister Elm', title: 'Healer', key: 'monk-idle', avatar: 'avatar04', shop: 'healer', lines: ['Welcome, child. Rest a moment.', 'Meat for the road, and a second wind for when the road bites back.'] },
+  market: { name: 'Pip', title: 'Merchant', key: 'archer-idle', avatar: 'avatar03', shop: 'market', lines: ['Lucky coins, sturdy bags, fair prices!', 'What the islands give you, I can make worth more.'] },
+  steward: { name: 'Sir Odo', title: 'Castle Steward', key: 'lancer-idle', avatar: 'avatar01', shop: 'steward', lines: ['The castle keeps what is rare. Golden ducks, mostly.', 'A duck buys a new Pawn, a lucky escape or a look at the sea.'] },
+  trainer: { name: 'Dax', title: 'Trainer', key: 'trainer-idle', avatar: 'avatar12', train: true, lines: ['Sweat now, bleed less later.', 'Every point I teach you is a point you keep. Gold, mind.'] },
+  folk1: { name: 'Old Hob', title: 'Villager', key: 'folk1-idle', avatar: 'avatar19', lines: ['Cosy, is it not? I have seen forty winters from this chair.', 'Rock piles at the water: dynamite goes where hands cannot.'] },
+  folk2: { name: 'Bess', title: 'Villager', key: 'folk2-idle', avatar: 'avatar18', lines: ['Careful on the islands! A mushroom at a tree\'s foot means it can be chopped.', 'And ducks hide in secret places. Always look behind the trees.'] },
+};
+const TALK = { range: 78 };                          // px from the NPC's feet to the hero's at which the E prompt shows
+
+if (typeof module === 'object') module.exports = { SAVE_KEY, UPGRADES, SHOPS, SKILLS, SKILL_COST, CLASS_LEVEL, CLASSES, NPCS, TALK, EXPLORE, ISLAND, CAMP, FENCE, RARITY, POWER_SCALE, STAT0, POWERUPS, HIT2, WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };

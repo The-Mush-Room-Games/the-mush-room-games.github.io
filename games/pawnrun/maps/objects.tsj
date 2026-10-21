@@ -5,7 +5,7 @@
  "version": "1.10",
  "objectalignment": "bottom",
  "columns": 0,
- "tilecount": 113,
+ "tilecount": 119,
  "margin": 0,
  "spacing": 0,
  "tilewidth": 576,
@@ -2529,6 +2529,138 @@
      "name": "block",
      "type": "string",
      "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 113,
+   "image": "../assets/town/lancer-idle.png",
+   "imagewidth": 3840,
+   "imageheight": 320,
+   "x": 0,
+   "y": 0,
+   "width": 320,
+   "height": 320,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "lancer-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 114,
+   "image": "../assets/town/trainer-idle.png",
+   "imagewidth": 1536,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "trainer-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 115,
+   "image": "../assets/town/folk1-idle.png",
+   "imagewidth": 1152,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "folk1-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 116,
+   "image": "../assets/town/folk2-idle.png",
+   "imagewidth": 1152,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 192,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "folk2-idle"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "0,0"
+    }
+   ]
+  },
+  {
+   "id": 117,
+   "image": "../assets/town/house2.png",
+   "imagewidth": 128,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "house2"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "2,2"
+    }
+   ]
+  },
+  {
+   "id": 118,
+   "image": "../assets/town/house3.png",
+   "imagewidth": 128,
+   "imageheight": 192,
+   "x": 0,
+   "y": 0,
+   "width": 128,
+   "height": 192,
+   "properties": [
+    {
+     "name": "key",
+     "type": "string",
+     "value": "house3"
+    },
+    {
+     "name": "block",
+     "type": "string",
+     "value": "2,2"
     }
    ]
   }

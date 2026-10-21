@@ -159,6 +159,12 @@ const ASSETS = {
   'warrior-idle': ['town/warrior-idle.png', 192, 192],
   'monk-idle': ['town/monk-idle.png', 192, 192],
   'archer-idle': ['town/archer-idle.png', 192, 192],
+  'lancer-idle': ['town/lancer-idle.png', 320, 320],
+  'trainer-idle': ['town/trainer-idle.png', 192, 192],   // the Yellow Warrior
+  'folk1-idle': ['town/folk1-idle.png', 192, 192],       // the Purple Monk
+  'folk2-idle': ['town/folk2-idle.png', 192, 192],       // the Purple Archer
+  house2: ['town/house2.png'],
+  house3: ['town/house3.png'],
   // ui
   banner_wide: ['ui/banner_wide.png'],
   bar_big_base: ['ui/bar_big_base.png'],

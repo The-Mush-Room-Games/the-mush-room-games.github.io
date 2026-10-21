@@ -17,13 +17,14 @@ function giveWeapon(h, key, tier) {
 }
 
 class Hero {
-  constructor(scene, x, y, { form = 'old', weapons = ['axe', 'hammer'], tiers = [], high = false } = {}) {
+  constructor(scene, x, y, { form = 'old', weapons = ['axe', 'hammer'], tiers = [], high = false, perm = {}, revive = 0 } = {}) {
     this.scene = scene; this.form = form;
     const ws = weapons.map((k, i) => [k, tiers[i] || 0]).filter(([k]) => canUse(form, k)).slice(0, 2);
     if (!ws.length) ws.push(['axe', 0]);
     this.weapons = ws.map(w => w[0]); this.tiers = ws.map(w => w[1]);    // two slots; tiers[i] = tier of weapons[i]
     this.active = 0;
     const st = HERO[form];
+    this.perm = { ...perm }; this.revive = revive;    // what the town gave: permanent stats (STAT0 keys, added to the power-ups') and the Second Wind left (src/save.js runStart)
     this.powers = [];                                // power-up stacks { id, k } (powers.js); applyPowers() turns them into stats
     this.applyPowers(); this.hp = this.maxHp; this.dashHave = this.dashMax;
     this.sprite = scene.add.sprite(x, y, form === 'old' ? 'opawn' : 'pawn-idle-' + this.weapons[0]).setOrigin(0.5, st.originY);
@@ -43,15 +44,16 @@ class Hero {
   get x() { return this.sprite.x } get y() { return this.sprite.y }
   get weapon() { return this.weapons[this.active] }
   get tier() { return this.tiers[this.active] }
-  get state() { return { form: this.form, weapons: this.weapons.slice(), tiers: this.tiers.slice(), active: this.active, hp: this.hp, flip: this.sprite.flipX, items: this.items.slice(), powers: this.powers.map(p => ({ ...p })) } }   // carried between scenes
+  get state() { return { form: this.form, weapons: this.weapons.slice(), tiers: this.tiers.slice(), active: this.active, hp: this.hp, flip: this.sprite.flipX, items: this.items.slice(), powers: this.powers.map(p => ({ ...p })), perm: { ...this.perm }, revive: this.revive } }   // carried between scenes
   load(st) {
-    this.powers = (st.powers || []).map(p => ({ ...p })); this.applyPowers();
+    this.powers = (st.powers || []).map(p => ({ ...p })); this.perm = { ...st.perm }; this.revive = st.revive || 0; this.applyPowers();
     this.weapons = st.weapons.slice(); this.tiers = st.tiers.slice(); this.active = st.active; this.hp = Math.min(st.hp, this.maxHp); this.items = st.items.slice(); this.sprite.setFlipX(st.flip);
     this.swing = null; this.dashT = this.kbT = this.buf = 0; this.dashHave = this.dashMax; this.sprite.play(this.anim('idle'));
   }
   // the power-up stats (this.pw) and what hangs on them: max hp, speed, dash charges
   applyPowers() {
     const pw = this.pw = powerStats(this.powers), st = HERO[this.form];
+    for (const [k, v] of Object.entries(this.perm)) pw[k] += v;
     this.maxHp = st.hp + pw.hp; this.speed = st.speed * pw.speed; this.dashMax = pw.charges;
   }
   // take a power-up (the card the hero picked): its stacks join the list, and what it gives at once (hp, a dash charge) comes with it
@@ -184,8 +186,13 @@ class Hero {
     this.kbV.normalize().scale(kb / HERO.knockbackTime);
     this.kbT = HERO.knockbackTime;
     this.scene.events.emit('hero-hurt', { hp: this.hp, dmg, x: this.x, y: this.y });
-    if (this.hp <= 0) this.die();
+    if (this.hp <= 0) this.revive > 0 ? this.rise() : this.die();
     return true;
+  }
+  // Second Wind: down, but up again once per run, at half hp and safe for a moment
+  rise() {
+    this.revive--; this.hp = Math.ceil(this.maxHp / 2); this.inv = 1.5; this.hurtT = 1.5; this.kbT = 0;
+    this.scene.events.emit('hero-rise', { x: this.x, y: this.y });
   }
   die() {
     this.dead = true; this.sprite.setVisible(false);
