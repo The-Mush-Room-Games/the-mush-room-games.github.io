@@ -3,6 +3,8 @@
 const ASSETS = {
   // hero
   opawn: ['hero/opawn.png', 192, 192],
+  'opawn-roll': ['hero/opawn-roll.png', 192, 192],      // made by tools/make_roll.py
+  'pawn-roll': ['hero/pawn-roll.png', 192, 192],
   odead: ['hero/odead.png', 128, 128],
   'pawn-idle': ['hero/pawn-idle.png', 192, 192],
   'pawn-run': ['hero/pawn-run.png', 192, 192],

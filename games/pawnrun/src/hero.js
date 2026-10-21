@@ -11,7 +11,6 @@ class Hero {
     const st = HERO[form];
     this.maxHp = this.hp = st.hp; this.speed = st.speed;
     this.sprite = scene.add.sprite(x, y, form === 'old' ? 'opawn' : 'pawn-idle-' + this.weapons[0]).setOrigin(0.5, st.originY);
-    this.roll = scene.add.sprite(x, y, this.sprite.texture.key).setVisible(false);   // stands in for the sprite during a dodge roll
     this.aim = new Phaser.Math.Vector2(1, 0);       // facing, one of the 4 directions: swings go this way
     this.swing = null;                               // { w, key, hit } while swinging
     this.swingCd = 0; this.buf = 0;                  // recovery after a swing, buffered swing press
@@ -33,8 +32,8 @@ class Hero {
   }
   get dashFrac() { return 1 - Math.max(0, this.dashCd) / DASH.cooldown }
 
-  anim(kind) {                                       // 'idle' | 'run'
-    return this.form === 'old' ? HERO.old[kind] : `pawn-${kind}-${this.weapon}`;
+  anim(kind) {                                       // 'idle' | 'run' | 'roll' (the new Pawn tucks his tool away to roll)
+    return this.form === 'old' ? HERO.old[kind] : kind === 'roll' ? 'pawn-roll' : `pawn-${kind}-${this.weapon}`;
   }
   step(dx, dy) {                                     // the scene slides the feet along walls and carries them along ramps
     const [x, y] = this.scene.moveFeet(this, dx, dy);
@@ -57,7 +56,7 @@ class Hero {
       const a = this.aim, held = (v, f) => f !== 0 && Math.sign(v) === f && Math.abs(v) > 0.3;
       if (!held(move.x, a.x) && !held(move.y, a.y))
         Math.abs(move.x) >= Math.abs(move.y) ? a.set(Math.sign(move.x), 0) : a.set(0, Math.sign(move.y));
-      if (Math.abs(move.x) > 0.1) s.setFlipX(move.x < 0);
+      if (Math.abs(move.x) > 0.1 && this.dashT <= 0) s.setFlipX(move.x < 0);   // a roll keeps its side
     }
 
     if (input.swap && !this.swing && this.weapons.length > 1) {
@@ -71,8 +70,9 @@ class Hero {
     // movement
     if (this.kbT > 0) this.step(this.kbV.x * dt, this.kbV.y * dt);
     else if (this.dashT > 0) {
+      const k = 1 - this.dashT / DASH.time;           // roll speed follows the art: slow tuck, fast roll, slow rise
       this.dashT -= dt;
-      const d = this.speed * DASH.mult * dt;
+      const d = this.speed * DASH.mult * Math.PI / 2 * Math.sin(Math.PI * k) * dt;
       this.step(this.dashDir.x * d, this.dashDir.y * d);
     } else {
       const k = this.speed * dt * (this.swing ? HERO.swingSlow : 1);
@@ -80,22 +80,16 @@ class Hero {
     }
 
     if (this.swing) this.tickSwing();
-    else {
+    else if (this.dashT <= 0) {                      // the roll plays out on its own (startDash)
       s.anims.timeScale = 1;
-      s.play(this.anim(moving || this.dashT > 0 ? 'run' : 'idle'), true);
+      s.play(this.anim(moving ? 'run' : 'idle'), true);
     }
 
-    // look: red flash, blink while hurt-invulnerable, hidden while the roll stand-in shows
+    // look: red flash, blink while hurt-invulnerable
     if (this.flashT > 0) s.setTint(0xff3030).setTintMode(Phaser.TintModes.FILL);
     else s.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
-    s.setAlpha(this.dashT > 0 ? 0 : this.hurtT > 0 ? (Math.floor(this.hurtT * 16) % 2 ? 0.35 : 1) : 1);
+    s.setAlpha(this.hurtT > 0 ? (Math.floor(this.hurtT * 16) % 2 ? 0.35 : 1) : 1);
     s.setDepth(scene.depthOf(this));
-    // dodge roll: the current frame, one full flip around the body's middle, squashed a little mid-roll
-    const k = this.dashT > 0 ? 1 - this.dashT / DASH.time : 0, c = HERO[this.form].bodyY;
-    this.roll.setVisible(k > 0);
-    if (k > 0) this.roll.setTexture(s.texture.key, s.frame.name).setFlipX(s.flipX).setDepth(s.depth)
-      .setOrigin(0.5, s.originY - c / s.height).setPosition(s.x, s.y - c)
-      .setAngle((s.flipX ? -360 : 360) * k).setScale(1, 1 - 0.15 * Math.sin(Math.PI * k));
   }
 
   startSwing() {
@@ -139,6 +133,8 @@ class Hero {
     this.dashDir.copy(dir).normalize();
     if (Math.abs(this.dashDir.x) > 0.1) this.sprite.setFlipX(this.dashDir.x < 0);
     this.swing = null; this.buf = 0;
+    const key = this.anim('roll'), s = this.sprite;
+    s.anims.timeScale = 1; s.play({ key, frameRate: this.scene.anims.get(key).frames.length / DASH.time });
     this.puff(this.x, this.y);
   }
 
@@ -157,7 +153,7 @@ class Hero {
     return true;
   }
   die() {
-    this.dead = true; this.sprite.setVisible(false); this.roll.setVisible(false);
+    this.dead = true; this.sprite.setVisible(false);
     const s = this.scene.add.sprite(this.x, this.y, 'odead').setOrigin(0.5, 0.72).setDepth(this.scene.depthOf(this)).play('odead-dead');
     s.once('animationcomplete', () => s.play('odead-buried'));
     this.scene.events.emit('hero-dead');
