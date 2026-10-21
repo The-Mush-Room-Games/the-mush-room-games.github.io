@@ -1,0 +1,15 @@
+{
+ "type": "tileset",
+ "name": "room_floors",
+ "tiledversion": "1.12.2",
+ "version": "1.10",
+ "image": "../assets/interiors/Room_Builder_Floors_48x48.png",
+ "imagewidth": 720,
+ "imageheight": 1920,
+ "columns": 15,
+ "tilecount": 600,
+ "tilewidth": 48,
+ "tileheight": 48,
+ "margin": 0,
+ "spacing": 0
+}

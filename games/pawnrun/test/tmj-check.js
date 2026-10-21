@@ -1,6 +1,6 @@
 // node test/tmj-check.js : reads maps/test.tmj through src/tmj.js and checks what the game relies on.
 const fs = require('fs'), path = require('path'), assert = require('assert');
-const { readMap } = require('../src/tmj.js');
+const { readMap, roomShape } = require('../src/tmj.js');
 const root = path.join(__dirname, '..');
 const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
 
@@ -69,9 +69,10 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
     const r = await readMap(d.props.interior, loadJson);
     assert.strictEqual(r.cls, 'interior');
     assert.strictEqual(r.tw, 48);
-    assert(r.images.length >= 1 && r.images.every(i => fs.existsSync(path.join(root, i.image))), 'interior images exist: ' + JSON.stringify(r.images.map(i => i.image)));
+    const art = [...r.images, ...r.objects, ...r.tileLayers.flatMap(l => l.tiles)].map(i => i.image).filter(Boolean);
+    assert(r.images.length + r.tileLayers.length >= 1 && art.every(f => fs.existsSync(path.join(root, f))), 'interior images exist: ' + art);
     const of = c => r.objects.filter(o => o.cls === c);
-    const floors = of('floor'), blocks = of('block'), [spawn] = of('spawn'), [exit] = of('exit');
+    const { floors, blocks } = roomShape(r), [spawn] = of('spawn'), [exit] = of('exit');
     assert(floors.length && spawn && exit && of('spawn').length === 1 && of('exit').length === 1, 'floor, spawn, exit');
     const inside = (rs, x, y) => rs.some(f => x >= f.x && x < f.x + f.w && y >= f.y && y < f.y + f.h);
     assert(inside(floors, spawn.x, spawn.y) && !inside(blocks, spawn.x, spawn.y), 'spawn stands on free floor');
@@ -83,6 +84,27 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   assert.deepStrictEqual(A.images.map(i => [i.name, i.image, i.props.depth || 'under']),
     [['Layer_1', 'assets/interiors/house_a_1.png', 'under'], ['Layer_2', 'assets/interiors/house_a_2.png', 'sort']]);
   assert.strictEqual(A.objects.filter(o => o.cls === 'block').length, 12);
+
+  // House B: a room built from tile layers (Room_Builder tilesets) and furniture tile objects, collision from the tiles' own shapes
+  const B = await readMap('maps/interiors/house_b.tmj', loadJson), bs = roomShape(B);
+  assert.deepStrictEqual(B.tileLayers.map(l => l.name), ['floor', 'walls']);
+  const [fl, wl] = B.tileLayers, cell = (l, c, r) => l.tiles.find(t => t.col === c && t.row === r);
+  assert.deepStrictEqual([B.w, B.h], [12, 10]);
+  assert.strictEqual(fl.tiles.length, 10 * 6 + 4, '10 x 6 floor + 2 x 2 in the gap');
+  assert(fl.tiles.every(t => !t.rects.length), 'floor tiles do not block');
+  const cap = cell(wl, 1, 8), north = cell(wl, 1, 0), west = cell(wl, 0, 4);
+  assert.deepStrictEqual(cap.rects, [{ x: 0, y: 0, w: 48, h: 18 }], 'the south cap blocks only its drawn 18 px');
+  assert.deepStrictEqual(north.rects, [{ x: 0, y: 0, w: 48, h: 48 }]);
+  assert.deepStrictEqual([west.image, west.sx, west.sy], ['assets/interiors/Room_Builder_3d_walls_48x48.png', 48, 240], 'west strip = sheet tile (1,5)');
+  assert(!cell(wl, 5, 8) && !cell(wl, 6, 8) && cell(fl, 5, 8) && cell(fl, 6, 9), 'two-tile gap in the south wall');
+  const furn = B.objects.filter(o => o.image && o.image.includes('/furniture/'));
+  assert.deepStrictEqual(furn.map(o => o.key).sort(), ['armoire', 'bed', 'bookshelf', 'fireplace', 'jar1', 'jar2', 'jar2', 'jar3', 'rug', 'table']);
+  for (const o of furn) assert.strictEqual(o.rects.length, o.key === 'rug' ? 0 : 1, o.key + ' collision shape');
+  assert.strictEqual(furn.find(o => o.key === 'rug').props.depth, 'under');
+  const free = (x, y) => bs.floors.some(f => x >= f.x && x < f.x + f.w && y >= f.y && y < f.y + f.h) && !bs.blocks.some(b => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h);
+  assert(free(288, 330) && free(288, 420) && free(288, 460), 'a path from the spawn out through the gap');
+  assert(!free(96, 200) && !free(288, 250) && !free(288, 130) && !free(100, 392) && !free(200, 392), 'bed, table, fireplace, cap: solid');
+  assert(free(288, 300) && free(150, 300) && free(430, 200), 'open floor stays open');
 
   console.log('tmj-check OK:', m.objects.length, 'objects,',
     ['ground', 'raised', 'stairs', 'water'].map(k => k + '=' + m[k].reduce((a, b) => a + b, 0)).join(' '));

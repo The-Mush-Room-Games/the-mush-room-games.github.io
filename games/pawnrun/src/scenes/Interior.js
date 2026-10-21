@@ -1,6 +1,10 @@
 // A room from a Tiled interior map (maps/interiors/*.tmj), entered through a `door` object of TestMap. Its own 48 px grid.
 // Image layers draw the room; each has a `depth` property: under (default, below everything), sort (sliced into strips that
 // sort with the hero by their bottom edge, so he walks in front of furniture and behind it) or over (above everything).
+// Tile layers (`floor`, `walls`, ... the Room_Builder sheets) draw under everything too; the tiles of the layer named `floor` are where
+// feet may stand, and the collision shapes of the tileset's tiles block (see roomShape in tmj.js). Tile objects (furniture, image
+// collection tileset) stand with their bottom-centre at x,y, sort with the hero by that bottom edge and block with their own tile
+// collision shapes; a tile with the property depth=under (a rug) is drawn on the floor instead.
 // Object layers: `floor` rects = where feet may stand, `block` rects = furniture and walls cut out of the floor,
 // `spawn` (point: where you appear), `exit` (rect: walking into it, moving down, leaves). Tiled coordinates are pixels.
 const STRIP = 4;
@@ -12,8 +16,9 @@ class Interior extends TestMap {
     this.ready = this.leaving = false;
     this.cameras.main.setBackgroundColor('#0b0612');
     readMap(this.data.map, loadJson).then(m => {
-      const todo = m.images.filter(i => !this.textures.exists(i.image));
-      todo.forEach(i => this.load.image(i.image, i.image));       // the image path doubles as the texture key
+      const files = new Set([...m.images, ...m.objects, ...m.tileLayers.flatMap(l => l.tiles)].map(i => i.image).filter(Boolean));
+      const todo = [...files].filter(f => !this.textures.exists(f));
+      todo.forEach(f => this.load.image(f, f));                   // the image path doubles as the texture key
       if (!todo.length) return this.buildRoom(m);
       this.load.once('complete', () => this.buildRoom(m)).start();
     }, e => this.fail(e));
@@ -30,7 +35,17 @@ class Interior extends TestMap {
         this.add.image(i.x, i.y + y, i.image, n).setOrigin(0).setDepth(i.y + y + h - 0.5);   // a hero standing on the strip's last row is in front of it
       }
     }
-    const floors = this.floors = rects('floor'), blocks = this.blocks = rects('block');
+    for (const l of m.tileLayers) for (const t of l.tiles) {
+      const tex = this.textures.get(t.image), n = t.sx + ',' + t.sy;
+      if (!tex.has(n)) tex.add(n, 0, t.sx, t.sy, t.w, t.h);
+      this.add.image(t.col * m.tw, t.row * m.tw, t.image, n).setOrigin(0).setDepth(-1);
+    }
+    for (const o of m.objects) if (o.image) {
+      const under = o.props.depth === 'under';
+      this.add.image(o.x, o.y, o.image).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(under ? -0.5 : o.y - 0.5);
+    }
+    const { floors, blocks } = roomShape(m);
+    this.floors = floors; this.blocks = blocks;
     this.exit = rects('exit')[0];
     const inFloor = (x, y) => floors.some(r => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
     // ponytail: the box's four corners must be on the floor, so the floor rects should overlap where they meet

@@ -1,0 +1,265 @@
+{
+ "type": "tileset",
+ "name": "room_furniture",
+ "tiledversion": "1.12.2",
+ "version": "1.10",
+ "objectalignment": "bottom",
+ "columns": 0,
+ "tilecount": 9,
+ "margin": 0,
+ "spacing": 0,
+ "tilewidth": 180,
+ "tileheight": 159,
+ "grid": {
+  "orientation": "orthogonal",
+  "width": 1,
+  "height": 1
+ },
+ "tiles": [
+  {
+   "id": 0,
+   "image": "../assets/interiors/furniture/bed.png",
+   "imagewidth": 96,
+   "imageheight": 159,
+   "objectgroup": {
+    "draworder": "index",
+    "id": 2,
+    "name": "",
+    "objects": [
+     {
+      "id": 1,
+      "name": "",
+      "type": "",
+      "rotation": 0,
+      "visible": true,
+      "x": 0,
+      "y": 24,
+      "width": 96,
+      "height": 135
+     }
+    ],
+    "opacity": 1,
+    "type": "objectgroup",
+    "visible": true,
+    "x": 0,
+    "y": 0
+   }
+  },
+  {
+   "id": 1,
+   "image": "../assets/interiors/furniture/armoire.png",
+   "imagewidth": 81,
+   "imageheight": 114,
+   "objectgroup": {
+    "draworder": "index",
+    "id": 2,
+    "name": "",
+    "objects": [
+     {
+      "id": 1,
+      "name": "",
+      "type": "",
+      "rotation": 0,
+      "visible": true,
+      "x": 2,
+      "y": 66,
+      "width": 77,
+      "height": 48
+     }
+    ],
+    "opacity": 1,
+    "type": "objectgroup",
+    "visible": true,
+    "x": 0,
+    "y": 0
+   }
+  },
+  {
+   "id": 2,
+   "image": "../assets/interiors/furniture/fireplace.png",
+   "imagewidth": 96,
+   "imageheight": 96,
+   "objectgroup": {
+    "draworder": "index",
+    "id": 2,
+    "name": "",
+    "objects": [
+     {
+      "id": 1,
+      "name": "",
+      "type": "",
+      "rotation": 0,
+      "visible": true,
+      "x": 0,
+      "y": 40,
+      "width": 96,
+      "height": 56
+     }
+    ],
+    "opacity": 1,
+    "type": "objectgroup",
+    "visible": true,
+    "x": 0,
+    "y": 0
+   }
+  },
+  {
+   "id": 3,
+   "image": "../assets/interiors/furniture/bookshelf.png",
+   "imagewidth": 141,
+   "imageheight": 117,
+   "objectgroup": {
+    "draworder": "index",
+    "id": 2,
+    "name": "",
+    "objects": [
+     {
+      "id": 1,
+      "name": "",
+      "type": "",
+      "rotation": 0,
+      "visible": true,
+      "x": 0,
+      "y": 69,
+      "width": 141,
+      "height": 48
+     }
+    ],
+    "opacity": 1,
+    "type": "objectgroup",
+    "visible": true,
+    "x": 0,
+    "y": 0
+   }
+  },
+  {
+   "id": 4,
+   "image": "../assets/interiors/furniture/table.png",
+   "imagewidth": 114,
+   "imageheight": 111,
+   "objectgroup": {
+    "draworder": "index",
+    "id": 2,
+    "name": "",
+    "objects": [
+     {
+      "id": 1,
+      "name": "",
+      "type": "",
+      "rotation": 0,
+      "visible": true,
+      "x": 0,
+      "y": 56,
+      "width": 114,
+      "height": 55
+     }
+    ],
+    "opacity": 1,
+    "type": "objectgroup",
+    "visible": true,
+    "x": 0,
+    "y": 0
+   }
+  },
+  {
+   "id": 5,
+   "image": "../assets/interiors/furniture/rug.png",
+   "imagewidth": 180,
+   "imageheight": 120,
+   "properties": [
+    {
+     "name": "depth",
+     "type": "string",
+     "value": "under"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "image": "../assets/interiors/furniture/jar1.png",
+   "imagewidth": 45,
+   "imageheight": 45,
+   "objectgroup": {
+    "draworder": "index",
+    "id": 2,
+    "name": "",
+    "objects": [
+     {
+      "id": 1,
+      "name": "",
+      "type": "",
+      "rotation": 0,
+      "visible": true,
+      "x": 8,
+      "y": 25,
+      "width": 29,
+      "height": 20
+     }
+    ],
+    "opacity": 1,
+    "type": "objectgroup",
+    "visible": true,
+    "x": 0,
+    "y": 0
+   }
+  },
+  {
+   "id": 7,
+   "image": "../assets/interiors/furniture/jar2.png",
+   "imagewidth": 45,
+   "imageheight": 45,
+   "objectgroup": {
+    "draworder": "index",
+    "id": 2,
+    "name": "",
+    "objects": [
+     {
+      "id": 1,
+      "name": "",
+      "type": "",
+      "rotation": 0,
+      "visible": true,
+      "x": 8,
+      "y": 25,
+      "width": 29,
+      "height": 20
+     }
+    ],
+    "opacity": 1,
+    "type": "objectgroup",
+    "visible": true,
+    "x": 0,
+    "y": 0
+   }
+  },
+  {
+   "id": 8,
+   "image": "../assets/interiors/furniture/jar3.png",
+   "imagewidth": 45,
+   "imageheight": 45,
+   "objectgroup": {
+    "draworder": "index",
+    "id": 2,
+    "name": "",
+    "objects": [
+     {
+      "id": 1,
+      "name": "",
+      "type": "",
+      "rotation": 0,
+      "visible": true,
+      "x": 8,
+      "y": 25,
+      "width": 29,
+      "height": 20
+     }
+    ],
+    "opacity": 1,
+    "type": "objectgroup",
+    "visible": true,
+    "x": 0,
+    "y": 0
+   }
+  }
+ ]
+}
