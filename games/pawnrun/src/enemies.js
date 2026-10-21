@@ -78,7 +78,7 @@ class Enemy {
     this.kbV.normalize().scale(d.knockback / d.kbTime); this.kbT = d.kbTime;
     if (this.hp <= 0) this.die();
   }
-  die() {                                            // the Tiny Swords gnome has no death art: a white fade and a dust puff
+  die() {                                            // the Tiny Swords gnome has no death art: a white fade, a dust puff, then loot
     const sc = this.scene, s = this.sprite;
     this.dead = true;
     sc.enemies = sc.enemies.filter(e => e !== this); sc.hittables = sc.hittables.filter(t => t !== this.ht);
@@ -86,6 +86,7 @@ class Enemy {
     sc.tweens.add({ targets: s, alpha: 0, duration: this.d.fade * 1000, onComplete: () => s.destroy() });
     const p = sc.add.sprite(this.x, this.y - 8, 'dust1').setDepth(s.depth + 1).play('dust1');
     p.once('animationcomplete', () => p.destroy());
+    dropLoot(sc, DROPS[this.d.drops], this.x, this.y, this.high);
   }
 }
 

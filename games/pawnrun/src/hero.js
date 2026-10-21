@@ -21,13 +21,14 @@ class Hero {
     this.hurtT = 0; this.flashT = 0;                 // blink time, red flash time
     this.kbT = 0; this.kbV = new Phaser.Math.Vector2();
     this.dead = false;
+    this.items = [];                                 // the bag: item keys, at most BAG
     this.sprite.play(this.anim('idle'));
   }
   get x() { return this.sprite.x } get y() { return this.sprite.y }
   get weapon() { return this.weapons[this.active] }
-  get state() { return { form: this.form, weapons: this.weapons, active: this.active, hp: this.hp, flip: this.sprite.flipX } }   // carried between scenes
+  get state() { return { form: this.form, weapons: this.weapons, active: this.active, hp: this.hp, flip: this.sprite.flipX, items: this.items.slice() } }   // carried between scenes
   load(st) {
-    this.active = st.active; this.hp = st.hp; this.sprite.setFlipX(st.flip);
+    this.active = st.active; this.hp = st.hp; this.items = st.items.slice(); this.sprite.setFlipX(st.flip);
     this.swing = null; this.dashT = this.kbT = this.buf = 0; this.sprite.play(this.anim('idle'));
   }
   get dashFrac() { return 1 - Math.max(0, this.dashCd) / DASH.cooldown }

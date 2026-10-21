@@ -61,7 +61,7 @@ class TestMap extends Phaser.Scene {
     const lv = heightGrid(m), wg = walkGrids(m), rectsAt = new Map(), rects = [];   // rectsAt: cell index -> collision rects touching it
     const onRaised = (px, py) => lv[Math.floor(py / T) * m.w + Math.floor(px / T)] === LV.RAISED;   // objects: placed on a plateau
 
-    this.hittables = []; this.enemies = [];
+    this.hittables = []; this.enemies = []; this.loot = [];
     const foes = [];                                               // enemy objects: spawned once walkable exists
     for (const o of m.objects) {
       if (!o.key) continue;                                        // markers: spawn, entrance, loot...
@@ -73,7 +73,7 @@ class TestMap extends Phaser.Scene {
       const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.y - gap + (high ? HIGH_DEPTH : 0));
       if (HITTABLE.test(o.key) || o.cls === 'enemy') {        // hurtbox: the art as drawn; tall art (trees) only its trunk end
         const tall = box.h > 64, w = tall ? 0.4 * box.w : box.w, cx = left + fb.x + box.w / 2, y1 = top + box.y + box.h;
-        this.hittables.push({ s, ox: o.x, high,
+        this.hittables.push({ s, ox: o.x, high, drop: /^bush/.test(o.key) && 'bush',
           hb: { x0: cx - w / 2, x1: cx + w / 2, y0: y1 - (tall ? 56 : box.h), y1 } });
       }
       const anim = this.anims.get(o.key);
@@ -110,6 +110,7 @@ class TestMap extends Phaser.Scene {
         new Enemy(this, kind, x, py, high);
       }
     }
+    for (const o of m.objects) if (o.cls === 'loot' && LOOT[o.props.kind]) spawnLoot(this, o.props.kind, o.x, o.y, onRaised(o.x, o.y - 1), +o.props.n || 1);
 
     const spawn = m.objects.find(o => o.cls === 'spawn') || { x: m.w * T / 2, y: m.h * T / 2 };
     const q = new URLSearchParams(location.search), form = q.get('hero') === 'new' ? 'new' : 'old';
@@ -148,12 +149,13 @@ class TestMap extends Phaser.Scene {
   initInput() {
     this.sig = null;                                                // syncHud refills the weapon slots
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,SHIFT,K,Q,H');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,SHIFT,K,Q,H,E');
     this.pend = { swing: false, dash: false, swap: false };
     // presses come from keydown events, not JustDown polling, so a tap shorter than one frame is not lost
     const press = { SPACE: 'swing', J: 'swing', SHIFT: 'dash', K: 'dash', Q: 'swap' };
     for (const [key, act] of Object.entries(press))
       this.on(kb, 'keydown-' + key, e => { if (!e.repeat) this.pend[act] = true });
+    this.on(kb, 'keydown-E', e => { if (!e.repeat) eatMeat(this.hero, this.hero.items.indexOf('meat')) });
     this.on(kb, 'keydown-H', e => { if (!e.repeat) this.hurtTest = true });
     this.move = new Phaser.Math.Vector2();
     this.on(this.input, 'pointerdown', p => { if (!p.wasTouch && p.leftButtonDown()) this.pend.swing = true });   // a click swings; the hero swings the way he faces
@@ -161,6 +163,7 @@ class TestMap extends Phaser.Scene {
     if (typeof Hud !== 'undefined') {                               // HUD glue: ui.js
       this.hud = new Hud(this);
       for (const [ev, k] of [['hud-swing', 'swing'], ['hud-dash', 'dash'], ['hud-swap', 'swap']]) this.on(this.events, ev, () => this.pend[k] = true);
+      this.on(this.events, 'hud-item', i => eatMeat(this.hero, i));       // a tap on a bag slot
     }
   }
   // camera bounds for a W x H world: a world smaller than the screen sits in its middle (the screen is any size, Scale.EXPAND)
@@ -183,6 +186,7 @@ class TestMap extends Phaser.Scene {
       if (t.high !== high || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
       this.hits++;
       if (t.enemy) { t.enemy.hurt(damage, this.hero.x, this.hero.y); continue }
+      if (t.drop) { dropLoot(this, DROPS[t.drop], t.ox, b.y1 + 4, high); t.drop = false }   // once per bush: rolled on the first hit
       const s = t.s;
       this.tweens.killTweensOf(s); s.x = t.ox;
       s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
@@ -218,6 +222,10 @@ class TestMap extends Phaser.Scene {
     const h = this.hero;
     if (!this.hud) return;
     this.hud.setHp(h.hp, h.maxHp);
+    const gold = this.registry.get('gold') || 0, ducks = this.registry.get('ducks') || 0, bag = Array.from({ length: BAG }, (_, i) => h.items[i] || null);
+    if (gold !== this.hud.v.gold) this.hud.setGold(gold);
+    if (ducks !== this.hud.v.ducks) this.hud.setDucks(ducks);
+    if (bag.join() !== this.hud.v.items.join()) this.hud.setItems(bag);
     const sig = h.weapons.join() + h.active;
     if (sig !== this.sig) { this.sig = sig; this.hud.setWeapons(h.weapons.map(key => ({ key, tier: 0 })), h.active) }
   }
@@ -236,6 +244,7 @@ class TestMap extends Phaser.Scene {
     const h = this.hero;
     h.update(dt / 1000, this.readInput());
     for (const e of [...this.enemies]) e.update(dt / 1000);
+    tickLoot(this);
     if (!this.leaving && !h.high && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }
 
     if (this.dbg) {

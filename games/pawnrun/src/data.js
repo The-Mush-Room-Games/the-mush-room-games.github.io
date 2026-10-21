@@ -29,4 +29,18 @@ const ENEMIES = {
     stun: 0.3, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 0.35, originY: 127 / 192, hurtbox: [-18, -40, 18, 2], drops: 'gnome',
     idle: 'gnome-idle', run: 'gnome-run', attack: 'gnome-attack' },
 };
-if (typeof module === 'object') module.exports = { WEAPONS, HERO, DASH, ENEMIES };
+// Drop tables: one pickup per row; p = chance (default always), min..max = amount (default 1).
+const DROPS = {
+  gnome: [{ kind: 'gold', min: 2, max: 4 }, { kind: 'meat', p: 0.25 }],
+  bush: [{ kind: 'gold', p: 0.2 }],                 // rolled once per bush, on the first hit
+};
+// Pickups. tex/anim = art, glint = sparkle overlay, dy = how far the art sits above the ground point.
+const LOOT = {
+  gold: { tex: 'gold', glint: 'gold-highlight', dy: -12 },
+  meat: { tex: 'meat', dy: -14 },
+  duck: { tex: 'duck', anim: 'duck', tint: 0xffd34d, dy: -14 },
+};
+const PICKUP = { r: 14, arc: 22, pop: 380, scatter: [18, 34] };   // r = reach around the ground point, arc/pop = drop arc height (px) and time (ms)
+const BAG = 3, MEAT_HEAL = 2;                        // item slots, hp one meat heals
+
+if (typeof module === 'object') module.exports = { WEAPONS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL };
