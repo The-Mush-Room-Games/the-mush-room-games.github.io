@@ -11,6 +11,7 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(root, p
   const ground = { high: false }, high = { high: true };
   // stairs are walls for feet boxes; the ground under a plateau's back row is free, the rows below it are not
   assert(!ok(ground, ...at(5, 7)) && !ok(high, ...at(5, 6)), 'stairs block');
+  assert(ok(ground, ...at(5, 6, 20, 16)) && !ok(ground, ...at(5, 6, 36, 30)), 'the grass behind the ramp top, not the ramp');
   assert(ok(ground, ...at(10, 9, 32, 20)) && !ok(ground, ...at(10, 9, 32, 30)), 'behind the small plateau, 26px deep');
   assert(!ok(ground, ...at(10, 10, 32, 30)), 'not under it');
   assert(ok(ground, ...at(12, 4)), 'beside the big plateau');

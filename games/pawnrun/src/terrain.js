@@ -54,17 +54,19 @@ const canStep = (a, b) => a !== LV.BLOCK && b !== LV.BLOCK && (a === b || a === 
 const FEET = { x: 10, top: 6, bottom: 2 }, FEET_HIGH = { x: 16, top: 14, bottom: 8 };
 const HIGH_DEPTH = 2 * T;     // depth boost for anything standing on a plateau (see dressTerrain)
 const BEHIND = 26;           // how far feet go in behind a plateau's back edge: legs hidden, head and body still showing
+const RAMP_BACK = 8;         // feet stay this far above a ramp's back edge (its top cell's diagonal), on the ground behind it
 const SHORE = { x: 6, top: 8, bottom: 6 };   // extra margin on a tile's water side (on top of FEET), so feet stay on the drawn grass
 
 // Where feet may stand, per level. A plateau's top is drawn one tile above the ground it covers: a raised cell blocks
 // the ground cell below it, and the ground under the top of a plateau's back row is free (units there walk behind the
-// plateau, which dressTerrain draws in front of them; only BEHIND px deep, so a unit never vanishes). Stair cells are never stood on: units ride ramps (moveFeet).
+// plateau, which dressTerrain draws in front of them; only BEHIND px deep, so a unit never vanishes). Stair cells are never stood on: units ride ramps
+// (moveFeet). Only the grass corner behind a ramp's top cell, above its diagonal back edge, is ground.
 function walkGrids(m) {
   const c = cellFns(m), ground = new Uint8Array(m.w * m.h), high = new Uint8Array(m.w * m.h);
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
     const i = y * m.w + x;
     high[i] = c.H(x, y) && !c.S(x, y) ? 1 : 0;
-    ground[i] = !c.G(x, y) || c.S(x, y) || c.H(x, y - 1) ? 0 : c.H(x, y) ? 2 : 1;   // 2 = behind a back row
+    ground[i] = !c.G(x, y) || c.H(x, y - 1) ? 0 : c.top(x, y) ? 3 : c.S(x, y) ? 0 : c.H(x, y) ? 2 : 1;   // 2 = behind a back row, 3 = behind a ramp
   }
   return { ground, high };
 }
@@ -77,7 +79,7 @@ function standOk(m, wg, high, px, py) {
     if (ly < SHORE.top && !land(cx, cy - 1) || ly >= T - SHORE.bottom && !land(cx, cy + 1) ||
         lx < SHORE.x && !land(cx - 1, cy) || lx >= T - SHORE.x && !land(cx + 1, cy)) return false;
   }
-  return v === 1 || v === 2 && ly < BEHIND;
+  return v === 1 || v === 2 && ly < BEHIND || v === 3 && (m.stairTiles[cy * m.w + cx] === 36 ? lx : T - lx) + ly < T - RAMP_BACK;
 }
 // Is a unit's feet box at (bx, by) on its own level's walkable ground?
 function feetOk(m, wg, high, bx, by) {
