@@ -97,21 +97,8 @@ class Hero {
     this.buf = 0;
     this.swing = { w, key: this.weapon, hit: false };
     s.anims.timeScale = w.speed;
-    s.play(w.anim[this.form]);
-  }
-  swoosh(r, dir) {                                   // a white crescent at the slash box, bowed the way of the swing, fading fast
-    const scene = this.scene;
-    if (!scene.textures.exists('swoosh')) {          // drawn once: 56x26 px, thick in the middle, thin at the tips
-      const t = scene.textures.createCanvas('swoosh', 56, 26), g = t.getContext();
-      for (let y = 0; y < 26; y++) for (let x = 0; x < 56; x++) {
-        const dx = x + 0.5 - 28, dy = y + 0.5 - 32, d = Math.hypot(dx, dy), k = Math.sin(Math.PI * (Math.atan2(dy, dx) + Math.PI * 0.85) / (Math.PI * 0.7));
-        if (k > 0 && d > 22 && d < 23 + 8 * k) { g.fillStyle = d > 21 + 8 * k ? '#ffffff' : '#cfe8ff'; g.fillRect(x, y, 1, 1) }
-      }
-      t.refresh();
-    }
-    const p = scene.add.image((r.x0 + r.x1) / 2, dir < 0 ? r.y0 + 14 : r.y1 - 14, 'swoosh').setFlipY(dir > 0)
-      .setDepth(scene.depthOf(this) + (dir > 0 ? 2 : -1));
-    scene.tweens.add({ targets: p, alpha: 0, y: p.y + dir * 6, duration: 140, onComplete: () => p.destroy() });
+    const v = this.aim.y < 0 ? 'up' : this.aim.y > 0 ? 'down' : '';   // up/down have their own back/front-view strips
+    s.play(v ? `${this.form === 'old' ? 'o' : ''}pawn-${this.weapon}-${v}` : w.anim[this.form]);
   }
   tickSwing() {
     const sw = this.swing, s = this.sprite;
@@ -123,7 +110,6 @@ class Hero {
         : a.y < 0 ? [-w, -c - x1, w, -c - x0] : [-w, -c + x0, w, -c + x1];                       // up/down: around the body's middle
       const rect = { x0: this.x + rx0, x1: this.x + rx1, y0: this.y + ry0, y1: this.y + ry1 };
       this.scene.events.emit('hero-hit', { rect, high: this.high, damage: sw.w.damage, weapon: sw.key });
-      if (a.y) this.swoosh(rect, a.y);              // the swing art is side-on: show up/down swings with a slash arc
     }
     if (done) { this.swingCd = sw.w.recover; this.swing = null; }
   }

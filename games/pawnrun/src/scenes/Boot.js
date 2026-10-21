@@ -1,5 +1,5 @@
 // Loads every ASSETS entry, makes the 10 fps animations, then starts the scene in registry 'start'.
-const ONESHOT = /attack|shoot|throw|interact|dust|explosion|splash|spawn|dead|build|chop|roll/;
+const ONESHOT = /attack|shoot|throw|interact|dust|explosion|splash|spawn|dead|build|chop|roll|-up$|-down$/;
 
 class Boot extends Phaser.Scene {
   constructor() { super('Boot') }

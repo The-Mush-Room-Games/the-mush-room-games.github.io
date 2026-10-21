@@ -239,6 +239,8 @@ const ASSETS = {
   avatar24: ['ui/avatar24.png'],
   avatar25: ['ui/avatar25.png'],
 };
+for (const f of ['opawn-axe', 'opawn-hammer', 'pawn-axe', 'pawn-hammer', 'pawn-knife', 'pawn-pickaxe'])   // up/down swings,
+  for (const d of ['up', 'down']) ASSETS[`${f}-${d}`] = [`hero/${f}-${d}.png`, 192, 192];             // made by tools/make_swings.py
 
 // Multi-row old sheets: name: [sheet key, first frame, last frame]. Single-row sheets get an animation named after their key in Boot.
 const ANIMS = {
