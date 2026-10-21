@@ -37,7 +37,7 @@ function acornStep(a, dt, blocked, step = 6) {
   return a;
 }
 // Pure. Does the acorn touch hero h (anything with x, y, high, dead)? A circle of a.sh.r around his feet, same level.
-const acornHits = (a, h) => !h.dead && !!h.high === !!a.high && Math.hypot(a.x - h.x, a.y - h.y) <= a.sh.r;
+const acornHits = (a, h) => !h.dead && (h.high | 0) === (a.high | 0) && Math.hypot(a.x - h.x, a.y - h.y) <= a.sh.r;
 // Pure. The Bear's phase (1, or 2 below p2At of its hp) and its speed / telegraph factors.
 const bossPhase = (hp, max, b) => hp / max < b.p2At ? 2 : 1;
 const bossK = (phase, b) => phase === 2 ? b.p2 : { speed: 1, tele: 1 };
@@ -87,7 +87,7 @@ class Enemy {
   // idle / chase: nextMode picks the mode; a chaser walks (a snake only up to its lunge reach, a spider in bursts, a slingshot gnome in its distance band)
   think(dt, dx, dy, dist) {
     const s = this.sprite, d = this.d, h = this.scene.hero;
-    const m = this.mode = nextMode(this.mode, dist, !h.dead && !!h.high === !!this.high && !this.caged, d, this.cd <= 0 && !(d.shot && dist < d.minShot));   // ponytail: a slingshot gnome hugged by the hero will not shoot (it backs off first); cornered, it just stands
+    const m = this.mode = nextMode(this.mode, dist, !h.dead && lvOf(h) === lvOf(this) && !this.caged, d, this.cd <= 0 && !(d.shot && dist < d.minShot));   // ponytail: a slingshot gnome hugged by the hero will not shoot (it backs off first); cornered, it just stands
     if (m === 'attack') { this.hit = false; s.setFlipX(dx < 0); s.play(d.attack); if (d.lunge) { this.ph = 'coil'; this.pt = d.lunge.coil } return }
     if (m !== 'chase') return void s.play(d.idle, true);
     if (Math.abs(dx) > 4) s.setFlipX(dx < 0);
@@ -129,7 +129,7 @@ class Enemy {
   // a hit on the hero if he is within range on this level; true if it landed (Thorns hurts us back)
   bite(dist, range) {
     const h = this.scene.hero;
-    if (dist > range || !!h.high !== !!this.high || !h.hurt(this.dmg, this.x, this.y)) return false;
+    if (dist > range || lvOf(h) !== lvOf(this) || !h.hurt(this.dmg, this.x, this.y)) return false;
     if (h.pw.thorns) this.hurt(h.pw.thorns, h.x, h.y);
     return true;
   }
@@ -177,7 +177,7 @@ class Acorn {
     this.place();
   }
   place() {
-    const d = this.y + 1 + (this.high ? HIGH_DEPTH : 0);
+    const d = this.y + 1 + lift(this.high);
     this.sprite.setPosition(this.x, this.y - this.sh.dy).setDepth(d); this.shadow.setPosition(this.x, this.y).setDepth(d - 0.5);
   }
   update(dt) {

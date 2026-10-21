@@ -75,7 +75,7 @@ class Camp {
   get alive() { return this.foes.filter(e => !e.dead).length }
   update() {
     if (this.state === 'cleared') return;
-    const h = this.scene.hero, next = campNext(this.state, !h.dead && !h.high && campEntered(this.spec, h.x, h.y), this.alive);
+    const h = this.scene.hero, next = campNext(this.state, !h.dead && lvOf(h) === 0 && campEntered(this.spec, h.x, h.y), this.alive);
     if (next === this.state) return;
     this.state = next;
     next === 'closed' ? this.close() : this.open();

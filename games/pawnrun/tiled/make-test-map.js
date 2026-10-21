@@ -1,6 +1,8 @@
 // Writes maps/test.tmj, a 64x50 test island. Run: node tiled/make-test-map.js (after make-rules.js and make-objects.js)
+// The land below is the island's top level; the game puts a ring of sand round it (src/terrain.js baseOf) and a cliff face under its south edges. This file only says
+// where the land is (plus the plateaus, ponds and stairs, and a sand islet); tiled/layers.js writes the rest.
 const fs = require('fs'), path = require('path');
-const C = require('./common.js'), TR = require('../src/terrain.js'), SEAL = require('./seal.js');
+const C = require('./common.js'), TR = require('../src/terrain.js'), SEAL = require('./seal.js'), terrainLayers = require('./layers.js');
 const R = path.join(__dirname, '..');
 const W = 64, H = 50, T = 64, CL = require('./clearing.js')(W, H);
 const objTs = JSON.parse(fs.readFileSync(path.join(R, 'maps/objects.tsj'), 'utf8'));
@@ -10,14 +12,14 @@ const gidOf = key => C.FIRST.objects + findTile(key).id;
 const F = C.FIRST;
 
 // island: row -> [firstCol, lastCol] (or a list of those). Rows 2-13 are the first island; below it a field with:
-// a tree-walled pocket (rows 14-16, cols 19-20), two 1-tile dead ends (cols 7 and 10, rows 22-24), an islet (cols 0-1) across the water
-// and a tiny islet (cols 13-14, rows 24-25) two water tiles south of the field: only a thrown dynamite reaches it.
+// a tree-walled pocket (rows 14-16, cols 19-20), two 1-tile dead ends (cols 7 and 10, rows 22-24), a sand islet (cols 0-3, rows 24-26, painted below) across
+// two tiles of water from the dead ends' beach (stepping stones), and a tiny islet (cols 13-14, rows 27-28) two water tiles south of the field's beach: only a thrown dynamite reaches it.
 // The field's rows 17-18 run on east (cols 22-24) to a meadow (cols 25-38, rows 11-23) with a gnome camp in it
 const rows = { 2: [7, 12], 3: [5, 14], 4: [4, 15], 5: [4, 16], 6: [3, 16], 7: [3, 19], 8: [3, 19], 9: [4, 16], 10: [4, 15], 11: [[5, 15], [25, 38]], 12: [[6, 14], [25, 38]], 13: [[7, 13], [25, 38]],
-  14: [[7, 13], [19, 20], [25, 38]], 15: [[5, 15], [19, 20], [25, 38]], 16: [[4, 16], [19, 20], [25, 38]], 17: [[0, 1], [4, 38]], 18: [[0, 1], [4, 38]], 19: [[4, 17], [25, 38]], 20: [[5, 15], [25, 38]], 21: [[7, 13], [25, 38]],
-  22: [[7, 7], [10, 10], [25, 38]], 23: [[7, 7], [10, 10], [25, 38]], 24: [[7, 7], [10, 10], [13, 14]], 25: [13, 14] };
+  14: [[7, 13], [19, 20], [25, 38]], 15: [[5, 15], [19, 20], [25, 38]], 16: [[4, 16], [19, 20], [25, 38]], 17: [4, 38], 18: [4, 38], 19: [[4, 17], [25, 38]], 20: [[5, 15], [25, 38]], 21: [[7, 13], [25, 38]],
+  22: [[7, 7], [10, 10], [25, 38]], 23: [[7, 7], [10, 10], [25, 38]], 24: [[7, 7], [10, 10]], 27: [13, 14], 28: [13, 14] };
 const idx = (x, y) => y * W + x;
-const ground = new Uint8Array(W * H), raised = new Uint8Array(W * H), water = new Uint8Array(W * H);
+const ground = new Uint8Array(W * H), raised = new Uint8Array(W * H), water = new Uint8Array(W * H), sand = new Uint8Array(W * H);
 for (const [y, r] of Object.entries(rows)) for (const [a, b] of typeof r[0] === 'number' ? [r] : r) for (let x = a; x <= b; x++) ground[idx(x, +y)] = 1;
 // East and south of the meadow, all reached from it (the gnome camp is a clearing in the middle of the meadow: walk round it):
 // - a 2-tile corridor east (rows 17-18, cols 39-43) into the snake den (cols 44-56, rows 13-23);
@@ -44,40 +46,25 @@ for (let y = 11; y <= 12; y++) for (let x = 33; x <= 37; x++) raised[idx(x, y)] 
 const shore = Array.from({ length: W }, (_, x) => CL.vnoise(x * 0.35, 3, 9) > 0.5 ? 43 : 42);
 for (let x = 48; x <= 53; x++) shore[x] = 43;
 for (let k = 0; k < 4; k++) for (let x = 1; x < W - 1; x++) if (shore[x - 1] === shore[x + 1] && shore[x] !== shore[x - 1]) shore[x] = shore[x - 1];   // no 1-column steps
-for (const i of shapeOf(ARENA, { grow: 2.1, amp: 0.1 })) { const [x, y] = CL.xy(i); if (x >= 39 && x <= 63 && y <= shore[x]) ground[i] = 1 }
+for (const i of shapeOf(ARENA, { grow: 2.1, amp: 0.1 })) { const [x, y] = CL.xy(i); if (x >= 39 && x <= 62 && y <= shore[x]) ground[i] = 1 }   // (col 63 is the beach)
+land(37, 33, 40, 42);                                                                                                      // a wide strip west of the clearing's wall, joined to the grove: the way round to the stairs down to the beach
 for (let y = 29; y <= 30; y++) for (let x = 43; x <= 46; x++) raised[idx(x, y)] = 1;                                     // plateau, cliff in row 31
 for (let y = 32; y <= 33; y++) for (let x = 59; x <= 61; x++) raised[idx(x, y)] = 1;                                     // plateau, cliff in row 34
 CL.clean(ground);
 
-const has = (m, x, y) => x >= 0 && y >= 0 && x < W && y < H && m[idx(x, y)] === 1;
-// the game's rule; no inside corners exist, so reject 1-tile notches and diagonal-only touches
-function check(m, name) {
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    if (!m[idx(x, y)] && ((has(m, x - 1, y) && has(m, x + 1, y)) || (has(m, x, y - 1) && has(m, x, y + 1)))) throw new Error(`${name}: 1-tile notch at ${x},${y}`);
-    for (const [dx, dy] of [[1, 1], [1, -1]]) {
-      const a = has(m, x, y), b = has(m, x + dx, y + dy), c = has(m, x + dx, y), d = has(m, x, y + dy);
-      if (a && b && !c && !d) throw new Error(`${name}: diagonal-only touch at ${x},${y}`);
-    }
-  }
-}
-check(ground, 'ground'); check(raised, 'raised');
-for (let i = 0; i < W * H; i++) if (raised[i] && !ground[i]) throw new Error('raised outside ground');
+// Stairs ({ cell: tile }, left stair 36 over 45): the plateau's, beside its west edge and down to the land; the beach's, from the field's south-west corner and from the
+// strip of land west of the boss clearing's wall (outside it, so the closed arena has no way out), down to the sand. The sand islet is painted (cols 0-3, rows 24-26); the beach cells a ring leaves as notches are painted in too.
+const stairs = { [idx(5, 6)]: 36, [idx(5, 7)]: 45, [idx(3, 19)]: 36, [idx(3, 20)]: 45, [idx(36, 42)]: 36, [idx(36, 43)]: 45 };
+for (let y = 42; y <= 44; y++) sand[idx(35, y)] = 1;                                                                      // the foot of the arena's west stairs
+for (const i of Object.keys(stairs)) if (ground[i] && !(+i === idx(5, 6) || +i === idx(5, 7))) throw new Error('a beach stair on land at ' + i);
+for (let y = 24; y <= 26; y++) for (let x = 0; x <= 3; x++) sand[idx(x, y)] = 1;
 
-function autotile(m, x, y, off) {
-  const n = has(m, x, y - 1), s = has(m, x, y + 1), w = has(m, x - 1, y), e = has(m, x + 1, y);
-  return (n ? (s ? 1 : 2) : (s ? 0 : 3)) * 9 + (w ? (e ? 1 : 2) : (e ? 0 : 3)) + off;
-}
-const layer = (id, name, f) => ({ id, name, type: 'tilelayer', x: 0, y: 0, width: W, height: H, opacity: 1, visible: true,
-  data: Array.from({ length: W * H }, (_, i) => f(i % W, (i / W) | 0)) });
-const stairs = { [idx(5, 6)]: 36, [idx(5, 7)]: 45 }; // left stair beside the plateau's west edge, down to the ground
-
-// what the game draws on top of the three masks, from the game's own rules (src/terrain.js)
-const stairTiles = new Int16Array(W * H).fill(-1);
-for (const [i, t] of Object.entries(stairs)) stairTiles[i] = t;
+// what the game draws on top of the masks, from the game's own rules (src/terrain.js, tiled/layers.js)
+const T0 = terrainLayers({ w: W, h: H, ground, raised, water, sand, stairs }), stairTiles = T0.stairTiles;
 
 // The clearings: the inside (a wobbly ellipse of flat ground), the gaps (straight runs of cells at its edge) and the wall line (the cells around it). The wall line
 // holds trees and rocks (a `block` rect under each cell makes the line solid: trunk rects alone leave gaps a Pawn squeezes through), or is already water or a cliff.
-const lv = TR.heightGrid({ w: W, h: H, ground, raised, stairTiles }), flat = i => lv[i] === TR.LV.GROUND;
+const lv = TR.heightGrid({ w: W, h: H, ground, raised, stairTiles, water, sand }), flat = i => lv[i] === TR.LV.GROUND;
 function clearing(name, kind, G, gapDefs) {
   const inside = CL.insideOf(shapeOf(G, { amp: G.amp }), flat);
   const gaps = gapDefs.map(([side, span]) => ({ side, cells: CL.carveGap(inside, side, span, flat) }));
@@ -85,7 +72,7 @@ function clearing(name, kind, G, gapDefs) {
   for (const g of gaps) for (const [c, r] of g.cells) if (!(fixed.has(idx(c + 1, r)) || fixed.has(idx(c - 1, r)) || fixed.has(idx(c, r + 1)) || fixed.has(idx(c, r - 1)))) throw new Error(`${name}: gap cell ${c},${r} lost its inside`);
   const gapSet = new Set(gaps.flatMap(g => g.cells.map(([c, r]) => idx(c, r))));
   const walls = [...CL.ringOf(fixed)].filter(i => !gapSet.has(i));
-  return { name, kind, G, inside: fixed, gaps, gapSet, walls, block: walls.filter(i => lv[i] !== TR.LV.BLOCK) };
+  return { name, kind, G, inside: fixed, gaps, gapSet, walls, block: walls.filter(i => lv[i] === TR.LV.GROUND || lv[i] === TR.LV.RAISED) };   // (a wall cell on the land or a plateau; the beach and the stairs are no wall)
 }
 const camp = clearing('camp', 'gnome', { ...CAMP, amp: 0.2 }, [['W', [16, 17, 18]], ['S', [32, 33]]]);
 const arena = clearing('arena', 'boss', { ...ARENA, amp: 0.1 }, [['N', [49, 50, 51]]]);
@@ -93,16 +80,6 @@ if (process.env.DEBUG) for (const cl of [camp, arena]) {
   const ring = CL.ringOf(cl.inside);
   for (let y = 0; y < H; y++) { let row = ''; for (let x = 0; x < W; x++) { const i = idx(x, y); row += cl.inside.has(i) ? '.' : cl.gapSet.has(i) ? 'G' : cl.block.includes(i) ? '#' : ring.has(i) ? '~' : ground[i] ? ',' : ' ' } if (row.trim()) console.log(String(y).padStart(2), row) }
 }
-const c = TR.cellFns({ w: W, h: H, ground, raised, stairTiles });
-const raisedTile = (x, y) => (c.top(x - 1, y) || c.top(x + 1, y) ? 15 : autotile(raised, x, y, 5));
-const cliff = new Map(), foam = new Set(), shadow = new Set();
-for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-  if (ground[idx(x, y)] && !(has(ground, x - 1, y) && has(ground, x + 1, y) && has(ground, x, y - 1) && has(ground, x, y + 1))) foam.add(idx(x, y));
-  if (!raised[idx(x, y)] || y + 1 >= H) continue;
-  shadow.add(idx(x, y + 1));
-  if (TR.hasCliff(c, x, y)) { cliff.set(idx(x, y + 1), TR.cliffTile(c, x, y)); if (!c.G(x, y + 1)) foam.add(idx(x, y + 1)); }
-}
-
 let oid = 1;
 const P = (name, value, type = 'string', propertytype) => ({ name, type, ...(propertytype && { propertytype }), value });
 const centre = (cx, cy) => [cx * T + T / 2, cy * T + T / 2];
@@ -139,10 +116,10 @@ objects.push(
   // a 1-tile dead end closed by a rock pile (hammer, or pickaxe x2); meat and gold behind it
   tileObj('rock4', [672, 1436], 'secret', kind('rock')), tileObj('rock2', [672, 1461], 'secret', kind('rock')),
   loot('meat', [672, 23 * T + 32]), loot('gold', [672, 24 * T + 32], 5),
-  // stepping stones across 2 tiles of water to an islet (Water Rocks of class stepstone, overlapping so the line has no gap)
-  tileObj('water-rocks4', [128, 1183], 'stepstone'), tileObj('water-rocks2', [174, 1183], 'stepstone'),
-  tileObj('water-rocks4', [222, 1183], 'stepstone'), tileObj('water-rocks2', [265, 1183], 'stepstone'),
-  loot('gold', [44, 1140], 10), loot('meat', [84, 1170]),
+  // stepping stones across 2 tiles of water (cols 4-5) from the beach west of the dead ends to the sand islet (Water Rocks of class stepstone, overlapping so the line has no gap)
+  tileObj('water-rocks4', [256, 1631], 'stepstone'), tileObj('water-rocks2', [302, 1631], 'stepstone'),
+  tileObj('water-rocks4', [350, 1631], 'stepstone'), tileObj('water-rocks2', [393, 1631], 'stepstone'),
+  loot('gold', [100, 1640], 10), loot('meat', [180, 1655]),
   // weapons on the ground, row 16 (tier colours: 0 blue, 1 red, 2 yellow, 3 purple). The old Pawn takes the axe and hammer, not the pickaxe
   weapon('axe', 1, centre(6, 16)), weapon('hammer', 2, centre(8, 16)), weapon('pickaxe', 0, centre(10, 16)),
   // one-use items, row 20: 2 dynamite and a bomb
@@ -150,8 +127,8 @@ objects.push(
   // a dead end (col 7) plugged with 3 rock piles in a row, gold behind: one blast clears them all (a hammer takes 3 swings)
   tileObj('rock4', [480, 1436], 'secret', kind('rock')), tileObj('rock2', [480, 1461], 'secret', kind('rock')), tileObj('rock4', [480, 1486], 'secret', kind('rock')),
   loot('gold', [480, 23 * T + 40], 12), loot('gold', [480, 24 * T + 32], 8),
-  // a rock pile on the tiny islet across 2 water tiles from the field's south shore (col 13, row 21): out of reach of any swing, a dynamite thrown south lands next to it
-  tileObj('rock2', bottom(13, 25), 'secret', kind('rock')),
+  // a rock pile on the tiny islet across 2 water tiles from the field's south beach (row 23): out of reach of any swing, a dynamite thrown south lands next to it
+  tileObj('rock2', bottom(13, 27), 'secret', kind('rock')),
 );
 // The clearings (src/camp.js, tiled/clearing.js). A `camp` polygon is the inside; a `gate` rect marks each gap (the fence pieces or boulders stand there while it is
 // closed); `block` rects make the wall line solid, with trees and rocks drawn on them. The gnome camp: a Gnome Hut in the north-east, 4 gnomes, a pond south-west, a
@@ -164,8 +141,8 @@ const gapOf = key => { const b = SEAL.artBoxOf(key, {}); return b.fh - (b.y + b.
 const feet = (key, x, y) => tileObj(key, [Math.round(x), Math.round(y + gapOf(key))]);       // ... this places the art's feet at x, y
 // The wall line of a clearing: a tree or rock group on every cell that needs a wall (in runs of 2-5 cells of one kind, round the clearing), pulled towards the
 // inside so a Pawn stops at the trunk; a `block` rect per run of cells in a row; and outside it a thinner scatter of trees and bushes (p = outer) off the lanes
-// that lead out of the gaps. Nothing stands on a gap, nor on the inside but a few bushes at its edge.
-function wallObjects(cl, seed, outer) {
+// that lead out of the gaps and off the `keep` boxes (the way to the stairs). Nothing stands on a gap, nor on the inside but a few bushes at its edge.
+function wallObjects(cl, seed, outer, keep = []) {
   const rnd = CL.rng(seed), out = [], cs = [...cl.inside].map(CL.xy), mx = cs.reduce((a, c) => a + c[0], 0) / cs.length + 0.5, my = cs.reduce((a, c) => a + c[1], 0) / cs.length + 0.5;
   const toward = (c, r) => { let ix = 0, iy = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (cl.inside.has(CL.idx(c + dx, r + dy))) { ix += dx; iy += dy } const L = Math.hypot(ix, iy) || 1; return [ix / L, iy / L] };
   const lane = new Set();
@@ -193,7 +170,7 @@ function wallObjects(cl, seed, outer) {
   const dense = (c, r) => CL.vnoise((c + 0.5 - mx) / 4 + 7, (r + 0.5 - my) / 4 + 7, seed) > 0.5;   // forest sectors: two more rows of trees
   for (const [band, p] of [[band2, outer], [band3, outer * 0.8]]) for (const i of band) {          // the rings outside the wall line
     const [c, r] = CL.xy(i);
-    if (lv[i] !== TR.LV.GROUND || lane.has(i) || hides(...CL.xy(i)) || rnd() > (dense(c, r) ? Math.min(1, p + 0.45) : p * (band === band2 ? 1 : 0.3))) continue;
+    if (lv[i] !== TR.LV.GROUND || lane.has(i) || keep.some(([c0, r0, c1, r1]) => c >= c0 && c <= c1 && r >= r0 && r <= r1) || hides(...CL.xy(i)) || rnd() > (dense(c, r) ? Math.min(1, p + 0.45) : p * (band === band2 ? 1 : 0.3))) continue;
     out.push(feet(rnd() < 0.72 ? 'tree' + (1 + Math.floor(rnd() * 4)) : 'bush' + (1 + Math.floor(rnd() * 4)), c * T + 32 + (rnd() - 0.5) * 30, r * T + 36 + (rnd() - 0.5) * 24));
   }
   for (const i of cl.inside) {                                       // a few bushes at the inside edge
@@ -227,19 +204,20 @@ objects.push(
   loot('meat', centre(27, 28)),
 );
 // The boss clearing: a boss `camp` polygon (about 20 x 16 cells of open ground, the Bear in it far from the gap, 3 rock clusters to crash into), its gap in the north
-// (the corridor from the snake den arrives there), a plateau and a pond in its wall, and the shore along its south edge. The dock is one plank section standing on
-// the south shore, over the water (a stepstone: feet may stand on it); the boat floats beside it. Standing in the `dock` rect shows the Board prompt, once the Bear is down.
+// (the corridor from the snake den arrives there), a plateau and a pond in its wall, and the shore along its south edge, a cliff over the beach. The way down to the sand is not through the arena (a closed
+// clearing has no exit but its gap): the stairs on the land west of its wall lead down. The dock is one plank section standing on the beach, out over the water (a stepstone: feet may stand on it); the boat floats
+// beside it. Standing in the `dock` rect shows the Board prompt, once the Bear is down.
 const rocks = (cx, cy) => (inCl(arena, Math.floor(cx), Math.floor(cy)), [feet('rock4', cx * T, cy * T), feet('rock2', cx * T + 50, cy * T - 14), feet('rock3', cx * T + 22, cy * T - 30), feet('rock1', cx * T - 30, cy * T + 4)]);
 objects.push(
-  polyObj('camp', CL.outline(arena.inside, T), [P('kind', 'boss')]), ...arena.gaps.map(gateOf), ...wallObjects(arena, 29, 0.6),
+  polyObj('camp', CL.outline(arena.inside, T), [P('kind', 'boss')]), ...arena.gaps.map(gateOf), ...wallObjects(arena, 29, 0.6, [[35, 30, 41, 43]]),
   foe('bear', 79, 50, 39), ...rocks(46.5, 34), ...rocks(55, 31.5), ...rocks(45.5, 40),
-  tileObj('dock', [50 * T + 32, 43 * T + 40 + 158], 'stepstone'),
-  tileObj('boat', [52 * T + 38, 44 * T + 210], 'boat'),
-  rect('dock', 50, 44, 50, 45),
+  tileObj('dock', [50 * T + 32, 45 * T + 8 + 158], 'stepstone'),
+  tileObj('boat', [52 * T + 38, 45 * T + 242], 'boat'),
+  rect('dock', 50, 45, 50, 46),
 );
 // named spawn points for ?at=<name> (dev shortcut): the first `spawn` above is the default
 const at = (name, cx, cy) => point('spawn', centre(cx, cy), [], name);
-objects.push(at('field', 10, 17), at('camp', 24, 17), at('snakes', 45, 17), at('spiders', 29, 6), at('grove', 31, 28), at('arena', 50, 22), at('dock', 50, 44));
+objects.push(at('field', 10, 17), at('camp', 24, 17), at('snakes', 45, 17), at('spiders', 29, 6), at('grove', 31, 28), at('arena', 50, 22), at('dock', 50, 45), at('beach', 2, 20), at('islet', 1, 25));
 // two enterable houses near the spawn. A door is a rect over the doorway in the art (house1.png: door x 51-77, y 126-162 in the
 // 128x192 frame) that reaches down past the base shadow, where the walking-up hero's feet stop. Its `interior` is a map path.
 const house2 = tileObj('house1', [416, 768]);
@@ -249,19 +227,10 @@ for (const [h, interior] of [[[896, 768], 'maps/interiors/house_a.tmj'], [[416, 
 
 const map = {
   type: 'map', version: '1.10', tiledversion: '1.12.2', class: 'chunk', orientation: 'orthogonal', renderorder: 'right-down',
-  infinite: false, compressionlevel: -1, width: W, height: H, tilewidth: T, tileheight: T, nextlayerid: 9, backgroundcolor: C.BG, nextobjectid: oid,
+  infinite: false, compressionlevel: -1, width: W, height: H, tilewidth: T, tileheight: T, nextlayerid: C.LAYERS.length + 1, backgroundcolor: C.BG, nextobjectid: oid,
   properties: [P('kind', 'landmark', 'string', 'chunkKind'), P('biomes', 'forest'), P('minIsland', 1, 'int'), P('weight', 1, 'float'), P('mirror', false, 'bool')],
   tilesets: C.tilesets(),
-  layers: [
-    layer(1, 'Water', (x, y) => (water[idx(x, y)] ? F.water : 0)),
-    layer(2, 'Foam (preview)', (x, y) => (foam.has(idx(x, y)) ? F.foam : 0)),
-    layer(3, 'Ground', (x, y) => (ground[idx(x, y)] ? F.low + autotile(ground, x, y, 0) : 0)),
-    layer(4, 'Shadows (preview)', (x, y) => (shadow.has(idx(x, y)) ? F.shadow : 0)),
-    layer(5, 'Raised', (x, y) => (raised[idx(x, y)] ? F.high + raisedTile(x, y) : 0)),
-    layer(6, 'Cliffs (preview)', (x, y) => (cliff.has(idx(x, y)) ? F.high + cliff.get(idx(x, y)) : 0)),
-    layer(7, 'Stairs', (x, y) => (stairs[idx(x, y)] ? F.high + stairs[idx(x, y)] : 0)),
-    { id: 8, name: 'Objects', type: 'objectgroup', draworder: 'topdown', x: 0, y: 0, opacity: 1, visible: true, objects },
-  ],
+  layers: [...T0.layers, { id: T0.layers.length + 1, name: 'Objects', type: 'objectgroup', draworder: 'topdown', x: 0, y: 0, opacity: 1, visible: true, objects }],
 };
 fs.writeFileSync(path.join(R, 'maps/test.tmj'), JSON.stringify(map, null, 1) + '\n');
 console.log('maps/test.tmj written,', objects.length, 'objects');

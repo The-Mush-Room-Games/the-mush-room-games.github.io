@@ -33,7 +33,7 @@ class Boss extends Enemy {
   go(st, ph, t) { this.st = st; this.ph = ph; this.t = t; this.hitDone = false; this.blink = false; this.g.clear() }
   update(dt) {
     dt = Math.min(dt, 0.05);
-    const sc = this.scene, h = sc.hero, s = this.sprite, b = this.b, k = bossK(this.phase, b), same = !h.dead && !!h.high === !!this.high;
+    const sc = this.scene, h = sc.hero, s = this.sprite, b = this.b, k = bossK(this.phase, b), same = !h.dead && lvOf(h) === lvOf(this);
     this.flashT -= dt; this.kbT -= dt; this.t -= dt;
     const dx = h.x - this.x, dy = h.y - this.y, dist = Math.hypot(dx, dy), push = this.kbT > 0 && this.st !== 'charge';
     if (push) this.bstep(this.kbV.x * dt, this.kbV.y * dt);

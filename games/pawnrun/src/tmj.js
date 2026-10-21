@@ -1,6 +1,7 @@
 // Pure Tiled .tmj reader for Pawn Run: shared by the browser (fetch loader) and node (fs loader).
-// readMap(path, loadJson) -> { w, h, tw, cls, props, ground, raised, stairs, water, stairTiles, objects, images, tileLayers }
-// Tile layers are read by NAME (Ground/Raised/Stairs/Water): any tile = 1. Missing layers = all zero.
+// readMap(path, loadJson) -> { w, h, tw, cls, props, ground, raised, stairs, water, sand, stairTiles, objects, images, tileLayers }
+// Tile layers are read by NAME (Ground/Raised/Stairs/Water/Sand): any tile = 1. Missing layers = all zero. Ground is the land (the top level of the island),
+// Sand is extra beach (sand-only islets and bars; the ring round the land is derived, see terrain.js baseOf).
 // Image layers (interiors) come back as images: [{ name, image (path from the game root), x, y, props }], bottom to top.
 // Any other tile layer (interiors: floor, walls) comes back in tileLayers: [{ name, props, tiles: [{ col, row, image, sx, sy, w, h, rects }] }],
 // bottom to top; image is the sheet's path from the game root, sx/sy/w/h the tile's pixels in it, rects its collision shapes (tile px).
@@ -37,9 +38,9 @@ async function readMap(path, loadJson) {
 
   const FLIP_X = 0x80000000, MASK = 0x1fffffff;
   const out = { w, h, tw: map.tilewidth, images: [], tileLayers: [], cls: map.class || '', props: propsOf(map.properties),
-    ground: new Uint8Array(w * h), raised: new Uint8Array(w * h), stairs: new Uint8Array(w * h), water: new Uint8Array(w * h),
+    ground: new Uint8Array(w * h), raised: new Uint8Array(w * h), stairs: new Uint8Array(w * h), water: new Uint8Array(w * h), sand: new Uint8Array(w * h),
     stairTiles: new Int16Array(w * h).fill(-1), objects: [] };
-  const mask = { ground: 'ground', raised: 'raised', stairs: 'stairs', water: 'water' };
+  const mask = { ground: 'ground', raised: 'raised', stairs: 'stairs', water: 'water', sand: 'sand' };
 
   const walk = layers => {
     for (const l of layers) {
@@ -95,7 +96,7 @@ async function readMap(path, loadJson) {
   }
 
   walk(map.layers || []);
-  for (let i = 0; i < w * h; i++) if (out.water[i]) out.ground[i] = out.raised[i] = 0;   // painted water wins
+  for (let i = 0; i < w * h; i++) if (out.water[i]) out.ground[i] = out.raised[i] = out.sand[i] = 0;   // painted water wins
   return out;
 }
 

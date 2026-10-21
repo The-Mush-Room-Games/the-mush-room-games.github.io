@@ -34,12 +34,12 @@ class Town extends TestMap {
   }
   // from the sea onto the beach: the splash, then the death animation played backwards (he gets up). Input waits.
   washUp() {
-    const h = this.hero, cam = this.cameras.main, x = h.x, y = h.y;
+    const h = this.hero, cam = this.cameras.main, x = h.x, y = h.y, d = this.depthOf(h);
     h.sprite.setVisible(false); this.leaving = true;
     cam.fadeIn(900);
-    const lie = this.add.sprite(x, y, 'odead').setOrigin(0.5, 0.72).setDepth(y).setFrame(6).setVisible(false);
+    const lie = this.add.sprite(x, y, 'odead').setOrigin(0.5, 0.72).setDepth(d).setFrame(6).setVisible(false);
     this.time.delayedCall(300, () => {
-      const s = this.add.sprite(x, y + 4, 'water-splash').setDepth(y + 1).play('water-splash');
+      const s = this.add.sprite(x, y + 4, 'water-splash').setDepth(d + 1).play('water-splash');
       s.once('animationcomplete', () => s.destroy());
       lie.setVisible(true).anims.playReverse('odead-dead');
     });

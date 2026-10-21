@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path'), assert = require('assert');
 Object.assign(globalThis, require('../src/data.js'), require('../src/powers.js'));
 const E = require('../src/enemies.js'), { rollDrops } = require('../src/loot.js'), { boatState } = require('../src/boat.js');
 const { ASSETS, ANIMS } = require('../src/assets.js'), { readMap } = require('../src/tmj.js'), { campSpec } = require('../src/camp.js'), SEAL = require('../tiled/seal.js');
-const { walkGrids, feetOk, T } = require('../src/terrain.js');
+const { walkGrids, feetOk, baseOf, levelAt, heightGrid, T } = require('../src/terrain.js');
 const near = (a, b, e = 1e-9, m = '') => assert(Math.abs(a - b) < e, m + ' ' + a + ' vs ' + b);
 let seed = 11; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32;
 
@@ -105,10 +105,10 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(__dirna
   const dock = m.objects.find(o => o.key === 'dock'), boat = m.objects.find(o => o.cls === 'boat'), zone = m.objects.find(o => o.cls === 'dock' && o.w > 0);
   assert(dock && dock.cls === 'stepstone' && boat && boat.key === 'boat' && zone, 'a dock (feet may stand on it), a boat and a dock zone');
   const dc = Math.floor(dock.x / T), top = Math.floor((dock.y - 158 + 8) / T);
-  assert(ok(dc, top) && bs.cells.has((top - 1) * m.w + dc) || bs.cells.has(top * m.w + dc), 'the planks start on the arena shore at col ' + dc + ' row ' + top);
-  assert(!m.ground[(top + 2) * m.w + dc], 'and run over the water'); assert(cs.some(([c, r]) => !m.ground[(r + 2) * m.w + c]), 'the arena has water along its south edge');
+  assert(baseOf(m)[top * m.w + dc] && !m.ground[top * m.w + dc] && m.ground[(top - 2) * m.w + dc], 'the planks start on the beach under the arena cliff at col ' + dc + ' row ' + top);
+  assert(!baseOf(m)[(top + 2) * m.w + dc], 'and run over the water'); assert(cs.some(([c, r]) => !m.ground[(r + 2) * m.w + c]), 'the arena has water along its south edge');
   assert(!m.ground[Math.floor(boat.x / T) + Math.floor((boat.y - 128) / T) * m.w], 'the boat floats on water'); assert(boat.x > dock.x + 33 && boat.x - dock.x < 3 * T, 'beside the dock');
-  assert(zone.x <= dock.x && zone.x + zone.w >= dock.x && zone.y >= dock.y - 158, 'the dock zone is on the planks');
+  assert(zone.x <= dock.x && zone.x + zone.w >= dock.x && zone.y < dock.y && zone.y + zone.h > dock.y - 158, 'the dock zone is on the planks');
   assert(m.objects.filter(o => o.cls === 'enemy' && o.key === 'bear-idle').length === 1, 'one bear');
   // the way from the spawn to the arena's gap does not cross the gnome camp (tiles; the seal test in camp-check covers the walls)
   const blocked = new Set(); for (const i of gs.cells) { const [c, r] = xy(i); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) blocked.add((r + dy) * m.w + c + dx) }
@@ -125,8 +125,8 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(__dirna
   const [s, p, q] = ['snake-idle', 'spider-idle', 'slingshot-idle'].map(area); assert(s[0] > 43 && p[3] < 12 && q[2] > 28, 'snakes east, spiders north, slingshots south');
   // ?at= points: named spawns on land
   const at = m.objects.filter(o => o.cls === 'spawn' && o.name !== 'spawn');
-  assert.deepStrictEqual(at.map(o => o.name).sort(), ['arena', 'camp', 'dock', 'field', 'grove', 'snakes', 'spiders']);
+  assert.deepStrictEqual(at.map(o => o.name).sort(), ['arena', 'beach', 'camp', 'dock', 'field', 'grove', 'islet', 'snakes', 'spiders']);
   const wg = walkGrids(m), stones = m.objects.filter(o => o.cls === 'stepstone' && o.key === 'dock').map(o => ({ x0: o.x - 33, y0: o.y - 158, x1: o.x + 33, y1: o.y }));
-  for (const o of at) assert(feetOk(m, wg, false, o.x, o.y, stones), '?at=' + o.name + ' puts the hero on walkable ground');
+  for (const o of at) assert(feetOk(m, wg, levelAt(heightGrid(m), m.w, o.x, o.y), o.x, o.y, stones), '?at=' + o.name + ' puts the hero on walkable ground');
   console.log('boss-check OK: arena', (c1 - c0 + 1) + 'x' + (r1 - r0 + 1), bs.cells.size, 'cells | bear hp', ENEMIES.bear.hp, '| perfect axe kill', perfect.toFixed(1) + 's | ?at', at.map(o => o.name).join(','));
 }).catch(e => { console.error('FAIL', e.stack.split('\n').slice(0, 3).join('\n')); process.exit(1); });

@@ -7,7 +7,7 @@ const circleHitsBox = (cx, cy, r, b) => {
   return dx * dx + dy * dy <= r * r;
 };
 // Pure. The targets ({ box, high, ... }) a blast of item `kind` at (cx, cy) on level `high` reaches: same level, box touching the circle.
-const blastHits = (kind, cx, cy, high, targets) => targets.filter(t => !!t.high === !!high && circleHitsBox(cx, cy, ITEMS[kind].radius, t.box));
+const blastHits = (kind, cx, cy, high, targets) => targets.filter(t => (t.high | 0) === (high | 0) && circleHitsBox(cx, cy, ITEMS[kind].radius, t.box));
 // Pure. Where dynamite thrown from (x, y) facing (ax, ay) comes down: `range` px away, but it stops short of the first spot where wall(x, y) holds
 // (a rock, a tree: water does not stop it), and it comes down on the farthest spot from there back to the hero where ok(x, y) holds.
 function landing(x, y, ax, ay, range, ok, wall, step = 8) {
@@ -32,7 +32,7 @@ function useItem(scene, i) {
 function throwDynamite(scene) {
   const h = scene.hero, d = ITEMS.dynamite, a = h.aim, hi = h.high;
   const L = landing(h.x, h.y, a.x, a.y, d.range, (x, y) => scene.walkable(h, x, y), (x, y) => scene.solid(h, x, y));
-  const s = scene.add.sprite(h.x, h.y - 30, 'odynamite').play('odynamite'), depth = L.y + (hi ? HIGH_DEPTH : 0);
+  const s = scene.add.sprite(h.x, h.y - 30, 'odynamite').play('odynamite'), depth = L.y + lift(hi);
   const sh = scene.add.ellipse(h.x, h.y, 14, 5, 0, 0.3).setDepth(depth - 0.5);
   const x0 = h.x, y0 = h.y;
   s.setDepth(depth + 1);
@@ -47,7 +47,7 @@ function throwDynamite(scene) {
 // bomb: set down at his feet, lit
 function plantBomb(scene) {
   const h = scene.hero;
-  const s = scene.add.sprite(h.x, h.y, 'bomb-lit').setOrigin(0.5, 0.62).setDepth(h.y + (h.high ? HIGH_DEPTH : 0) - 1).play('bomb-lit');
+  const s = scene.add.sprite(h.x, h.y, 'bomb-lit').setOrigin(0.5, 0.62).setDepth(h.y + lift(h.high) - 1).play('bomb-lit');
   fuse(scene, 'bomb', s, h.x, h.y, h.high, null, () => ({ x: s.x, y: s.y - 24 }));
 }
 // the fuse burns `fuse` s: sparks at the tip (flashing white, faster and faster), then the item is gone and it blasts

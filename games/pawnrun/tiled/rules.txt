@@ -1,3 +1,8 @@
+rules/beach-marks.tmj
+rules/beach.tmj
 rules/ground.tmj
+rules/ground-stairs.tmj
+rules/ground-cliffs.tmj
 rules/raised.tmj
-rules/cliffs.tmj
+rules/raised-stairs.tmj
+rules/raised-cliffs.tmj

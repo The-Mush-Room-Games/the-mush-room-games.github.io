@@ -51,7 +51,7 @@ class TestMap extends Phaser.Scene {
     const q = new URLSearchParams(location.search);
     this.island = this.run.island ?? (+q.get('island') || 1);       // island number: enemies and power-ups scale with it (ISLAND, powerK)
     const lv = heightGrid(m), wg = walkGrids(m), rectsAt = new Map(), rects = [];   // rectsAt: cell index -> collision rects touching it
-    const onRaised = (px, py) => lv[Math.floor(py / T) * m.w + Math.floor(px / T)] === LV.RAISED;   // objects: placed on a plateau
+    const onRaised = (px, py) => levelAt(lv, m.w, px, py);          // the level a thing is placed on: -1 beach, 0 land, 1 plateau (its `high`)
 
     this.hittables = []; this.enemies = []; this.loot = []; this.herd = []; this.shots = []; this.npcs = [];
     let boatArt = null;
@@ -62,7 +62,7 @@ class TestMap extends Phaser.Scene {
       const cx = o.x - box.fw / 2 + fb.x + box.w / 2, y1 = o.y - box.fh + box.y + box.h;
       return { x0: cx - w / 2, x1: cx + w / 2, y0: y1 - (tall ? 56 : box.h), y1 };
     };
-    const place = R => {                                           // a collision rect { x0, y0, x1, y1, high, gone } (gone: broken, no longer blocks)
+    const place = R => {                                           // a collision rect { x0, y0, x1, y1, high (a level), gone } (gone: broken, no longer blocks)
       rects.push(R);
       for (let cy = Math.floor(R.y0 / T); cy <= Math.floor((R.y1 - 1e-6) / T); cy++)
         for (let cx = Math.floor(R.x0 / T); cx <= Math.floor((R.x1 - 1e-6) / T); cx++) {
@@ -82,7 +82,7 @@ class TestMap extends Phaser.Scene {
       const high = onRaised(o.x, o.y - 1);
       if (o.cls === 'enemy') { foes.push({ o, y: o.y - gap, high }); continue }   // an Enemy draws and moves itself
       if (/^sheep/.test(o.key)) { flock.push({ x: o.x, y: o.y - gap, high }); continue }   // so does a Sheep
-      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.cls === 'stepstone' ? -5 : o.cls === 'boat' ? -4 : o.y - gap + (high ? HIGH_DEPTH : 0));
+      const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.cls === 'stepstone' ? -5 : o.cls === 'boat' ? -4 : o.y - gap + lift(high));
       if (o.cls === 'boat') boatArt = s;
       if (o.cls === 'npc' && NPCS[o.props.role]) {                    // townsfolk: idle where they stand, and solid at the feet
         this.npcs.push(new Npc(this, s, o.props.role, o.x, o.y - gap));
@@ -102,19 +102,19 @@ class TestMap extends Phaser.Scene {
     this.solid = (u, bx, by) => {                                   // does the feet box at b touch an object rect on the unit's level? (thrown dynamite stops at these)
       const x0 = bx - FEET.x, x1 = bx + FEET.x, y0 = by - FEET.top, y1 = by + FEET.bottom;
       for (let cy = Math.floor(y0 / T); cy <= Math.floor(y1 / T); cy++) for (let cx = Math.floor(x0 / T); cx <= Math.floor(x1 / T); cx++)
-        for (const R of rectsAt.get(cy * m.w + cx) || []) if (!R.gone && R.high === !!u.high && x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return true;
+        for (const R of rectsAt.get(cy * m.w + cx) || []) if (!R.gone && (R.high | 0) === lvOf(u) && x1 > R.x0 && x0 < R.x1 && y1 > R.y0 && y0 < R.y1) return true;
       return false;
     };
-    // does a shot (an acorn) at the ground point stop here? An object rect on its level, a cliff or the foot of one (low), the edge of a plateau (high), or the map's edge. Water does not stop it.
+    // does a shot (an acorn) at the ground point stop here? An object rect on its level, the land and its cliffs (from the beach), a plateau or a plateau's cliff (from the land), the edge of a plateau (from it), or the map's edge. Water does not stop it.
     this.shotBlocked = (x, y, high) => {
       const cx = Math.floor(x / T), cy = Math.floor(y / T);
       if (cx < 0 || cy < 0 || cx >= m.w || cy >= m.h) return true;
-      const i = cy * m.w + cx, l = lv[i];
-      if (high ? l !== LV.RAISED && l !== LV.STAIRS : l === LV.RAISED || (l === LV.BLOCK && m.ground[i])) return true;   // ponytail: a plateau's edge is a wall for a shot from above, too
-      return (rectsAt.get(i) || []).some(R => !R.gone && R.high === !!high && x >= R.x0 && x < R.x1 && y >= R.y0 && y < R.y1);
+      const i = cy * m.w + cx, l = lv[i], L = high | 0;
+      if (L > 0 ? l !== LV.RAISED && l !== LV.STAIRS : L < 0 ? m.ground[i] || l === LV.BLOCK && baseOf(m)[i] : l === LV.RAISED || (l === LV.BLOCK && m.ground[i])) return true;   // ponytail: a plateau's edge is a wall for a shot from above, too
+      return (rectsAt.get(i) || []).some(R => !R.gone && (R.high | 0) === L && x >= R.x0 && x < R.x1 && y >= R.y0 && y < R.y1);
     };
     this.walkable = (u, bx, by) => feetOk(m, wg, u.high, bx, by, stones) && !this.solid(u, bx, by);
-    this.depthOf = u => u.rail ? u.rail.r.depth : u.y + (u.high ? HIGH_DEPTH : 0);
+    this.depthOf = u => u.rail ? u.rail.r.depth : u.y + lift(u.high);
     const ramps = rampsOf(m);
     this.moveFeet = (u, dx, dy) => moveFeet(ramps, this.walkable, u, dx, dy);   // ramps carry units along their centre line
 
@@ -243,7 +243,7 @@ class TestMap extends Phaser.Scene {
     if (this.dbg) this.dbgHit = { ...h, until: this.time.now + 150 };
     for (const t of this.hittables) {
       const b = t.hb;                                              // the slash box must overlap the hurtbox, same level only
-      if (t.high !== high || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
+      if ((t.high | 0) !== (high | 0) || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
       this.hits++;
       if (t.enemy) { t.enemy.hurt(damage, this.hero.x, this.hero.y, t.enemy.d.knockback * this.hero.pw.kb); continue }
       if (t.sheep) { t.sheep.hurt(this.hero.x, this.hero.y); continue }
@@ -346,13 +346,13 @@ class TestMap extends Phaser.Scene {
     tickNpcs(this);
     if (inp.pick) swapPickup(this);
     for (const c of this.camps) c.update();
-    if (!this.leaving && !h.high && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }
+    if (!this.leaving && lvOf(h) === 0 && this.move.y < -0.1) { const d = this.doors.find(d => feetHit(d, h)); if (d) this.enter(d) }
 
     if (this.dbg) {
       const g = this.dbg.clear();
       g.lineStyle(1, 0xff4040); for (const R of this.rects) if (!R.gone) g.strokeRect(R.x0, R.y0, R.x1 - R.x0, R.y1 - R.y0);
       g.lineStyle(1, 0xffa020); for (const d of this.doors) g.strokeRect(d.x, d.y, d.w, d.h);
-      const F = h.high ? FEET_HIGH : FEET;
+      const F = lvOf(h) > 0 ? FEET_HIGH : FEET;
       g.lineStyle(1, 0x60ff60).strokeRect(h.x - F.x, h.y - F.top, 2 * F.x, F.top + F.bottom);
       g.lineStyle(1, 0x60b0ff); for (const { hb: b } of this.hittables) g.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
       const d = this.dbgHit;

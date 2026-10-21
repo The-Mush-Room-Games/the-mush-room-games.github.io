@@ -7,7 +7,7 @@
 const rollDrops = (table, rnd = Math.random) => table.filter(r => r.p === undefined || rnd() < r.p)
   .map(r => ({ kind: r.kind, n: r.min === undefined ? 1 : r.min + Math.floor(rnd() * (r.max - r.min + 1)), ...(r.weapon && { weapon: r.weapon, tier: r.tier || 0 }) }));
 // Pure. Does unit u's feet box F (on its own level) overlap the square of half-size r around pickup p?
-const pickedUp = (F, u, p, r = PICKUP.r) => !!u.high === !!p.high &&
+const pickedUp = (F, u, p, r = PICKUP.r) => (u.high | 0) === (p.high | 0) &&
   u.x + F.x > p.x - r && u.x - F.x < p.x + r && u.y + F.bottom > p.y - r && u.y - F.top < p.y + r;
 // Pure. Eat the meat in bag slot i: heals up to max, not at full hp. True when eaten.
 function eatMeat(h, i, heal = MEAT_HEAL) {
@@ -18,7 +18,7 @@ function eatMeat(h, i, heal = MEAT_HEAL) {
 
 // A pickup at ground point (x, y). `from` = [x, y] it pops out of (arcs down to the ground); without it, it is just there.
 function spawnLoot(scene, kind, x, y, high, n = 1, from, extra) {
-  const L = LOOT[kind], c = scene.add.container(x, y), p = { c, kind, n, x, y, high: !!high, landed: false, ...extra };
+  const L = LOOT[kind], c = scene.add.container(x, y), p = { c, kind, n, x, y, high: high | 0, landed: false, ...extra };
   if (kind === 'weapon')                                                    // a base in the tier colour, and the tier number on it
     c.add([scene.add.ellipse(0, -3, 38, 14, TIER.tint[p.tier], 0.8).setStrokeStyle(2, 0x161c2e),
       ...(p.tier ? [scene.add.text(0, -3, p.tier, txt(11, undefined, undefined, NUMFONT)).setOrigin(0.5)] : [])]);
@@ -27,7 +27,7 @@ function spawnLoot(scene, kind, x, y, high, n = 1, from, extra) {
   if (L.tint) art.setTint(L.tint);
   c.add(art);
   if (L.glint) c.add(scene.add.sprite(0, L.dy, L.glint).play(L.glint));     // sparkle overlay
-  c.setDepth(y - 1 + (high ? HIGH_DEPTH : 0));
+  c.setDepth(y - 1 + lift(high));
   const land = () => {
     p.landed = true; c.setPosition(x, y);
     scene.tweens.add({ targets: c, y: y - 3, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });   // bob
@@ -67,7 +67,7 @@ function collect(scene, p) {
 function tickLoot(scene) {
   const h = scene.hero;
   if (h.dead) return setPrompt(scene);
-  const F = h.high ? FEET_HIGH : FEET;
+  const F = lvOf(h) > 0 ? FEET_HIGH : FEET;
   scene.loot = scene.loot.filter(p => !(p.landed && pickedUp(F, h, p) && collect(scene, p)));
   const w = scene.loot.find(p => p.kind === 'weapon' && p.landed && pickedUp(F, h, p));
   setPrompt(scene, w, w && weaponAction(h, w.weapon));

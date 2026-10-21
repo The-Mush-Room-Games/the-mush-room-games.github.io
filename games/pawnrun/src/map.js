@@ -1,7 +1,7 @@
 // The explored map, pure parts (the scene that draws it is scenes/Map.js). One Uint8Array per island, a cell per tile: 1 = seen. It is made when the
 // island is built, so a death or a new island starts it empty, and a house round trip (the scene only sleeps) keeps it. Tunables: data.js (EXPLORE).
 // The terrain it draws comes from the same grids as the game (terrain.js cellFns / heightGrid), so it works for any map, Tiled or generated.
-const TILE = { WATER: 0, GRASS: 1, RAISED: 2, CLIFF: 3, STAIRS: 4 };       // terrainClass(); EXPLORE.land is in this order
+const TILE = { WATER: 0, GRASS: 1, RAISED: 2, CLIFF: 3, STAIRS: 4, SAND: 5 };   // terrainClass(); EXPLORE.land is in this order
 const BLOB = { NONE: 0, TREE: 1, ROCK: 2, HOUSE: 3 };                      // objectClass(); EXPLORE.obj is in this order
 
 // Pure. Mark the tiles within r tiles (a circle) of tile (tx, ty) as seen; returns how many were new. ponytail: no line of sight, walls and cliffs do not hide anything.
@@ -12,11 +12,11 @@ function revealAround(seen, w, h, tx, ty, r = EXPLORE.reveal) {
       if ((x - tx) ** 2 + (y - ty) ** 2 <= r * r && !seen[y * w + x]) { seen[y * w + x] = 1; n++ }
   return n;
 }
-// Pure. The ground class of every tile: water, grass, raised, cliff (the cell under a plateau's edge), stairs.
+// Pure. The ground class of every tile: water, grass (the land), raised, cliff (the cell under an edge of the land or a plateau), stairs, sand.
 function terrainClass(m) {
   const c = cellFns(m), lv = heightGrid(m), out = new Uint8Array(m.w * m.h);
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++)
-    out[y * m.w + x] = lv[y * m.w + x] === LV.STAIRS ? TILE.STAIRS : lv[y * m.w + x] === LV.RAISED ? TILE.RAISED : hasCliff(c, x, y - 1) ? TILE.CLIFF : c.G(x, y) ? TILE.GRASS : TILE.WATER;
+    out[y * m.w + x] = lv[y * m.w + x] === LV.STAIRS ? TILE.STAIRS : lv[y * m.w + x] === LV.RAISED ? TILE.RAISED : hasCliff(c, x, y - 1) || hasCliff(c, x, y - 1, 0) ? TILE.CLIFF : c.G(x, y) ? TILE.GRASS : c.B(x, y) ? TILE.SAND : TILE.WATER;
   return out;
 }
 // Pure. The blobs standing on it: a tree or rock on the tile at its foot, a building on the lower half of its art. Drawn once from the map file

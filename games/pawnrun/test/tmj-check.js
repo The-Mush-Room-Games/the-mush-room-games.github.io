@@ -1,6 +1,6 @@
 // node test/tmj-check.js : reads maps/test.tmj through src/tmj.js and checks what the game relies on.
 const fs = require('fs'), path = require('path'), assert = require('assert');
-const { readMap, roomShape } = require('../src/tmj.js');
+const { readMap, roomShape } = require('../src/tmj.js'), { baseOf } = require('../src/terrain.js');
 const root = path.join(__dirname, '..');
 const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
 
@@ -20,7 +20,7 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
     else assert.strictEqual(m.stairTiles[i], -1);
   }
   const st = [...m.stairTiles].filter(v => v >= 0);
-  assert.deepStrictEqual(st, [36, 45], 'one left stair, top then bottom');
+  assert.deepStrictEqual(st, [36, 45, 36, 45, 36, 45], 'three left stairs (the plateau\'s and two to the beach), top then bottom');
 
   assert.strictEqual(m.cls, 'chunk');
   assert.deepStrictEqual(m.props, { biomes: 'forest', kind: 'landmark', minIsland: 1, mirror: false, weight: 1 }, JSON.stringify(m.props));
@@ -70,10 +70,13 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
   assert.strictEqual(lootOf('dynamite').length, 2, '2 dynamite'); assert.strictEqual(lootOf('bomb').length, 1, '1 bomb');
   const cellOf = o => [Math.floor(o.x / 64), Math.floor(o.y / 64)];
   for (const o of [...lootOf('weapon'), ...lootOf('dynamite'), ...lootOf('bomb')]) assert(m.ground[cellOf(o)[1] * m.w + cellOf(o)[0]], 'pickup on land ' + o.props.kind + cellOf(o));
-  // the blast-only islet: land at cols 13-14, rows 24-25 with 2 water tiles (rows 22-23) between it and the field above, and a rock pile on it
-  const g = (x, y) => m.ground[y * m.w + x];
-  assert(g(13, 24) && g(14, 25) && !g(13, 22) && !g(13, 23) && g(13, 21), 'islet two tiles south of the field');
-  assert(tiles.some(o => o.cls === 'secret' && o.key === 'rock2' && o.x === 13 * 64 + 32 && o.y === 26 * 64), 'a rock pile on the islet');
+  // the blast-only islet: land at cols 13-14, rows 27-28, a ring of sand around it, then 2 water tiles (rows 24-25) between its beach and the field's (rows 22-23), and a rock pile on it
+  const g = (x, y) => m.ground[y * m.w + x], base = baseOf(m), b = (x, y) => base[y * m.w + x];
+  assert(g(13, 27) && g(14, 28) && !g(13, 24) && !g(13, 25) && g(13, 21), 'islet south of the field');
+  assert(b(13, 23) && !b(13, 24) && !b(13, 25) && b(13, 26), 'the two beaches are two water tiles apart');
+  assert(tiles.some(o => o.cls === 'secret' && o.key === 'rock2' && o.x === 13 * 64 + 32 && o.y === 28 * 64), 'a rock pile on the islet');
+  // the beach: sand around all the land, the sand islet (cols 0-3, rows 24-26), stairs down from the land at both ends
+  assert(b(1, 25) && !g(1, 25) && b(2, 20) && !g(2, 20), 'sand islet and the beach strip');
 
   // each house has a door rect over its doorway (inside the house's art) naming an interior map that reads and is playable
   const doors = shapes.filter(o => o.cls === 'door');

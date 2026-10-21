@@ -1,8 +1,8 @@
 // Pawn Run Tiled extension: Map > "Rebuild terrain previews" (Ctrl+Shift+M).
-// Automapping adds preview tiles (foam, shadows, cliffs) but never removes old ones, so after you erase land or
-// raised ground, run this: it clears those three layers (creating them in the right place if missing) and automaps.
-const PREVIEW = ['Foam (preview)', 'Shadows (preview)', 'Cliffs (preview)'];
-const BEFORE = { 'Foam (preview)': 'Ground', 'Shadows (preview)': 'Raised', 'Cliffs (preview)': 'Stairs' }; // layer each sits just under
+// Automapping adds preview tiles (the beach, foam, shadows, cliffs) but never removes old ones, so after you erase land or
+// raised ground, run this: it clears those five layers (creating them in the right place if missing) and automaps.
+const PREVIEW = ['Foam (preview)', 'Beach (preview)', 'Land shadows (preview)', 'Shadows (preview)', 'Cliffs (preview)'];
+const BEFORE = { 'Foam (preview)': 'Sand', 'Beach (preview)': 'Sand', 'Land shadows (preview)': 'Ground', 'Shadows (preview)': 'Raised', 'Cliffs (preview)': 'Stairs' }; // layer each sits just under (in this order)
 
 function rebuild(map) {
   map.macro('Rebuild terrain previews', () => {

@@ -1,13 +1,13 @@
 // Writes maps/town.tmj, the town hub (48x42 tiles). Run: node tiled/make-town-map.js (after make-rules.js and make-objects.js). Open it in Tiled to move anything.
 //   North: the Castle, with the Steward at its door (the duck shop). West: the Barracks, the Blacksmith in his fenced yard. East: the Monastery and the Healer's garden.
 //   Middle: the Market (a House) with the Merchant, a pig pen and produce. South-west: the Trainer's yard. South: two enterable houses, and the main gate (two Towers and a
-//   Wooden Fence) with a pier: the `sail` rect on it starts a run. The beach where you wash up is on the west shore.
+//   Wooden Fence) with a pier: the `sail` rect on it starts a run. The beach where you wash up is in the south-west, with stairs up to the town; a second stair leads from the gate's spit down to the pier.
 // Same terrain rules as make-test-map.js (no 1-tile notches, no diagonal-only touches); the NPCs, doors, yards and `sail` rect are this map's own.
 const fs = require('fs'), path = require('path');
-const C = require('./common.js'), TR = require('../src/terrain.js'), SEAL = require('./seal.js');
+const C = require('./common.js'), TR = require('../src/terrain.js'), SEAL = require('./seal.js'), terrainLayers = require('./layers.js');
 const { NPCS } = require('../src/data.js');
 const R = path.join(__dirname, '..');
-const W = 48, H = 42, T = 64, CL = require('./clearing.js')(W, H);
+const W = 48, H = 44, T = 64, CL = require('./clearing.js')(W, H);
 const objTs = JSON.parse(fs.readFileSync(path.join(R, 'maps/objects.tsj'), 'utf8'));
 const keyOf = t => (t.properties || []).find(p => p.name === 'key')?.value || t.image.split('/').pop().replace(/\.png$/i, '');
 const findTile = key => objTs.tiles.find(t => keyOf(t) === key);
@@ -20,19 +20,19 @@ for (const [cx, cy, rx, ry, seed] of [[24.5, 18.5, 17.5, 12.5, 3], [14, 12.5, 8,
   for (const i of CL.ellipse(cx, cy, rx, ry, seed, { amp: 0.12 })) ground[i] = 1;
 for (let y = 29; y <= 35; y++) for (let x = 20; x <= 29; x++) ground[idx(x, y)] = 1;       // the gatehouse spit, down to the pier
 CL.clean(ground);
+for (let y = 31; y <= 32; y++) for (let x = 5; x <= 6; x++) ground[idx(x, y)] = 0;           // a bite out of the south-west corner: the beach stairs get a clean corner (sand above and beside them)
 const has = (m, x, y) => x >= 0 && y >= 0 && x < W && y < H && m[idx(x, y)] === 1;
 for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
   if (!ground[idx(x, y)] && ((has(ground, x - 1, y) && has(ground, x + 1, y)) || (has(ground, x, y - 1) && has(ground, x, y + 1)))) throw new Error(`1-tile notch at ${x},${y}`);
   for (const [dx, dy] of [[1, 1], [1, -1]]) if (has(ground, x, y) && has(ground, x + dx, y + dy) && !has(ground, x + dx, y) && !has(ground, x, y + dy)) throw new Error(`diagonal-only touch at ${x},${y}`);
 }
-const raised = new Uint8Array(W * H), stairTiles = new Int16Array(W * H).fill(-1);
-const autotile = (m, x, y, off) => {
-  const n = has(m, x, y - 1), s = has(m, x, y + 1), w = has(m, x - 1, y), e = has(m, x + 1, y);
-  return (n ? (s ? 1 : 2) : (s ? 0 : 3)) * 9 + (w ? (e ? 1 : 2) : (e ? 0 : 3)) + off;
-};
-const layer = (id, name, f) => ({ id, name, type: 'tilelayer', x: 0, y: 0, width: W, height: H, opacity: 1, visible: true, data: Array.from({ length: W * H }, (_, i) => f(i % W, (i / W) | 0)) });
-const foam = new Set();
-for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (ground[idx(x, y)] && !(has(ground, x - 1, y) && has(ground, x + 1, y) && has(ground, x, y - 1) && has(ground, x, y + 1))) foam.add(idx(x, y));
+const raised = new Uint8Array(W * H), water = new Uint8Array(W * H), sand = new Uint8Array(W * H);
+// The beach is what the game derives (a ring of sand round the land and a cliff under its south edge); the rest is painted. Two ways down (stairs: { cell: tile }, a left
+// stair is 36 over 45, the land to its east): at the spit's south-west corner, to the sand in front of the pier, and at the south-west lobe's corner, to the beach where the sea
+// washes you up (a patch of sand painted west of it, which joins the ring along the south coast).
+const stairs = { [idx(19, 35)]: 36, [idx(19, 36)]: 45, [idx(6, 33)]: 36, [idx(6, 34)]: 45 };
+for (let y = 31; y <= 36; y++) for (let x = 1; x <= 5; x++) sand[idx(x, y)] = 1;
+const { layers: terrain } = terrainLayers({ w: W, h: H, ground, raised, water, sand, stairs });
 
 // ---- objects
 let oid = 1;
@@ -128,18 +128,18 @@ add(feet('odeco18', 9.6, 27.2), feet('odeco16', 8.3, 25.6), feet('odeco16', 12.9
 building('tower', 21, 33, 2, 4); building('tower', 28, 33, 2, 4);
 for (const [c, p] of [[22, 'h0'], [23, 'er'], [25, 'el'], [26, 'h1']]) fence(c, 32, p);
 add(feet('odeco17', 23.1, 35.3), feet('odeco16', 26, 35.5, none, none, true));
-const dock = y => tileObj('dock', [24.5 * T, y], 'stepstone');
-add(dock(35.55 * T + 158), dock(35.55 * T + 316), tileObj('boat', [26.4 * T, 39.7 * T], 'boat'));
-add(rect('sail', 24 * T, 38.3 * T, T + 32, 2.2 * T));
-reserve(19, 30, 30, 41);
+const dock = y => tileObj('dock', [24.5 * T, y], 'stepstone');                              // the planks start on the sand in front of the spit's cliff (row 37)
+add(dock(37.55 * T + 158), dock(37.55 * T + 316), tileObj('boat', [26.4 * T, 41.7 * T], 'boat'));
+add(rect('sail', 24 * T, 40.3 * T, T + 32, 2.2 * T));
+reserve(19, 30, 30, 36);
 
-// the beach where you wash up (west shore), and rocks off the coast
-add(tileObj('water-rocks4', [2.6 * T, 20.5 * T], 'stepstone'), tileObj('water-rocks2', [3.8 * T, 23.8 * T]), tileObj('water-rocks3', [2.2 * T, 25.6 * T]));
-reserve(4, 20, 7, 24);
+// the beach where you wash up (south-west, sand painted below), and rocks off the coast
+add(tileObj('water-rocks4', [1.3 * T, 38.1 * T], 'stepstone'), tileObj('water-rocks2', [3.6 * T, 38.8 * T]), tileObj('water-rocks3', [0.6 * T, 30.2 * T]));
+reserve(6, 30, 10, 34);
 
 // lanes: the walking routes stay free of trees (gate -> plaza -> castle, and out to each yard)
 const lane = (x0, y0, x1, y1, w = 1.4) => { const n = 40; for (let i = 0; i <= n; i++) reserve(x0 + (x1 - x0) * i / n - w, y0 + (y1 - y0) * i / n - w, x0 + (x1 - x0) * i / n + w, y0 + (y1 - y0) * i / n + w) };
-lane(24.5, 36, 24.5, 18); lane(24.5, 18, 24.5, 13); lane(24.5, 18, 12, 19.5); lane(24.5, 19, 36, 20); lane(24.5, 26, 12, 30); lane(24.5, 27, 18, 29); lane(24.5, 27, 31, 29); lane(11, 22.5, 6, 22.5); lane(11, 29, 16, 31.5);
+lane(24.5, 36, 24.5, 18); lane(24.5, 18, 24.5, 13); lane(24.5, 18, 12, 19.5); lane(24.5, 19, 36, 20); lane(24.5, 26, 12, 30); lane(24.5, 27, 18, 29); lane(24.5, 27, 31, 29); lane(11, 22.5, 6, 22.5); lane(11, 29, 16, 31.5); lane(12, 30, 7.5, 32.6);
 const plaza = (x, y) => x >= 17 && x <= 32 && y >= 15 && y <= 25;                            // open ground in the middle: bushes and rocks, no trees
 
 // trees: the rim of the island and clumps in the corners, thinner inside; bushes, rocks and mushrooms in the open ground, sheep in the meadows
@@ -161,21 +161,15 @@ add(feet('sheep-idle', 19.3, 17.6), feet('sheep-idle', 20.4, 18.4), feet('sheep-
 
 // spawn points for ?at=<name>: the first is where a new game starts
 const spawn = (name, cx, cy) => add(point('spawn', at(cx, cy), [], name));
-spawn('start', 24.5, 25.6); spawn('gate', 24.5, 30.6); spawn('blacksmith', 12.4, 20.6); spawn('healer', 36, 20.2); spawn('market', 24.3, 24.2); spawn('steward', 24.5, 14.2); spawn('trainer', 11.3, 28.6); spawn('beach', 6.2, 22.2);
+spawn('start', 24.5, 25.6); spawn('gate', 24.5, 30.6); spawn('blacksmith', 12.4, 20.6); spawn('healer', 36, 20.2); spawn('market', 24.3, 24.2); spawn('steward', 24.5, 14.2); spawn('trainer', 11.3, 28.6); spawn('beach', 3.5, 33.5);
 spawn('houseA', 17.5, 30.4); spawn('houseB', 31.5, 31);
 
 const map = {
   type: 'map', version: '1.10', tiledversion: '1.12.2', class: 'chunk', orientation: 'orthogonal', renderorder: 'right-down',
-  infinite: false, compressionlevel: -1, width: W, height: H, tilewidth: T, tileheight: T, nextlayerid: 9, backgroundcolor: C.BG, nextobjectid: oid,
+  infinite: false, compressionlevel: -1, width: W, height: H, tilewidth: T, tileheight: T, nextlayerid: C.LAYERS.length + 1, backgroundcolor: C.BG, nextobjectid: oid,
   properties: [P('kind', 'landmark', 'string', 'chunkKind'), P('biomes', 'town'), P('minIsland', 1, 'int'), P('weight', 1, 'float'), P('mirror', false, 'bool')],
   tilesets: C.tilesets(),
-  layers: [
-    layer(1, 'Water', () => 0),
-    layer(2, 'Foam (preview)', (x, y) => (foam.has(idx(x, y)) ? F.foam : 0)),
-    layer(3, 'Ground', (x, y) => (ground[idx(x, y)] ? F.low + autotile(ground, x, y, 0) : 0)),
-    layer(4, 'Shadows (preview)', () => 0), layer(5, 'Raised', () => 0), layer(6, 'Cliffs (preview)', () => 0), layer(7, 'Stairs', () => 0),
-    { id: 8, name: 'Objects', type: 'objectgroup', draworder: 'topdown', x: 0, y: 0, opacity: 1, visible: true, objects },
-  ],
+  layers: [...terrain, { id: terrain.length + 1, name: 'Objects', type: 'objectgroup', draworder: 'topdown', x: 0, y: 0, opacity: 1, visible: true, objects }],
 };
 fs.writeFileSync(path.join(R, 'maps/town.tmj'), JSON.stringify(map, null, 1) + '\n');
 console.log('maps/town.tmj written,', objects.length, 'objects');

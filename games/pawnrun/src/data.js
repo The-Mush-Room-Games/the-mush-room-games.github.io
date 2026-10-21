@@ -163,9 +163,9 @@ const POWERUPS = {
   ducks:    { rarity: 'rare', name: 'Duck Sense', text: 'Golden ducks show on the map', stat: 'sense', add: 1, max: 1, icon: ['duck', 0] },   // sense: golden ducks within EXPLORE.ducks tiles are remembered on the map (src/map.js)
 };
 // The explored map (src/map.js, scenes/Map.js). reveal = radius in tiles around the hero that count as seen, ducks = how far Duck Sense reaches (tiles).
-// land / obj = the colours of the terrain classes (water, grass, raised, cliff, stairs) and of the blobs on them (tree, rock, building; index 0 = none),
+// land / obj = the colours of the terrain classes (water, grass, raised, cliff, stairs, sand) and of the blobs on them (tree, rock, building; index 0 = none),
 // door = a door's tile, shore = the pale rim on land next to seen water, fog = the unseen part of the map (over the paper), ink = outlines.
-const EXPLORE = { reveal: 6.5, ducks: 12, land: ['#47aba9', '#9bb94e', '#6f9a4c', '#506a69', '#c9a46a'], obj: [null, '#3d6b3a', '#8f9c9a', '#af7960'],
+const EXPLORE = { reveal: 6.5, ducks: 12, land: ['#47aba9', '#9bb94e', '#6f9a4c', '#506a69', '#c9a46a', '#e9d58a'], obj: [null, '#3d6b3a', '#8f9c9a', '#af7960'],
   door: '#f2c33a', shore: '#e4f3df', fog: 'rgba(90,62,43,0.16)', ink: '#161c2e' };
 const HIT2 = { delay: 0.1, mult: 1 };                // Twin Strike: the second hit lands `delay` s after the first, for `mult` of its damage
 

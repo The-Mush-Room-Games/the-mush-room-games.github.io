@@ -15,7 +15,7 @@ class Boat {
   get open() { const b = this.scene.boss; return !b || b.dead }
   update() {
     const sc = this.scene, h = sc.hero;
-    const near = !h.dead && !h.high && !sc.leaving && this.zones.some(z => feetHit(z, h));
+    const near = !h.dead && lvOf(h) <= 0 && !sc.leaving && this.zones.some(z => feetHit(z, h));
     this.state = boatState(this.open, near);
     this.c.setVisible(this.state !== 'hidden');
     if (this.state === 'hidden') return;
