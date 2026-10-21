@@ -10,7 +10,7 @@ const start = () => window.game = new Phaser.Game({         // window.game: hand
   parent: 'game',
   backgroundColor: '#0b0612',
   pixelArt: true,
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 600, height: 750 },
+  scale: { mode: Phaser.Scale.EXPAND, autoCenter: Phaser.Scale.CENTER_BOTH, width: 600, height: 750 },   // fills the window; 600x750 is the smallest view, the rest is extra world
   scene: [Boot, AnimGallery, UIGallery, TestMap, Interior],
   callbacks: { preBoot: g => g.registry.set('start', startScene) },
   banner: false,

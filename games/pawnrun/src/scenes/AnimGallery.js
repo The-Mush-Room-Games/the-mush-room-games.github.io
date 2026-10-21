@@ -13,6 +13,9 @@ class AnimGallery extends Phaser.Scene {
     this.input.keyboard.on('keydown-LEFT', () => this.go(-1));
     this.input.keyboard.on('keydown-RIGHT', () => this.go(1));
     this.input.on('pointerdown', p => this.go(p.x < this.scale.width / 3 ? -1 : 1));   // left third = back, rest = forward
+    const place = () => { this.layer.x = (this.scale.width - GCOLS * GW) / 2; this.title.x = this.scale.width / 2 };   // the screen is any size
+    place(); this.scale.on('resize', place);
+    this.events.once('shutdown', () => this.scale.off('resize', place));
     this.show();
   }
   go(d) { this.page = (this.page + d + this.pages) % this.pages; this.show() }

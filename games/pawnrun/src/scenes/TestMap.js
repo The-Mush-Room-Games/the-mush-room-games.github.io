@@ -102,7 +102,8 @@ class TestMap extends Phaser.Scene {
     const q = new URLSearchParams(location.search), form = q.get('hero') === 'new' ? 'new' : 'old';
     const weapons = q.get('w') ? q.get('w').split(',') : form === 'new' ? ['axe', 'pickaxe'] : ['axe', 'hammer'];
     this.hero = new Hero(this, spawn.x, spawn.y, { form, weapons, high: onRaised(spawn.x, spawn.y) });
-    this.cameras.main.setBounds(0, 0, m.w * T, m.h * T).startFollow(this.hero.sprite, true, 0.15, 0.15);
+    this.fitBounds(m.w * T, m.h * T);
+    this.cameras.main.startFollow(this.hero.sprite, true, 0.15, 0.15);
 
     this.initInput();
 
@@ -123,10 +124,9 @@ class TestMap extends Phaser.Scene {
     this.on(this.events, 'hero-dead', () => this.time.delayedCall(2500, () => this.scene.restart()));
     this.dbg = q.has('dbg') && this.add.graphics().setDepth(1e6 - 1);   // ?dbg draws collision rects, the feet box and hit circles
 
-    if (this.dbg || !this.hud) {                                    // dev labels, clear of the HUD's top row
-      const y = this.hud ? 112 : 8;
-      this.add.text(8, y, `${name}.tmj  ${m.w}×${m.h}  R reloads`, txt(14)).setScrollFactor(0).setDepth(1e6);
-      this.readout = this.add.text(8, y + 20, '', txt(14)).setScrollFactor(0).setDepth(1e6);
+    if (this.dbg) {                                                 // dev labels, under the HUD's top row
+      this.add.text(8, 76, `${name}.tmj  ${m.w}×${m.h}  R reloads`, txt(14)).setScrollFactor(0).setDepth(1e6);
+      this.readout = this.add.text(8, 96, '', txt(14)).setScrollFactor(0).setDepth(1e6);
     }
     this.ready = true;
     document.title = `ready ${m.w}x${m.h} objects ${m.objects.length}`;   // for headless checks
@@ -149,6 +149,14 @@ class TestMap extends Phaser.Scene {
       this.hud = new Hud(this);
       for (const [ev, k] of [['hud-swing', 'swing'], ['hud-dash', 'dash'], ['hud-swap', 'swap']]) this.on(this.events, ev, () => this.pend[k] = true);
     }
+  }
+  // camera bounds for a W x H world: a world smaller than the screen sits in its middle (the screen is any size, Scale.EXPAND)
+  fitBounds(W, H) {
+    const cam = this.cameras.main, fit = () => {
+      const bw = Math.max(W, cam.width), bh = Math.max(H, cam.height);
+      cam.setBounds(Math.round((W - bw) / 2), Math.round((H - bh) / 2), bw, bh);
+    };
+    fit(); this.on(this.scale, 'resize', fit);
   }
   // listener that removes itself when the scene shuts down (scene.events outlive a restart)
   on(emitter, ev, fn) {
@@ -195,7 +203,7 @@ class TestMap extends Phaser.Scene {
   syncHud() {
     const h = this.hero;
     if (!this.hud) return;
-    this.hud.setHp(h.hp, h.maxHp); this.hud.setDash(h.dashFrac);
+    this.hud.setHp(h.hp, h.maxHp);
     const sig = h.weapons.join() + h.active;
     if (sig !== this.sig) { this.sig = sig; this.hud.setWeapons(h.weapons.map(key => ({ key, tier: 0 })), h.active) }
   }

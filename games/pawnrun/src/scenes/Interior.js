@@ -45,8 +45,9 @@ class Interior extends TestMap {
     const spawn = rects('spawn')[0] || { x: W / 2, y: H / 2 };
     this.hero = new Hero(this, spawn.x, spawn.y, this.data.hero);
     this.hero.load(this.data.hero); this.hero.aim.set(0, -1);
-    const cam = this.cameras.main, bw = Math.max(W, cam.width), bh = Math.max(H, cam.height);   // a room smaller than the screen sits in its middle
-    cam.setBounds((W - bw) / 2, (H - bh) / 2, bw, bh).setRoundPixels(true).startFollow(this.hero.sprite, true, 0.15, 0.15);
+    const cam = this.cameras.main;
+    this.fitBounds(W, H);
+    cam.setRoundPixels(true).startFollow(this.hero.sprite, true, 0.15, 0.15);
     cam.fadeIn(250);
 
     this.initInput();

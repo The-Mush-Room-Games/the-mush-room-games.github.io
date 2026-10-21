@@ -109,16 +109,19 @@ class UIGallery extends Phaser.Scene {
     this.input.keyboard.on('keydown-LEFT', () => this.go(-1));
     this.input.keyboard.on('keydown-RIGHT', () => this.go(1));
     this.input.on('pointerdown', p => { if (Math.abs(p.y - this.title.y) < 14) this.go(p.x < this.scale.width / 2 ? -1 : 1) });
+    const again = () => this.show();                                // the screen is any size: lay the page out again
+    this.scale.on('resize', again);
+    this.events.once('shutdown', () => this.scale.off('resize', again));
     this.show();
   }
   note(x, y, str) { return this.add.text(x, y, str, txt(12)).setOrigin(0.5).setAlign('center') }
   makeHud(touch) {
     const h = new Hud(this, { touch });
-    h.setHp(3, 5); h.setGold(120); h.setDucks(2); h.setDash(0.6);
+    h.setHp(3, 5); h.setGold(120); h.setDucks(2);
     h.setWeapons([{ key: 'axe', tier: 0 }, { key: 'hammer', tier: 2 }], 1);
     h.setItems(['meat', 'dynamite', null]);
     h.showBoss('Bear King', 'bear-avatar'); h.setBossHp(0.7);
-    if (touch) this.stickText = this.add.text(this.scale.width / 2, 330, '', txt(12)).setOrigin(0.5).setDepth(2e6);
+    if (touch) this.stickText = this.add.text(this.scale.width / 2, this.scale.height * 0.44, '', txt(12)).setOrigin(0.5).setDepth(2e6);
     ['swing', 'dash', 'swap', 'item', 'map'].forEach(n => this.events.on('hud-' + n, a => this.flash(n + (a === undefined ? '' : ' ' + a))));
     return h;
   }
@@ -131,10 +134,10 @@ class UIGallery extends Phaser.Scene {
     ['swing', 'dash', 'swap', 'item', 'map'].forEach(n => this.events.off('hud-' + n));
     this.children.list.slice(this.fixed).forEach(o => o.destroy());
     const hud = this.pages[this.page][0].startsWith('HUD');
-    this.title.y = hud ? 312 : 12;
+    this.title.setPosition(this.scale.width / 2, hud ? this.scale.height * 0.4 : 12);
     this.titleStr = `ui ${this.page + 1}/${this.pageCount}: ${this.pages[this.page][0]}`;
     this.title.setText(this.titleStr);
     this.pages[this.page][1]();
-    if (!hud) this.add.container(60, 75, this.children.list.slice(this.fixed));   // the pages are laid out for 480x600: centre them
+    if (!hud) this.add.container((this.scale.width - 480) / 2, (this.scale.height - 600) / 2, this.children.list.slice(this.fixed));   // the pages are laid out for 480x600: centre them
   }
 }

@@ -107,64 +107,75 @@ function portrait(s, x, y, key, w = 64, h = 64, frame = true) {
 }
 
 // ---------------------------------------------------------------- HUD (screen space, depth >= 1e6)
-// Layout at 600x750: the top row hugs the top corners, the bottom row and touch controls the bottom corners (W, H = screen size). Stick + round buttons only on touch devices (or new Hud(scene, {touch:true})).
+// Only what the game uses: hero portrait and HP bar top left, gold (and ducks once you have one) top right, weapon slots bottom left (the active one
+// lifted, the other dimmed), item slots after them once the bag holds something. Touch controls (stick, swing, dash, map) only
+// on touch devices (or new Hud(scene, {touch:true})). The screen is any size >= 600x750 (Scale.EXPAND): every piece is anchored to
+// its edge or corner and the whole HUD is rebuilt on resize from the values below.
 class Hud {
   constructor(scene, opts = {}) {
-    const s = this.scene = scene, W = s.scale.width, H = s.scale.height;
-    this.list = [];
+    const s = this.scene = scene;
     this._stick = new Phaser.Math.Vector2();
     this.touch = opts.touch ?? uiTouch(s);
+    this.v = { hp: 5, max: 5, gold: 0, ducks: 0, weapons: [null, null], active: 0, items: [null, null, null], boss: null };
     uiCursor(s);
+    this.onResize = () => { this.clear(); this.build() };
+    s.scale.on('resize', this.onResize);
+    s.events.once('shutdown', () => this.destroy());
+    this.build();
+  }
+
+  build() {
+    const s = this.scene, W = s.scale.width, H = s.scale.height, v = this.v;
+    this.list = [];
     const A = (o, d = 0) => { o.setDepth(UI_D + d); o.icon?.setDepth(UI_D + d + 1); this.list.push(o); return o };
     const label = (x, y, str, size, ox = 0.5) => A(s.add.text(x, y, str, txt(size)).setOrigin(ox, 0.5).setScrollFactor(0), 3);
 
-    // top left: hero portrait (Blue Pawn), HP bar, dash bar
-    A(portrait(s, 52, 52, 'avatar05'));
-    this.hp = A(bar(s, 182, 34, 240, 'big'), 1);
-    this.hpText = label(272, 36, '', 28, 0);
-    this.dash = A(bar(s, 174, 82, 224, 'small'), 1);
-    // top right: counters (coin icon, duck frame 0 at 2x)
-    A(icon(s, W - 108, 30, 'icon03'));
-    this.goldText = label(W - 76, 32, '0', 32, 0);
-    A(icon(s, W - 108, 84, 'duck', 0).setScale(2));
-    this.duckText = label(W - 76, 86, '0', 32, 0);
+    A(portrait(s, 52, 52, 'avatar05'));                                // top left: hero portrait (Blue Pawn) and HP bar
+    this.hp = A(bar(s, 188, 34, 176, 'big'), 1);
+    this.hpText = label(284, 36, '', 22, 0);
+    this.coin = A(icon(s, W - 36, 32, 'icon03'));                      // top right: gold, ducks under it once you have one
+    this.goldText = label(W - 68, 34, '', 30, 1);
+    this.duck = A(icon(s, W - 36, 84, 'duck', 0).setScale(2));
+    this.duckText = label(W - 68, 86, '', 30, 1);
 
-    // boss: big ribbon top centre, boss portrait, name, big bar (hidden until showBoss)
+    // boss: big ribbon top centre (hidden until showBoss)
     this.boss = A(uiBox(s, W / 2, 150, []), 2);
     const rib = ribbon(s, 0, 0, 440, 'red', 'big', ''), name = s.add.text(30, -18, '', txt(20)).setOrigin(0.5).setScrollFactor(0);
     this.bossBar = bar(s, 30, 14, 256, 'big');
     this.bossFace = portrait(s, -160, 0, 'bear-avatar');
     this.boss.add([rib, this.bossBar, name, this.bossFace]);
     this.bossName = name;
-    this.boss.setVisible(false);
 
-    // bottom: 2 weapon slots (small square frame, tier ribbon under it; the active one is shown pressed) + 3 item slots (tiny square)
-    this.w = [68, 200].map((x, i) => {
-      const sl = A(slot(s, x, H - 95, 'small'), 1), tag = A(ribbon(s, x, H - 28, 128, 'blue', 'small', ''), 2);
+    // bottom left: weapon slots, then item slots (tiny square frames, 64 px)
+    const y = H - 44;
+    this.w = [0, 1].map(i => {
+      const sl = A(slot(s, 44 + i * 72, y, 'tiny'), 1);
       uiHand(s, sl.fr); sl.fr.on('pointerdown', () => s.events.emit('hud-swap'));
-      return { sl, tag };
+      return sl;
     });
-    this.it = [W - 184, W - 112, W - 40].map((x, i) => {
-      const sl = A(slot(s, x, H - 90, 'tiny'), 1);
+    this.it = [0, 1, 2].map(i => {
+      const sl = A(slot(s, 224 + i * 72, y, 'tiny'), 1);
       uiHand(s, sl.fr); sl.fr.on('pointerdown', () => s.events.emit('hud-item', i));
       return sl;
     });
 
-    if (this.touch) this._touchControls(A);
-    this.setHp(5, 5); this.setDash(1); this.setWeapons([null, null], 0); this.setItems([null, null, null]);
+    if (this.touch) this._touchControls(A, W, H);
+    this.setHp(v.hp, v.max); this.setGold(v.gold); this.setDucks(v.ducks);
+    this.setWeapons(v.weapons, v.active); this.setItems(v.items);
+    v.boss ? this.showBoss(...v.boss) : this.boss.setVisible(false);
   }
 
-  _touchControls(A) {
-    const s = this.scene, W = s.scale.width, H = s.scale.height, ev = n => () => s.events.emit(n);
+  _touchControls(A, W, H) {
+    const s = this.scene, ev = n => () => s.events.emit(n);
     s.input.addPointer(2);                                      // stick + buttons at the same time
     // floating stick: a faint ring waits bottom left; a touch anywhere in the left zone moves it under the thumb
-    const home = { x: 88, y: H - 200 }, C = { ...home, r: 52 };
+    const home = { x: 100, y: H - 190 }, C = { ...home, r: 52 };
     const ring = A(s.add.image(C.x, C.y, 'btn-tiny-round').setScale(2).setScrollFactor(0).setAlpha(0.4));   // tiny round button at exactly 2x
     this.knob = A(s.add.image(C.x, C.y, 'btn-small-round').setScrollFactor(0).setAlpha(0.4), 1);
-    A(iconButton(s, W - 68, H - 212, 'round', 'small', 'icon05', ev('hud-swing')), 1);    // swing: crossed swords
-    A(iconButton(s, W - 162, H - 186, 'round', 'small', 'icon07', ev('hud-dash')), 1);     // dash: green play arrow
-    A(iconButton(s, W - 40, H - 310, 'round', 'small', 'icon11', ev('hud-map')), 1);       // map: info. Swap = tap a weapon slot
-    const zone = new Phaser.Geom.Rectangle(0, 120, W / 2, H - 270), stick = this._stick;
+    A(iconButton(s, W - 76, H - 110, 'round', 'small', 'icon05', ev('hud-swing')), 1);    // swing: crossed swords
+    A(iconButton(s, W - 172, H - 76, 'round', 'small', 'icon07', ev('hud-dash')), 1);     // dash: green play arrow
+    A(iconButton(s, W - 44, H - 214, 'round', 'small', 'icon11', ev('hud-map')), 1);      // map: info. Swap = tap a weapon slot
+    const zone = new Phaser.Geom.Rectangle(0, 120, W / 2, H - 230), stick = this._stick;
     const place = (x, y, a) => { C.x = x; C.y = y; ring.setPosition(x, y).setAlpha(a); this.knob.setPosition(x, y).setAlpha(a) };
     const move = p => {
       const dx = p.x - C.x, dy = p.y - C.y, d = Math.hypot(dx, dy), k = d > C.r ? C.r / d : 1;
@@ -180,26 +191,30 @@ class Hud {
     this.resetStick = () => end(this.sp);                       // a scene that slept never saw the finger lift
   }
 
-  setHp(cur, max) { this.hp.set(cur / max); this.hpText.setText(`${cur}/${max}`) }
-  setGold(n) { this.goldText.setText(n) }
-  setDucks(n) { this.duckText.setText(n) }
-  setDash(frac) { this.dash.set(frac) }
+  setHp(cur, max) { Object.assign(this.v, { hp: cur, max }); this.hp.set(cur / max); this.hpText.setText(`${cur}/${max}`) }
+  setGold(n) { this.v.gold = n; this.goldText.setText(n) }
+  setDucks(n) { this.v.ducks = n; this.duck.setVisible(n > 0); this.duckText.setText(n).setVisible(n > 0) }
   setWeapons(slots, active) {
-    this.w.forEach(({ sl, tag }, i) => {
+    Object.assign(this.v, { weapons: slots, active });
+    this.w.forEach((sl, i) => {
       const d = slots[i];
-      sl.setItem(d && TOOL_ICON[d.key], 0, 2).setActive(i === active);
-      tag.setVisible(!!d);
-      if (d) tag.rb.setTexture('ribbon_small_' + TIER_COLOUR[d.tier] + '_pointed');
+      sl.setItem(d && TOOL_ICON[d.key], 0).setVisible(!!d).setAlpha(i === active ? 1 : 0.55).setY(sl.baseY ?? (sl.baseY = sl.y));
+      if (i === active) sl.y -= 8;
     });
   }
-  setItems(items) { this.it.forEach((sl, i) => { const d = ITEM_ICON[items[i]]; sl.setItem(d && d[0], d && d[1]) }) }
-  showBoss(name, avatarKey) { this.bossName.setText(name); this.bossFace.set(avatarKey); this.bossBar.set(1); this.boss.setVisible(true) }
+  setItems(items) {
+    this.v.items = items;
+    this.it.forEach((sl, i) => { const d = ITEM_ICON[items[i]]; sl.setItem(d && d[0], d && d[1]).setVisible(items.some(Boolean)) });
+  }
+  showBoss(name, avatarKey) { this.v.boss = [name, avatarKey]; this.bossName.setText(name); this.bossFace.set(avatarKey); this.bossBar.set(1); this.boss.setVisible(true) }
   setBossHp(frac) { this.bossBar.set(frac) }
-  hideBoss() { this.boss.setVisible(false) }
+  hideBoss() { this.v.boss = null; this.boss.setVisible(false) }
   get stick() { return this._stick }
-  destroy() {
+  clear() {
     if (this.h) for (const [e, f] of Object.entries(this.h)) this.scene.input.off(e, f);
+    this.h = this.sp = null; this._stick.set(0, 0);
     this.list.forEach(o => o.destroy());
     this.list = [];
   }
+  destroy() { this.scene.scale.off('resize', this.onResize); this.clear() }
 }
