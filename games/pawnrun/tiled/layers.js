@@ -18,8 +18,10 @@ function breaks(m, w, h) {
 
 // opts: { w, h, ground, raised, water, sand, stairs }. Returns { stairTiles, layers (bottom to top, ids from 1, without the objects), base (the beach footprint) }.
 // The beach is made to obey the tile rule by painting the cells the ring leaves as notches into `sand` (a painted-water cell is left alone and throws).
-module.exports = function terrainLayers({ w, h, ground, raised, water, sand, stairs }) {
-  const idx = (x, y) => y * w + x, stairTiles = new Int16Array(w * h).fill(-1);
+module.exports = function terrainLayers({ w, h, ground, raised, water, sand, stairs, dirt = new Uint8Array(w * h) }) {
+  const idx = (x, y) => y * w + x, stairTiles = new Int16Array(w * h).fill(-1), dirtAt = (x, y) => x >= 0 && y >= 0 && x < w && y < h && dirt[idx(x, y)] === 1;
+  for (let i = 0; i < w * h; i++) if (dirt[i] && !ground[i]) throw new Error('dirt outside ground at ' + i % w + ',' + Math.floor(i / w));
+  if (breaks(dirt, w, h).length) throw new Error('dirt breaks the tile rule at ' + breaks(dirt, w, h)[0]);
   for (const [i, t] of Object.entries(stairs)) stairTiles[i] = t;
   const mk = () => ({ w, h, ground, raised, stairTiles, water, sand });
   let m = mk();
@@ -57,6 +59,7 @@ module.exports = function terrainLayers({ w, h, ground, raised, water, sand, sta
     layer('Sand', (x, y) => (sand[idx(x, y)] ? F.sand + 10 : 0), { opacity: 0.4 }),             // the cells painted as beach: a hint over the preview
     layer('Land shadows (preview)', (x, y) => (landShadow.has(idx(x, y)) ? F.shadow : 0)),
     layer('Ground', (x, y) => (ground[idx(x, y)] ? F.low + (near(0, x, y) ? 15 : TR.autotile(c.G, x, y, 5)) : 0)),
+    layer('Dirt', (x, y) => (dirt[idx(x, y)] ? F.sand + TR.autotile(dirtAt, x, y) : 0)),             // streets: the sand set drawn on the land
     layer('Shadows (preview)', (x, y) => (shadow.has(idx(x, y)) ? F.shadow : 0)),
     layer('Raised', (x, y) => (raised[idx(x, y)] ? F.high + (near(1, x, y) ? 15 : TR.autotile(c.H, x, y, 5)) : 0)),
     layer('Cliffs (preview)', (x, y) => cliff.get(idx(x, y)) || 0),

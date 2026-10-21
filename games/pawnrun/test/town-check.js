@@ -23,8 +23,8 @@ const load = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
   const sold = Object.values(SHOPS).flat(); for (const id of Object.keys(UPGRADES)) assert(sold.includes(id), id + ' is not sold anywhere');
 
   // buildings: the Castle, Barracks, Monastery, the Market house, two enterable houses (doors that name real rooms and NPCs), the gate's two Towers
-  for (const k of ['castle', 'barracks', 'monastery', 'house2']) assert.strictEqual(tiles.filter(o => o.key === k).length, 1, k);
-  assert.strictEqual(tiles.filter(o => o.key === 'tower').length, 2, 'two Towers');
+  for (const k of ['castle', 'barracks', 'monastery']) assert.strictEqual(tiles.filter(o => o.key === k).length, 1, k);
+  assert(tiles.filter(o => o.key === 'house2').length >= 5, 'a street of houses'); assert(tiles.filter(o => o.key === 'tower').length >= 8, 'Towers on the wall');
   const doors = shapes.filter(o => o.cls === 'door');
   assert.strictEqual(doors.length, 2, 'two doors'); assert.deepStrictEqual(doors.map(d => d.props.npc).sort(), ['folk1', 'folk2']);
   for (const d of doors) { assert(fs.existsSync(path.join(root, d.props.interior)), d.props.interior); assert(NPCS[d.props.npc] && !/pawn/.test(NPCS[d.props.npc].key), 'door npc'); assert(/^\d+,\d+$/.test(d.props.npcAt), 'npcAt') }
@@ -52,7 +52,7 @@ const load = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
   const b = spawns.find(o => o.name === 'beach'), wg = TR.walkGrids(m), lv = TR.heightGrid(m), stones = SEAL.stonesOf(m), ok = (x, y) => TR.feetOk(m, wg, -1, x, y, stones);
   assert(TR.levelAt(lv, m.w, b.x, b.y) === -1 && ok(b.x, b.y), 'the hero wakes up standing on the sand');
   assert([-3, 3].some(dx => !TR.baseOf(m)[Math.floor(b.y / T) * m.w + Math.floor((b.x + dx * T) / T)]), 'the beach is by the sea');
-  const ramps = TR.rampsOf(m); assert.strictEqual(ramps.length, 2, 'two stairs down to the sand'); assert(ramps.every(r => r.lo === -1 && r.hi === 0));
+  const ramps = TR.rampsOf(m).filter(r => r.lo === -1); assert.strictEqual(ramps.length, 2, 'two stairs down to the sand'); assert.strictEqual(TR.rampsOf(m).length, 4, 'and two up the hill');
   const seen = new Set(), q = [[Math.floor(b.x / T), Math.floor(b.y / T)]];                      // flood the sand cells (centre of each cell, or a bit lower where the sea edge stops the first)
   while (q.length) { const [x, y] = q.pop(), k = y * m.w + x; if (x < 0 || y < 0 || x >= m.w || y >= m.h || seen.has(k) || !(ok(x * T + 32, y * T + 32) || ok(x * T + 32, y * T + 52))) continue; seen.add(k); q.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]) }
   for (const r of ramps) assert(seen.has(r.footCell[1] * m.w + r.footCell[0]), 'the sand reaches the foot of the stairs at ' + r.footCell);
@@ -63,5 +63,20 @@ const load = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
   }
   const plank = tiles.filter(o => o.key === 'dock').sort((p, q) => p.y - q.y)[0], pc = [Math.floor(plank.x / T), Math.floor((plank.y - 158 + 12) / T)];
   assert(seen.has(pc[1] * m.w + pc[0]), 'the sand reaches the pier: ' + pc); const sc = [Math.floor((sail[0].x + sail[0].w / 2) / T), Math.floor((sail[0].y + sail[0].h / 2) / T)]; assert(seen.has(sc[1] * m.w + sc[0]), 'and the planks lead on to the sail rect: ' + sc); assert(!m.ground[pc[1] * m.w + pc[0]] && TR.baseOf(m)[pc[1] * m.w + pc[0]], 'the pier starts on the beach, not on the land');
+  // the wall: with the fences standing, a walk from the start reaches every vendor, door, house spawn and the foot of both hill ramps, and the gate; with the gate
+  // bricked up (a rect over its gap) it reaches nothing outside the wall (the gate spawn, the fields, the pier)
+  const bands = fences.flatMap(f => YARD[f.props.p][2].map(b => ({ x0: f.x + b[0], y0: f.y + b[1], x1: f.x + b[2], y1: f.y + b[3], high: false })));
+  const rects = SEAL.mapRects(m).concat(bands), start = spawns[0], gate = shapes.find(o => o.cls === 'spawn' && o.name === 'gate');
+  const open = SEAL.flood(m, rects, stones, [[start.x, start.y]]);
+  for (const n of npcs) assert([-70, 0, 70].some(dx => open.has(n.x + dx, n.y + 40)), 'reach ' + n.props.role);
+  for (const d of doors) assert(open.has(d.x + d.w / 2, d.y + d.h + 24), 'reach a door');
+  for (const n of ['houseA', 'houseB', 'gate']) { const s = spawns.find(o => o.name === n); assert(open.has(s.x, s.y), 'reach ' + n) }
+  for (const r of TR.rampsOf(m).filter(r => r.lo === 0)) assert(open.has(r.F.x, r.F.y), 'reach the foot of the hill ramp at ' + r.footCell);
+  assert(TR.levelAt(lv, m.w, spawns.find(o => o.name === 'steward').x, spawns.find(o => o.name === 'steward').y) === 1, 'the Steward is up on the hill');
+  const towers = tiles.filter(o => o.key === 'tower'), gt = towers.filter(o => Math.abs(o.y - gate.y) < 3 * T).sort((a, b) => a.x - b.x);
+  assert.strictEqual(gt.length, 2, 'two gate Towers'); const brick = { x0: gt[0].x, y0: gt[0].y - 1.5 * T, x1: gt[1].x, y1: gt[0].y - 0.5 * T, high: false };
+  const shut = SEAL.flood(m, rects.concat(brick), stones, [[start.x, start.y]]);
+  assert(!shut.has(gate.x, gate.y) && !shut.has(sail[0].x + 20, sail[0].y + 20), 'bricking up the gate seals the town');
+  let out = 0; shut.each((x, y) => { if (y > gate.y - T) out++ }); assert.strictEqual(out, 0, out + ' points leak past the wall');
   console.log('town-check ok:', m.objects.length, 'objects,', fences.length, 'fence cells,', npcs.length, 'NPCs');
 })().catch(e => { console.error(e); process.exit(1) });

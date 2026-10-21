@@ -10,5 +10,5 @@ module.exports = {
   BG: '#47aba9', // the game's camera colour: the water
   tilesets: (prefix = '') => SETS.map(([name, file]) => ({ firstgid: FIRST[name], source: prefix + file })),
   // bottom to top, as the game draws them
-  LAYERS: ['Water', 'Foam (preview)', 'Beach (preview)', 'Sand', 'Land shadows (preview)', 'Ground', 'Shadows (preview)', 'Raised', 'Cliffs (preview)', 'Stairs', 'Objects'],
+  LAYERS: ['Water', 'Foam (preview)', 'Beach (preview)', 'Sand', 'Land shadows (preview)', 'Ground', 'Dirt', 'Shadows (preview)', 'Raised', 'Cliffs (preview)', 'Stairs', 'Objects'],
 };

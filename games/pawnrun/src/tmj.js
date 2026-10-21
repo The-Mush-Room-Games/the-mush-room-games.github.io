@@ -38,9 +38,9 @@ async function readMap(path, loadJson) {
 
   const FLIP_X = 0x80000000, MASK = 0x1fffffff;
   const out = { w, h, tw: map.tilewidth, images: [], tileLayers: [], cls: map.class || '', props: propsOf(map.properties),
-    ground: new Uint8Array(w * h), raised: new Uint8Array(w * h), stairs: new Uint8Array(w * h), water: new Uint8Array(w * h), sand: new Uint8Array(w * h),
+    ground: new Uint8Array(w * h), raised: new Uint8Array(w * h), stairs: new Uint8Array(w * h), water: new Uint8Array(w * h), sand: new Uint8Array(w * h), dirt: new Uint8Array(w * h),
     stairTiles: new Int16Array(w * h).fill(-1), objects: [] };
-  const mask = { ground: 'ground', raised: 'raised', stairs: 'stairs', water: 'water', sand: 'sand' };
+  const mask = { ground: 'ground', raised: 'raised', stairs: 'stairs', water: 'water', sand: 'sand', dirt: 'dirt' };   // Dirt: sand tiles drawn on the land (streets); no walk effect
 
   const walk = layers => {
     for (const l of layers) {
