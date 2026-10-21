@@ -281,6 +281,8 @@ def build(pawn, weapon, direction):
 
 def main():
     for pawn, tools in TOOLS.items():
+        if pawn == "old":
+            continue                                     # the Old Pawn strips come from make_old_anims.py
         prefix = "opawn" if pawn == "old" else "pawn"
         for weapon in tools:
             for direction in ("up", "down"):

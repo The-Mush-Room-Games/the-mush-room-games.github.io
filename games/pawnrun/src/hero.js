@@ -33,6 +33,7 @@ class Hero {
   get dashFrac() { return 1 - Math.max(0, this.dashCd) / DASH.cooldown }
 
   anim(kind) {                                       // 'idle' | 'run' | 'roll' (the new Pawn tucks his tool away to roll)
+    if (this.form === 'old' && this.aim.y < 0 && (kind === 'idle' || kind === 'run')) return `opawn-back-${kind}`;   // facing up: his back
     return this.form === 'old' ? HERO.old[kind] : kind === 'roll' ? 'pawn-roll' : `pawn-${kind}-${this.weapon}`;
   }
   step(dx, dy) {                                     // the scene slides the feet along walls and carries them along ramps

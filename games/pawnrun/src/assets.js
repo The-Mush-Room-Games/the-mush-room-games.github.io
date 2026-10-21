@@ -4,6 +4,8 @@ const ASSETS = {
   // hero
   opawn: ['hero/opawn.png', 192, 192],
   'opawn-roll': ['hero/opawn-roll.png', 192, 192],      // made by tools/make_roll.py
+  'opawn-back-idle': ['hero/opawn-back-idle.png', 192, 192],   // back view for facing up: tools/make_old_anims.py
+  'opawn-back-run': ['hero/opawn-back-run.png', 192, 192],
   'pawn-roll': ['hero/pawn-roll.png', 192, 192],
   odead: ['hero/odead.png', 128, 128],
   'pawn-idle': ['hero/pawn-idle.png', 192, 192],
@@ -240,7 +242,7 @@ const ASSETS = {
   avatar25: ['ui/avatar25.png'],
 };
 for (const f of ['opawn-axe', 'opawn-hammer', 'pawn-axe', 'pawn-hammer', 'pawn-knife', 'pawn-pickaxe'])   // up/down swings,
-  for (const d of ['up', 'down']) ASSETS[`${f}-${d}`] = [`hero/${f}-${d}.png`, 192, 192];             // made by tools/make_swings.py
+  for (const d of ['up', 'down']) ASSETS[`${f}-${d}`] = [`hero/${f}-${d}.png`, 192, 192];             // made by tools/make_swings.py (opawn: make_old_anims.py)
 
 // Multi-row old sheets: name: [sheet key, first frame, last frame]. Single-row sheets get an animation named after their key in Boot.
 const ANIMS = {
