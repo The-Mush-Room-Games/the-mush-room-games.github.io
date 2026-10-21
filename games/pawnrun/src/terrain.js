@@ -142,6 +142,36 @@ function moveFeet(ramps, ok, u, dx, dy) {
   return [x, y];
 }
 
+// Collision rects of an object in frame pixels: the ones drawn in Tiled, else a band along the bottom of the art
+// (only when the object has a `block` footprint). Trees block only the trunk, buildings most of their base.
+function objectRects(o, box) {
+  if (o.rects && o.rects.length) return o.rects;
+  if (!o.block || (!o.block[0] && !o.block[1])) return [];
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  let w = 0.8 * box.w, h = clamp(0.3 * box.h, 12, 40);
+  if (/^tree/.test(o.key)) { w = 0.3 * box.w; h = 14 }
+  else if (/^(house|castle|tower|barracks|monastery)/.test(o.key)) { w = 0.9 * box.w; h = 0.4 * box.h }
+  return [{ x: box.x + (box.w - w) / 2, y: box.y + box.h - 2 - h, w, h }];
+}
+// An object's collision in world px [{ x0, y0, x1, y1 }]: o = a tile object (bottom-centre anchored, as readMap gives it, with .key), box = its art box
+// { x, y, w, h, fw, fh } (TestMap artBox; tiled/seal.js reads the PNG), rs = frame-pixel rects to use instead of objectRects.
+function worldRects(o, box, rs) {
+  const fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box, top = o.y - box.fh, left = o.x - box.fw / 2;
+  return (rs || objectRects(o, fb)).map(r => ({ x0: left + r.x, y0: top + r.y, x1: left + r.x + r.w, y1: top + r.y + r.h }));
+}
+// Every object collision rect of a map (what TestMap places, minus the camps' gap pieces): objects with art, and `block` rects, which wall off a clearing.
+// boxOf(key, o) = the art box of a texture. A rect is { x0, y0, x1, y1, high }.
+function collisionRects(m, boxOf) {
+  const lv = heightGrid(m), out = [];
+  for (const o of m.objects) {
+    if (o.cls === 'block' && o.w > 0) { out.push({ x0: o.x, y0: o.y, x1: o.x + o.w, y1: o.y + o.h, high: false }); continue }
+    if (!o.key || o.cls === 'enemy' || /^sheep/.test(o.key)) continue;
+    const high = lv[Math.floor((o.y - 1) / T) * m.w + Math.floor(o.x / T)] === LV.RAISED;
+    for (const r of worldRects(o, boxOf(o.key, o))) out.push({ ...r, high });
+  }
+  return out;
+}
+
 // Phaser side. Water is the camera background; layers bottom to top: foam −40, flat −30, shadow −20, stairs −10. Plateau
 // tops and cliffs sort with the units, one layer per row. A top-surface pixel covers the ground one tile below it, so it
 // is in front of anything standing on the ground less than a tile below it (a unit beside or behind the plateau is
@@ -179,4 +209,4 @@ function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2') {
   return { map, flat, stairs, rows, foam, shadows };
 }
 
-if (typeof module === 'object') module.exports = { T, LV, STAIR_IDX, FEET, FEET_HIGH, HIGH_DEPTH, autotile, heightGrid, canStep, walkGrids, standOk, onStone, feetOk, rampsOf, moveFeet, cellFns, cliffTile, hasCliff };
+if (typeof module === 'object') module.exports = { objectRects, worldRects, collisionRects, T, LV, STAIR_IDX, FEET, FEET_HIGH, HIGH_DEPTH, autotile, heightGrid, canStep, walkGrids, standOk, onStone, feetOk, rampsOf, moveFeet, cellFns, cliffTile, hasCliff };

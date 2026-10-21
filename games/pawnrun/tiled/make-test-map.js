@@ -1,8 +1,8 @@
 // Writes maps/test.tmj, a 64x50 test island. Run: node tiled/make-test-map.js (after make-rules.js and make-objects.js)
 const fs = require('fs'), path = require('path');
-const C = require('./common.js'), TR = require('../src/terrain.js');
+const C = require('./common.js'), TR = require('../src/terrain.js'), SEAL = require('./seal.js');
 const R = path.join(__dirname, '..');
-const W = 64, H = 50, T = 64;
+const W = 64, H = 50, T = 64, CL = require('./clearing.js')(W, H);
 const objTs = JSON.parse(fs.readFileSync(path.join(R, 'maps/objects.tsj'), 'utf8'));
 const keyOf = t => (t.properties || []).find(p => p.name === 'key')?.value || t.image.split('/').pop().replace(/\.png$/i, '');
 const findTile = key => objTs.tiles.find(t => keyOf(t) === key);
@@ -19,18 +19,35 @@ const rows = { 2: [7, 12], 3: [5, 14], 4: [4, 15], 5: [4, 16], 6: [3, 16], 7: [3
 const idx = (x, y) => y * W + x;
 const ground = new Uint8Array(W * H), raised = new Uint8Array(W * H), water = new Uint8Array(W * H);
 for (const [y, r] of Object.entries(rows)) for (const [a, b] of typeof r[0] === 'number' ? [r] : r) for (let x = a; x <= b; x++) ground[idx(x, +y)] = 1;
-// East and south of the meadow, all reached from it (the camp is in the middle of the meadow: walk round it):
+// East and south of the meadow, all reached from it (the gnome camp is a clearing in the middle of the meadow: walk round it):
 // - a 2-tile corridor east (rows 17-18, cols 39-43) into the snake den (cols 44-56, rows 13-23);
-// - from the den a 3-wide corridor south (cols 49-51, rows 24-27) into the boss arena: ground cols 42-59, rows 28-43, the inside (the camp rect) is cols 43-58 x rows 29-42
-//   (16 x 14 flat tiles) and its fence ring is the outer row/column; water below row 43, where the dock and the boat are;
+// - from the den a 3-wide corridor south (cols 49-51, rows 24-27) into the boss clearing on the shore (generated below: a wobbly ellipse about 20 x 16 cells, the
+//   island's south shore runs along its bottom, where the dock and the boat are);
 // - a spider glade north of the meadow (cols 25-40, rows 2-7, joined by a 4-wide neck, rows 8-10, cols 30-33);
 // - a slingshot grove south of it (cols 26-37, rows 27-37, neck rows 24-26, cols 30-33).
 const land = (c0, r0, c1, r1) => { for (let y = r0; y <= r1; y++) for (let x = c0; x <= c1; x++) ground[idx(x, y)] = 1 };
-land(39, 17, 43, 18); land(44, 13, 56, 23); land(49, 24, 51, 27); land(42, 28, 59, 43);
+land(39, 17, 43, 18); land(44, 13, 56, 23); land(49, 24, 51, 27);
 land(25, 2, 40, 7); land(30, 8, 33, 10); land(30, 24, 33, 26); land(26, 27, 37, 37);
+land(24, 10, 41, 24);                                                                                      // the meadow (wide enough to walk round the camp)
 for (let y = 10; y <= 11; y++) for (let x = 9; x <= 11; x++) { ground[idx(x, y)] = 0; water[idx(x, y)] = 1; } // pond
 for (let y = 3; y <= 6; y++) for (let x = 6; x <= 11; x++) raised[idx(x, y)] = 1;                          // 6x4 plateau
 for (let x = 9; x <= 11; x++) raised[idx(x, 9)] = 1;                                                      // bump whose cliff stands in the pond
+
+// The clearings' terrain. Gnome camp (centre 32.4, 17.5): a pond west-south-west and a plateau (with its cliff) north-east. Boss clearing (centre 51, 35.3): the
+// land is the ellipse grown by 2 cells, cut at the shore (rows <= shore(col), a wobbly line with the dock at col 50), a plateau on its north-west side and another on the east.
+// lobes = [cx, cy, rx, ry] ellipses added to the main one, so the outline is not a circle.
+const CAMP = { cx: 32.2, cy: 17.6, rx: 4.5, ry: 3.7, seed: 5, lobes: [[35.4, 19.5, 2.5, 2.1], [29.4, 15.2, 2.3, 2.3]] };
+const ARENA = { cx: 51.2, cy: 36.4, rx: 8.6, ry: 7.6, seed: 23, lobes: [[56.8, 31.8, 4, 3.4], [46, 40.3, 4.4, 3.3], [56.2, 40.5, 3.8, 3.2]] };
+const shapeOf = (G, { grow = 0, amp = 0.2 } = {}) => new Set([[G.cx, G.cy, G.rx, G.ry], ...G.lobes].flatMap(([cx, cy, rx, ry], k) => [...CL.ellipse(cx, cy, rx, ry, G.seed + k, { grow, amp })]));
+for (let y = 21; y <= 23; y++) for (let x = 27; x <= 29; x++) { ground[idx(x, y)] = 0; water[idx(x, y)] = 1 }              // pond
+for (let y = 11; y <= 12; y++) for (let x = 33; x <= 37; x++) raised[idx(x, y)] = 1;                                     // plateau, cliff in row 13
+const shore = Array.from({ length: W }, (_, x) => CL.vnoise(x * 0.35, 3, 9) > 0.5 ? 43 : 42);
+for (let x = 48; x <= 53; x++) shore[x] = 43;
+for (let k = 0; k < 4; k++) for (let x = 1; x < W - 1; x++) if (shore[x - 1] === shore[x + 1] && shore[x] !== shore[x - 1]) shore[x] = shore[x - 1];   // no 1-column steps
+for (const i of shapeOf(ARENA, { grow: 2.1, amp: 0.1 })) { const [x, y] = CL.xy(i); if (x >= 39 && x <= 63 && y <= shore[x]) ground[i] = 1 }
+for (let y = 29; y <= 30; y++) for (let x = 43; x <= 46; x++) raised[idx(x, y)] = 1;                                     // plateau, cliff in row 31
+for (let y = 32; y <= 33; y++) for (let x = 59; x <= 61; x++) raised[idx(x, y)] = 1;                                     // plateau, cliff in row 34
+CL.clean(ground);
 
 const has = (m, x, y) => x >= 0 && y >= 0 && x < W && y < H && m[idx(x, y)] === 1;
 // the game's rule; no inside corners exist, so reject 1-tile notches and diagonal-only touches
@@ -57,6 +74,25 @@ const stairs = { [idx(5, 6)]: 36, [idx(5, 7)]: 45 }; // left stair beside the pl
 // what the game draws on top of the three masks, from the game's own rules (src/terrain.js)
 const stairTiles = new Int16Array(W * H).fill(-1);
 for (const [i, t] of Object.entries(stairs)) stairTiles[i] = t;
+
+// The clearings: the inside (a wobbly ellipse of flat ground), the gaps (straight runs of cells at its edge) and the wall line (the cells around it). The wall line
+// holds trees and rocks (a `block` rect under each cell makes the line solid: trunk rects alone leave gaps a Pawn squeezes through), or is already water or a cliff.
+const lv = TR.heightGrid({ w: W, h: H, ground, raised, stairTiles }), flat = i => lv[i] === TR.LV.GROUND;
+function clearing(name, kind, G, gapDefs) {
+  const inside = CL.insideOf(shapeOf(G, { amp: G.amp }), flat);
+  const gaps = gapDefs.map(([side, span]) => ({ side, cells: CL.carveGap(inside, side, span, flat) }));
+  const fixed = CL.insideOf(inside, () => true);
+  for (const g of gaps) for (const [c, r] of g.cells) if (!(fixed.has(idx(c + 1, r)) || fixed.has(idx(c - 1, r)) || fixed.has(idx(c, r + 1)) || fixed.has(idx(c, r - 1)))) throw new Error(`${name}: gap cell ${c},${r} lost its inside`);
+  const gapSet = new Set(gaps.flatMap(g => g.cells.map(([c, r]) => idx(c, r))));
+  const walls = [...CL.ringOf(fixed)].filter(i => !gapSet.has(i));
+  return { name, kind, G, inside: fixed, gaps, gapSet, walls, block: walls.filter(i => lv[i] !== TR.LV.BLOCK) };
+}
+const camp = clearing('camp', 'gnome', { ...CAMP, amp: 0.2 }, [['W', [16, 17, 18]], ['S', [32, 33]]]);
+const arena = clearing('arena', 'boss', { ...ARENA, amp: 0.1 }, [['N', [49, 50, 51]]]);
+if (process.env.DEBUG) for (const cl of [camp, arena]) {
+  const ring = CL.ringOf(cl.inside);
+  for (let y = 0; y < H; y++) { let row = ''; for (let x = 0; x < W; x++) { const i = idx(x, y); row += cl.inside.has(i) ? '.' : cl.gapSet.has(i) ? 'G' : cl.block.includes(i) ? '#' : ring.has(i) ? '~' : ground[i] ? ',' : ' ' } if (row.trim()) console.log(String(y).padStart(2), row) }
+}
 const c = TR.cellFns({ w: W, h: H, ground, raised, stairTiles });
 const raisedTile = (x, y) => (c.top(x - 1, y) || c.top(x + 1, y) ? 15 : autotile(raised, x, y, 5));
 const cliff = new Map(), foam = new Set(), shadow = new Set();
@@ -117,18 +153,64 @@ objects.push(
   // a rock pile on the tiny islet across 2 water tiles from the field's south shore (col 13, row 21): out of reach of any swing, a dynamite thrown south lands next to it
   tileObj('rock2', bottom(13, 25), 'secret', kind('rock')),
 );
-// The gnome camp (src/camp.js): the `camp` rect is the inside (cols 29-34, rows 14-19); the Wooden Fence ring stands on the cells around it
-// (cols 28-35, rows 13-20), and a `gate` rect on the ring is a gap that closes when the hero steps in: north (32,13) and south (31,20).
-// A Gnome Hut in the north-east corner, 4 gnomes in the rest. Reach it along the field's rows 17-18 to the east, then round to the south gate.
+// The clearings (src/camp.js, tiled/clearing.js). A `camp` polygon is the inside; a `gate` rect marks each gap (the fence pieces or boulders stand there while it is
+// closed); `block` rects make the wall line solid, with trees and rocks drawn on them. The gnome camp: a Gnome Hut in the north-east, 4 gnomes, a pond south-west, a
+// plateau north-east, gaps west (where the field's path arrives) and south.
 const rect = (cls, c0, r0, c1, r1, props = []) => ({ id: oid++, name: cls, class: cls, x: c0 * T, y: r0 * T, width: (c1 - c0 + 1) * T, height: (r1 - r0 + 1) * T, rotation: 0, visible: true, properties: props });
+const polyObj = (cls, pts, props = []) => ({ id: oid++, name: cls, class: cls, x: pts[0][0], y: pts[0][1], width: 0, height: 0, rotation: 0, visible: true,
+  polygon: pts.map(([x, y]) => ({ x: x - pts[0][0], y: y - pts[0][1] })), properties: props });
+const gateOf = g => { const cs = g.cells; return rect('gate', Math.min(...cs.map(c => c[0])), Math.min(...cs.map(c => c[1])), Math.max(...cs.map(c => c[0])), Math.max(...cs.map(c => c[1]))) };
+const gapOf = key => { const b = SEAL.artBoxOf(key, {}); return b.fh - (b.y + b.h) };      // transparent rows under the art: tile objects are placed by the frame's bottom
+const feet = (key, x, y) => tileObj(key, [Math.round(x), Math.round(y + gapOf(key))]);       // ... this places the art's feet at x, y
+// The wall line of a clearing: a tree or rock group on every cell that needs a wall (in runs of 2-5 cells of one kind, round the clearing), pulled towards the
+// inside so a Pawn stops at the trunk; a `block` rect per run of cells in a row; and outside it a thinner scatter of trees and bushes (p = outer) off the lanes
+// that lead out of the gaps. Nothing stands on a gap, nor on the inside but a few bushes at its edge.
+function wallObjects(cl, seed, outer) {
+  const rnd = CL.rng(seed), out = [], cs = [...cl.inside].map(CL.xy), mx = cs.reduce((a, c) => a + c[0], 0) / cs.length + 0.5, my = cs.reduce((a, c) => a + c[1], 0) / cs.length + 0.5;
+  const toward = (c, r) => { let ix = 0, iy = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (cl.inside.has(CL.idx(c + dx, r + dy))) { ix += dx; iy += dy } const L = Math.hypot(ix, iy) || 1; return [ix / L, iy / L] };
+  const lane = new Set();
+  for (const g of cl.gaps) { const [ox, oy] = { W: [-1, 0], E: [1, 0], N: [0, -1], S: [0, 1] }[g.side]; for (const [c, r] of g.cells) for (let k = 0; k <= 6; k++) for (let l = -1; l <= 1; l++) lane.add(CL.idx(c + ox * k - oy * l, r + oy * k + ox * l)) }
+  const nearGap = (c, r, d) => cl.gaps.some(g => g.cells.some(([gc, gr]) => Math.hypot(gc - c, gr - r) <= d));
+  const hides = (c, r) => cl.gaps.some(g => g.cells.some(([gc, gr]) => r > gr && r - gr <= 3 && Math.abs(c - gc) <= 1));   // a tree's crown reaches ~3 rows up: none south of a gap, or it hides the opening
+  const ring = cl.block.map(i => [i, Math.atan2(CL.xy(i)[1] + 0.5 - my, CL.xy(i)[0] + 0.5 - mx)]).sort((a, b) => a[1] - b[1]);
+  let run = 0, kind = 'tree';
+  for (const [i] of ring) {
+    if (run-- <= 0) { kind = rnd() < 0.55 ? 'tree' : 'rock'; run = 2 + Math.floor(rnd() * 4) }
+    const [c, r] = CL.xy(i), [ix, iy] = toward(c, r), at = a => [c * T + 32 + 22 * ix - a * iy + (rnd() - 0.5) * 10, r * T + 32 + 22 * iy + a * ix + (rnd() - 0.5) * 8];
+    if (kind === 'tree' && !hides(c, r)) for (const a of [-15, 15]) out.push(feet('tree' + (1 + Math.floor(rnd() * 4)), ...at(a)));
+    else {                                                           // a pile: two big rocks side by side, a small one in front, one behind
+      out.push(feet(['rock4', 'rock2'][Math.floor(rnd() * 2)], ...at(-17)), feet(['rock3', 'rock4'][Math.floor(rnd() * 2)], ...at(17)));
+      out.push(feet('rock1', c * T + 32 + 34 * ix - 6 * iy + (rnd() - 0.5) * 20, r * T + 32 + 34 * iy + 8 * ix));
+    }
+  }
+  const byRow = {};
+  for (const i of cl.block) { const [c, r] = CL.xy(i); (byRow[r] ||= []).push(c) }
+  for (const [r, cols] of Object.entries(byRow)) {
+    cols.sort((a, b) => a - b);
+    for (let k = 0, j; k < cols.length; k = j) { for (j = k + 1; j < cols.length && cols[j] === cols[j - 1] + 1; j++); out.push(rect('block', cols[k], +r, cols[j - 1], +r)) }
+  }
+  const all = new Set([...cl.inside, ...CL.ringOf(cl.inside)]), band2 = CL.ringOf(all), band3 = CL.ringOf(new Set([...all, ...band2]));
+  const dense = (c, r) => CL.vnoise((c + 0.5 - mx) / 4 + 7, (r + 0.5 - my) / 4 + 7, seed) > 0.5;   // forest sectors: two more rows of trees
+  for (const [band, p] of [[band2, outer], [band3, outer * 0.8]]) for (const i of band) {          // the rings outside the wall line
+    const [c, r] = CL.xy(i);
+    if (lv[i] !== TR.LV.GROUND || lane.has(i) || hides(...CL.xy(i)) || rnd() > (dense(c, r) ? Math.min(1, p + 0.45) : p * (band === band2 ? 1 : 0.3))) continue;
+    out.push(feet(rnd() < 0.72 ? 'tree' + (1 + Math.floor(rnd() * 4)) : 'bush' + (1 + Math.floor(rnd() * 4)), c * T + 32 + (rnd() - 0.5) * 30, r * T + 36 + (rnd() - 0.5) * 24));
+  }
+  for (const i of cl.inside) {                                       // a few bushes at the inside edge
+    const [c, r] = CL.xy(i);
+    if (CL.ringOf(new Set([i])).size && [...CL.ringOf(new Set([i]))].some(j => cl.block.includes(j)) && !nearGap(c, r, 4) && rnd() < 0.14) out.push(feet('bush' + (1 + Math.floor(rnd() * 4)), c * T + 32 + (rnd() - 0.5) * 24, r * T + 40));
+  }
+  return out;
+}
+const inCl = (cl, cx, cy) => { if (!cl.inside.has(CL.idx(cx, cy))) throw new Error(`${cl.name}: ${cx},${cy} is not inside`); return [cx, cy] };
 const GNOME_GAP = 65;                                                  // transparent rows under a gnome's feet in its 192 px frame
-const gnome = (cx, cy, n) => tileObj('gnome-idle', [cx * T + T / 2, (cy + 1) * T - T / 2 + GNOME_GAP], undefined, n > 1 ? [P('count', n, 'int')] : []);
+const gnome = (cx, cy, n) => (inCl(camp, cx, cy), tileObj('gnome-idle', [cx * T + T / 2, (cy + 1) * T - T / 2 + GNOME_GAP], undefined, n > 1 ? [P('count', n, 'int')] : []));
 objects.push(
-  rect('camp', 29, 14, 34, 19, [P('kind', 'gnome')]), rect('gate', 32, 13, 32, 13), rect('gate', 31, 20, 31, 20),
-  tileObj('gnome-hut', [34 * T, 17 * T]),
-  gnome(31, 16, 2), gnome(30, 18, 1), gnome(33, 19, 1),
-  tileObj('bush3', bottom(26, 12)), tileObj('bush2', bottom(37, 22)), tileObj('rock3', bottom(26, 21)), tileObj('tree3', bottom(37, 12)),
-  loot('meat', centre(36, 21)),
+  polyObj('camp', CL.outline(camp.inside, T), [P('kind', 'gnome')]), ...camp.gaps.map(gateOf), ...wallObjects(camp, 11, 0.22),
+  tileObj('gnome-hut', [35 * T, 16 * T]),
+  gnome(31, 16, 2), gnome(30, 19, 1), gnome(34, 19, 1),
+  tileObj('bush3', bottom(25, 12)), tileObj('bush2', bottom(40, 22)), tileObj('rock3', bottom(25, 23)), tileObj('tree3', bottom(40, 12)),
+  loot('meat', centre(39, 21)),
 );
 // Enemy areas (a gnome stands with 64 px tiles: `gap` = transparent rows under the feet in the 192 / 256 px frame). `n` makes a pack in a ring.
 const foe = (key, gap, cx, cy, n) => tileObj(key + '-idle', [cx * T + T / 2, cy * T + T / 2 + gap], undefined, n > 1 ? [P('count', n, 'int')] : []);
@@ -144,19 +226,20 @@ objects.push(
   tileObj('rock2', bottom(31, 30)), tileObj('tree3', bottom(35, 30)), tileObj('rock4', bottom(28, 35)), tileObj('bush3', bottom(36, 36)),
   loot('meat', centre(27, 28)),
 );
-// The boss arena: a boss `camp` (the inside is 16 x 14 flat tiles, nothing in it but the Bear, which stands in the middle), a gate in the fence ring on the
-// north side (the way in, below the corridor) and on the south side (the dock). The dock is one plank section standing on the south shore, over the water
-// (a stepstone: feet may stand on it); the boat floats beside it. Standing in the `dock` rect shows the Board prompt, once the Bear is down.
+// The boss clearing: a boss `camp` polygon (about 20 x 16 cells of open ground, the Bear in it far from the gap, 3 rock clusters to crash into), its gap in the north
+// (the corridor from the snake den arrives there), a plateau and a pond in its wall, and the shore along its south edge. The dock is one plank section standing on
+// the south shore, over the water (a stepstone: feet may stand on it); the boat floats beside it. Standing in the `dock` rect shows the Board prompt, once the Bear is down.
+const rocks = (cx, cy) => (inCl(arena, Math.floor(cx), Math.floor(cy)), [feet('rock4', cx * T, cy * T), feet('rock2', cx * T + 50, cy * T - 14), feet('rock3', cx * T + 22, cy * T - 30), feet('rock1', cx * T - 30, cy * T + 4)]);
 objects.push(
-  rect('camp', 43, 29, 58, 42, [P('kind', 'boss')]), rect('gate', 50, 28, 50, 28), rect('gate', 50, 43, 50, 43),
-  foe('bear', 79, 50, 35),
+  polyObj('camp', CL.outline(arena.inside, T), [P('kind', 'boss')]), ...arena.gaps.map(gateOf), ...wallObjects(arena, 29, 0.6),
+  foe('bear', 79, 50, 39), ...rocks(46.5, 34), ...rocks(55, 31.5), ...rocks(45.5, 40),
   tileObj('dock', [50 * T + 32, 43 * T + 40 + 158], 'stepstone'),
   tileObj('boat', [52 * T + 38, 44 * T + 210], 'boat'),
   rect('dock', 50, 44, 50, 45),
 );
 // named spawn points for ?at=<name> (dev shortcut): the first `spawn` above is the default
 const at = (name, cx, cy) => point('spawn', centre(cx, cy), [], name);
-objects.push(at('field', 10, 17), at('camp', 36, 21), at('snakes', 45, 17), at('spiders', 29, 6), at('grove', 31, 28), at('arena', 50, 26), at('dock', 50, 44));
+objects.push(at('field', 10, 17), at('camp', 24, 17), at('snakes', 45, 17), at('spiders', 29, 6), at('grove', 31, 28), at('arena', 50, 22), at('dock', 50, 44));
 // two enterable houses near the spawn. A door is a rect over the doorway in the art (house1.png: door x 51-77, y 126-162 in the
 // 128x192 frame) that reaches down past the base shadow, where the walking-up hero's feet stop. Its `interior` is a map path.
 const house2 = tileObj('house1', [416, 768]);

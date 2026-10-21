@@ -50,18 +50,19 @@ const ENEMIES = {
     stun: 0.3, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 0.35, originY: 137 / 192, hurtbox: [-18, -48, 18, 2], drops: 'slingshot',
     idle: 'slingshot-idle', run: 'slingshot-run', attack: 'slingshot-shoot' },
   // The Bear: hp is in weapon damage (an old Pawn's tier-0 axe does 2 per swing). `scale` = drawn size, `r` = half width of its collision (it
-  // needs more room than a gnome), walk/keep = approach speed and the distance it stops at, rest = s between moves, resist = share of a knockback it
-  // takes, stunMul = damage multiplier while it is stunned. Below p2At of its hp it is in phase 2: speeds x p2.speed, telegraphs x p2.tele.
-  // weights: how often each move is picked, near / far = the hero closer / farther than the swipe's range (p2w multiplies them in phase 2).
-  // swipe: range (px, the hero must also be in front), tele = telegraph s, dmg, kb. charge: tele, speed, dist = longest rush, hitR, stun = s stunned after a wall.
-  // slam: tele, then a ring grows at `speed` px/s to radius `r`, w = half its thickness; only a dash (or standing outside r) avoids it. rec = s of rest after the move.
-  bear: { hp: 100, speed: 0, sight: 14 * 64, lose: 1e9, reach: 0, hitRange: 0, hitFrame: 0, damage: 1, cooldown: 0, stun: 0, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 1.2,
+  // needs more room than a gnome), walk/keep = approach speed and the distance it stops at, dead = px of dx before it turns round,
+  // resist = share of a knockback it takes, stunMul = damage multiplier while it is stunned. Below p2At of its hp it is in phase 2: speeds x p2.speed, telegraphs x p2.tele.
+  // weights: how often each move is picked, near / far = the hero closer / farther than the swipe's range + 30 (p2w multiplies them in phase 2).
+  // swipe: range (px, the hero must also not be behind it), tele = telegraph s, dmg, kb. charge: min = closest it will charge from, tele, speed, dist = longest rush, hitR = half
+  // the width it hits and its red band, stun = s dazed after a wall or rock. slam: tele, hold, then a ring grows at `speed` px/s to radius `r` (marked on the ground in advance:
+  // walk out of it, or dash), w = half its thickness. rec = s of rest after the move: it stands and pants, the hero's window.
+  bear: { hp: 36, speed: 0, lose: 1e9, reach: 0, hitRange: 0, hitFrame: 0, damage: 1, cooldown: 0, stun: 0, knockback: 36, kbTime: 0.15, flash: 0.1, fade: 1.2,
     originY: 177 / 256, hurtbox: [-80, -112, 80, 2], drops: 'bear', idle: 'bear-idle', run: 'bear-run', attack: 'bear-attack',
-    boss: { name: 'Bear', avatar: 'bear-avatar', scale: 1.6, r: 56, walk: 100, keep: 90, rest: 0.9, resist: 0.15, stunMul: 1.5, p2At: 0.5, p2: { speed: 1.3, tele: 0.65 }, roar: 1.0,
-      weights: { near: { swipe: 6, slam: 3, charge: 1 }, far: { charge: 5, slam: 3, swipe: 0 } }, p2w: { swipe: 1, slam: 1.5, charge: 1.5 },
-      swipe: { range: 150, tele: 0.45, dmg: 2, kb: 50, rec: 0.35 },
-      charge: { tele: 0.8, speed: 430, dist: 500, hitR: 90, dmg: 2, kb: 70, stun: 1.4, rec: 0.5 },
-      slam: { tele: 0.55, hold: 0.15, speed: 300, r: 330, w: 20, dmg: 1, kb: 60, rec: 0.7 } },
+    boss: { name: 'Bear', avatar: 'bear-avatar', scale: 1.6, r: 56, walk: 110, keep: 115, dead: 24, resist: 0.15, stunMul: 1.5, p2At: 0.5, p2: { speed: 1.2, tele: 0.8 }, roar: 1.0,
+      weights: { near: { swipe: 6, slam: 3, charge: 0 }, far: { charge: 5, slam: 3, swipe: 0 } }, p2w: { swipe: 1, slam: 1.5, charge: 1.5 },
+      swipe: { range: 135, tele: 0.7, dmg: 1, kb: 50, rec: 0.8 },
+      charge: { min: 260, tele: 1.0, speed: 400, dist: 520, hitR: 70, dmg: 1, kb: 70, stun: 1.6, rec: 1.0 },
+      slam: { tele: 0.8, hold: 0.2, speed: 240, r: 190, w: 18, dmg: 1, kb: 60, rec: 1.0 } },
   },
 };
 // Island scaling: an enemy on island n has hp x (1 + hp x (n - 1)) and damage x (1 + dmg x (n - 1)), rounded (never under 1). Island 1 = the numbers above.
@@ -111,18 +112,19 @@ const SHEEP = {                                     // acts: weight and seconds 
 const PICKUP = { r: 14, arc: 22, pop: 380, scatter: [18, 34] };   // r = reach around the ground point, arc/pop = drop arc height (px) and time (ms)
 const BAG = 3, MEAT_HEAL = 2;                        // item slots, hp one meat heals
 
-// Camps (src/camp.js). A Tiled `camp` rect is the inside; a Wooden Fence ring (the 4x3 sheet `fence`, 64 px tiles) stands on the cells around it,
-// with gaps where `gate` rects lie on the ring. The gate pieces only exist while the camp is closed. delay = s from the last gnome to the cards,
-// rise / drop = ms for a gate piece to pop up / sink (it moves `sink` px), push = px steps a unit stuck in a closing gate is moved inwards, inset = px from the rect's edge where a gnome that strayed out is put back.
+// Camps (src/camp.js). A Tiled `camp` (a rect or a polygon) is the inside of a clearing: its cells. The walls are trees, rocks, cliffs and water; `gate` rects mark
+// the gaps (tile-aligned, 2-3 cells) that close in a fight: a gnome camp pops up Wooden Fence pieces (the 4x3 sheet `fence`, 64 px tiles), the boss den drops boulders.
+// clear = px the hero's feet must be from every gap cell before the camp closes (so he is well inside, not in the doorway). delay = s from the last foe to the cards,
+// rise / drop = ms for a fence piece to pop up / sink (it moves `sink` px), push = px steps a unit stuck in a closing gap is moved inwards.
+// Boulders: each takes `fall` ms to land (starting `stagger` ms after the one before, from `height` px up), crumbles over `crumble` ms when the camp opens, and is drawn at `scale`.
+// The boss: `wake` s after the boulders start to fall the bar shows and the Bear rears and roars for `intro` s, then it fights. foes = gnomes stay idle until the camp closes.
 // The cards (scenes/Cards.js) ignore input for `lock` ms after they open (a swing or Space from the last fight must not pick), and show the pick for `confirm` ms.
-const CAMP = { delay: 0.5, rise: 240, drop: 200, sink: 18, push: 4, inset: 24, lock: 450, confirm: 560 };
-// Fence tiles: the frame [row, col] in the sheet and the collision bands [x0, y0, x1, y1] from the tile's top-left (rails, posts). c = corners,
-// hz0/hz1 = a top or bottom run, vl/vr = the left / right side, endL/endR = the post that ends a run next to a gate (rail on its left / right).
+const CAMP = { delay: 0.5, rise: 240, drop: 200, sink: 18, push: 4, clear: 2.5 * 64, lock: 450, confirm: 560,
+  fall: 420, stagger: 110, height: 320, crumble: 500, scale: 1.3, wake: 0.6, intro: 1.0 };
+// Fence tiles: the frame [row, col] in the sheet and the collision bands [x0, y0, x1, y1] from the tile's top-left (rails, posts).
+// hz0 / hz1 = a run across a gap that is crossed north-south, vl / vr = across one crossed east-west (vl on the clearing's west side, vr on its east).
 const FENCE = {
-  tl: [[0, 0], [[20, 30, 64, 48], [24, 30, 42, 64]]], tr: [[0, 3], [[0, 30, 44, 48], [22, 30, 42, 64]]],
-  bl: [[2, 0], [[24, 0, 42, 50], [20, 30, 64, 48]]], br: [[2, 3], [[22, 0, 42, 50], [0, 30, 44, 48]]],
   hz0: [[0, 1], [[0, 30, 64, 48]]], hz1: [[0, 2], [[0, 30, 64, 48]]], vl: [[1, 0], [[24, 0, 42, 64]]], vr: [[1, 3], [[22, 0, 43, 64]]],
-  endL: [[2, 1], [[0, 30, 46, 48]]], endR: [[2, 2], [[18, 30, 64, 48]]],
 };
 
 // Power-ups: 3 cards are drawn when a camp is cleared, by rarity weight (per card), none twice. They stack and last for the run.

@@ -91,7 +91,7 @@ async function readMap(path, loadJson) {
       const rects = rectsOf(def, w, flipX);
       return { key, image: def.image && join(t.set.path, def.image), x: o.x, y: o.y, w, h, flipX, cls: o.class || o.type || def.class || def.type || '', props, block, rects };
     }
-    return { cls: o.class || o.type || '', name: o.name || '', x: o.x, y: o.y, w: o.width || 0, h: o.height || 0, props: propsOf(o.properties) };
+    return { cls: o.class || o.type || '', name: o.name || '', x: o.x, y: o.y, w: o.width || 0, h: o.height || 0, props: propsOf(o.properties), ...(o.polygon && { poly: o.polygon }) };   // poly: points from x, y (a camp drawn as a shape)
   }
 
   walk(map.layers || []);

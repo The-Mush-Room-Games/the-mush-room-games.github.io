@@ -42,9 +42,10 @@ const acornHits = (a, h) => !h.dead && !!h.high === !!a.high && Math.hypot(a.x -
 const bossPhase = (hp, max, b) => hp / max < b.p2At ? 2 : 1;
 const bossK = (phase, b) => phase === 2 ? b.p2 : { speed: 1, tele: 1 };
 // Pure. The Bear's next move: 'swipe' | 'charge' | 'slam', by the weights for the hero's distance (near = within the swipe's range + 30), times p2w in
-// phase 2, never the move it just did (`last`) unless nothing else is possible. rnd() is in [0, 1).
+// phase 2, never the move it just did (`last`) unless nothing else is possible, and no charge from point-blank (closer than charge.min). rnd() is in [0, 1).
 function bossMove(rnd, dist, last, b, phase) {
   const w = { ...b.weights[dist <= b.swipe.range + 30 ? 'near' : 'far'] };
+  if (dist < b.charge.min) w.charge = 0;
   if (phase === 2) for (const k in w) w[k] *= b.p2w[k];
   if (last && Object.keys(w).some(k => k !== last && w[k] > 0)) w[last] = 0;
   const ks = Object.keys(w);
@@ -56,7 +57,7 @@ function bossMove(rnd, dist, last, b, phase) {
 class Enemy {
   constructor(scene, kind, x, y, high) {
     const d = this.d = ENEMIES[kind], e = this;
-    this.scene = scene; this.high = high; this.rail = null; this.mode = 'idle';
+    this.scene = scene; this.high = high; this.rail = null; this.mode = 'idle'; this.camp = null;   // camp: the Camp this foe belongs to (it stays idle until the camp closes)
     this.hp = this.maxHp = enemyHp(d.hp, scene.island); this.dmg = enemyDmg(d.damage, scene.island);   // scaled by the island
     this.cd = this.stunT = this.kbT = this.flashT = 0; this.kbV = new Phaser.Math.Vector2(); this.hit = false;
     this.gait = { go: false, t: 0 }; this.lv = new Phaser.Math.Vector2(); this.ph = '';
@@ -66,6 +67,7 @@ class Enemy {
     scene.hittables.push(this.ht = { s: this.sprite, enemy: this, hb: this.hb, get high() { return e.high } });
   }
   get x() { return this.sprite.x } get y() { return this.sprite.y }
+  get caged() { return !!this.camp && this.camp.state === 'open' }   // a camp's foe does not see the hero (nor chase him out of the gap) until the camp closes
   step(dx, dy) {
     const [x, y] = this.scene.moveFeet(this, dx, dy);
     this.sprite.setPosition(x, y);
@@ -85,7 +87,7 @@ class Enemy {
   // idle / chase: nextMode picks the mode; a chaser walks (a snake only up to its lunge reach, a spider in bursts, a slingshot gnome in its distance band)
   think(dt, dx, dy, dist) {
     const s = this.sprite, d = this.d, h = this.scene.hero;
-    const m = this.mode = nextMode(this.mode, dist, !h.dead && !!h.high === !!this.high, d, this.cd <= 0 && !(d.shot && dist < d.minShot));   // ponytail: a slingshot gnome hugged by the hero will not shoot (it backs off first); cornered, it just stands
+    const m = this.mode = nextMode(this.mode, dist, !h.dead && !!h.high === !!this.high && !this.caged, d, this.cd <= 0 && !(d.shot && dist < d.minShot));   // ponytail: a slingshot gnome hugged by the hero will not shoot (it backs off first); cornered, it just stands
     if (m === 'attack') { this.hit = false; s.setFlipX(dx < 0); s.play(d.attack); if (d.lunge) { this.ph = 'coil'; this.pt = d.lunge.coil } return }
     if (m !== 'chase') return void s.play(d.idle, true);
     if (Math.abs(dx) > 4) s.setFlipX(dx < 0);

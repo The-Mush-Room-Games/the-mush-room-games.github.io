@@ -12,10 +12,10 @@ const types = [
   en('chunkKind', ['landmark', 'set']),
   cls('entrance', '#ff40c0ff', []),
   cls('enemy', '#ffff4040', [str('kind'), { name: 'count', type: 'int', value: 1 }]),
-  // a gnome camp (src/camp.js): a tile-aligned rect that is the INSIDE. The enemies standing in it must die to clear it. A Wooden Fence ring is drawn on the cells
-  // around it; each `gate` rect (tile-aligned, on that ring) is a gap whose fence only appears while the camp is closed
+  // a camp (src/camp.js) is a clearing: a POLYGON (or a tile-aligned rect) that is the INSIDE, its edge on tile corners. The enemies standing in it stay idle until the
+  // hero walks in clear of the gaps, then the gaps close; they must die to clear it. kind = gnome: a Wooden Fence across each gap. kind = boss: boulders fall in the gap,
+  // the boss bar shows and the boss (an `enemy` tile standing in it: bear-idle) wakes. The walls are `block` rects (one per wall tile) under trees, rocks, cliffs and water.
   cls('camp', '#ffff8040', [str('kind', 'gnome')], ['property', 'object']),
-  // a boss arena is a `camp` with kind = boss (its inside is the camp rect; the boss is an `enemy` tile standing in it: bear-idle); the boss bar shows while it is closed
   cls('boss', '#ffc000c0', [str('kind')]),
   // the boat at the end of a level (src/boat.js): a Boat tile object of class `boat` on the water; `dock` rects on the planks beside it show its Board prompt
   cls('boat', '#ff2080ff', [], ['property', 'object', 'tile']),
@@ -25,13 +25,13 @@ const types = [
   cls('stepstone', '#ff40a0ff', [], ['property', 'object', 'tile']),   // a Water Rock in the water that feet can stand on (they must overlap to form a path)
   cls('npc', '#ffffffff', [str('role')]),
   cls('shop', '#ffe0a060', [str('shop')]),
-  cls('gate', '#ffa0a0a0', [], ['property', 'object']),
+  cls('gate', '#ffa0a0a0', [], ['property', 'object']),   // a gap in a clearing's wall: a tile-aligned rect (2-3 tiles long, 1 wide) on its edge; the fence or the boulders stand on it while the camp is closed
   cls('washup', '#ff4080ff', []),
   cls('spawn', '#ff40ff40', []),   // the first spawn is where the hero starts; give the others a name and ?at=<name> starts there (dev)
   cls('chunk', '#ffff80ff', [enm('kind', 'chunkKind', 'landmark'), str('biomes'),
     { name: 'minIsland', type: 'int', value: 1 }, { name: 'weight', type: 'float', value: 1 }, { name: 'mirror', type: 'bool', value: false }], ['property', 'map']),
   // doors and interiors (src/scenes/Interior.js): a `door` rect on an outdoor map names the interior map it opens;
-  // inside, `floor` rects are walkable, `block` rects cut furniture out of them, `spawn` is where you appear, `exit` leaves
+  // inside, `floor` rects are walkable, `block` rects cut furniture out of them (outdoors a `block` rect is a wall tile of a clearing: solid, trees and rocks are drawn on top), `spawn` is where you appear, `exit` leaves
   cls('door', '#ffff8000', [str('interior')], ['property', 'object']),
   cls('floor', '#8040ff40', [], ['property', 'object']),
   cls('block', '#80ff4040', [], ['property', 'object']),

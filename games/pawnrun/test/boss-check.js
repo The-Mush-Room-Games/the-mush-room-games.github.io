@@ -3,7 +3,7 @@
 const fs = require('fs'), path = require('path'), assert = require('assert');
 Object.assign(globalThis, require('../src/data.js'), require('../src/powers.js'));
 const E = require('../src/enemies.js'), { rollDrops } = require('../src/loot.js'), { boatState } = require('../src/boat.js');
-const { ASSETS, ANIMS } = require('../src/assets.js'), { readMap } = require('../src/tmj.js'), { ringPieces } = require('../src/camp.js');
+const { ASSETS, ANIMS } = require('../src/assets.js'), { readMap } = require('../src/tmj.js'), { campSpec } = require('../src/camp.js'), SEAL = require('../tiled/seal.js');
 const { walkGrids, feetOk, T } = require('../src/terrain.js');
 const near = (a, b, e = 1e-9, m = '') => assert(Math.abs(a - b) < e, m + ' ' + a + ' vs ' + b);
 let seed = 11; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32;
@@ -56,21 +56,25 @@ assert.deepStrictEqual([1, 0.9, 0.51, 0.5, 0.49, 0.1].map(f => E.bossPhase(f * 1
 assert.deepStrictEqual(E.bossK(1, B), { speed: 1, tele: 1 }); assert(E.bossK(2, B).speed > 1 && E.bossK(2, B).tele < 1, 'phase 2: faster, shorter telegraphs');
 const tally = (dist, last, phase, n = 20000) => { const c = { swipe: 0, charge: 0, slam: 0 }; for (let i = 0; i < n; i++) c[E.bossMove(rnd, dist, last, B, phase)]++; return c };
 const close = tally(100, null, 1), far = tally(400, null, 1);
-assert(close.swipe > close.slam && close.slam > close.charge && close.charge > 0, 'close: mostly swipes, some slams, rare charges ' + JSON.stringify(close));
+assert(close.swipe > close.slam && close.slam > 0 && close.charge === 0, 'close: mostly swipes, some slams, never a charge from point-blank ' + JSON.stringify(close));
+assert.strictEqual(tally(B.charge.min - 5, null, 1, 2000).charge, 0, 'no charge closer than charge.min, however the weights are'); assert.strictEqual(tally(200, null, 1, 2000).slam, 2000, 'between the swipe and the charge: only the slam');
 assert.strictEqual(far.swipe, 0, 'far away: no swipe'); assert(far.charge > far.slam && far.slam > 0);
 const total = Object.values(B.weights.near).reduce((x, y) => x + y, 0); near(close.swipe / 20000, B.weights.near.swipe / total, 0.02, 'weights');
 for (const dist of [100, 400]) for (const last of ['swipe', 'charge', 'slam']) assert.strictEqual(tally(dist, last, 1, 3000)[last], dist === 400 && last === 'swipe' ? 0 : 0, 'never the same move twice: ' + dist + last);
 assert.strictEqual(tally(400, 'charge', 1, 500).slam, 500, 'far, after a charge: the slam is the only option left');
 assert(tally(400, 'swipe', 2, 500).charge > 0, 'last = a move that is not an option is ignored');
 const p1 = tally(100, null, 1), p2 = tally(100, null, 2);
-assert(p2.charge / 20000 > p1.charge / 20000 && p2.slam / 20000 > p1.slam / 20000 && p2.swipe / 20000 < p1.swipe / 20000, 'phase 2 favours charge and slam');
-assert.strictEqual(E.bossMove(() => 0.999999, 100, null, B, 1), 'charge', 'the last in the table is reachable'); assert.strictEqual(E.bossMove(() => 0, 100, null, B, 1), 'swipe');
-assert(B.charge.dist > 6 * T / 1.5 && B.charge.hitR > 60 && B.charge.tele >= 0.6, 'the charge is readable: a long telegraph'); assert(B.slam.r > 4 * T && B.slam.w > 8);
+assert(p2.slam > p1.slam && p2.swipe < p1.swipe, 'phase 2 favours the slam over the swipe');
+assert.strictEqual(E.bossMove(() => 0.999999, 100, null, B, 1), 'slam', 'the last with weight is reachable'); assert.strictEqual(E.bossMove(() => 0, 100, null, B, 1), 'swipe');
+assert(B.charge.dist > 6 * T / 1.5 && B.charge.hitR > 60 && B.charge.tele >= 0.9, 'the charge is readable: a long telegraph'); assert(B.slam.w > 8);
+assert(B.slam.r >= 2.5 * T && B.slam.r <= 3.5 * T, 'the ring is small enough to walk out of: ' + B.slam.r); assert(B.slam.r / B.slam.speed >= 0.7, 'and takes a while to grow');
+for (const k of ['swipe', 'charge', 'slam']) { assert.strictEqual(B[k].dmg, 1, k + ' hurts for 1'); assert(B[k].tele >= 0.7, k + ' has a telegraph you can read'); assert(B[k].rec >= 0.8, k + ' leaves a punish window') }
+assert(B.charge.stun >= 1.2, 'a crash into a wall stuns it long enough to hit'); assert(B.keep >= 100 && B.walk <= 130, 'it stops at keep and walks, not runs');
 assert(B.resist < 0.3 && B.p2At === 0.5);
 
-// kill time with the old Pawn's tier-0 axe: hp / damage per swing x seconds per swing. Dodging roughly doubles it; the aim is 30-60 s in play
+// kill time with the starting axe: hp / damage per swing x seconds per swing. Dodging and waiting out the rests roughly triples it; the aim is 30-40 s in play
 const axe = WEAPONS.axe, swing = 6 / (10 * axe.speed) + axe.recover, perfect = ENEMIES.bear.hp / axe.damage * swing;
-assert(perfect >= 20 && perfect <= 40, 'perfect play is about 30 s: ' + perfect.toFixed(1)); assert(perfect * 2 >= 40 && perfect * 2 <= 80);
+assert(perfect >= 8 && perfect <= 14, 'perfect play is about 10 s of swings: ' + perfect.toFixed(1)); assert(perfect * 3 >= 28 && perfect * 3 <= 42, 'about 30-40 s with dodging');
 const hammer = WEAPONS.hammer, hs = 6 / (10 * hammer.speed) + hammer.recover; assert(ENEMIES.bear.hp / hammer.damage * hs < perfect, 'a hammer is quicker, as it should be');
 
 // drops: three ducks, gold, a tier-2 weapon (any one the hero can use)
@@ -84,31 +88,33 @@ assert.deepStrictEqual([[false, false], [true, false], [false, true], [true, tru
 
 // the test map: the arena, the dock and the routes
 readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(__dirname, '..', p), 'utf8'))).then(m => {
-  const arena = m.objects.find(o => o.cls === 'camp' && o.props.kind === 'boss'), c0 = arena.x / T, r0 = arena.y / T, c1 = (arena.x + arena.w) / T - 1, r1 = arena.y / T + arena.h / T - 1;
-  assert(arena.w / T >= 16 && arena.h / T >= 14, 'the arena is at least 16 x 14: ' + arena.w / T + 'x' + arena.h / T);
-  const lv = m.ground, ok = (c, r) => lv[r * m.w + c] === 1 && !m.raised[r * m.w + c] && !m.stairs[r * m.w + c];
-  for (let r = r0 - 1; r <= r1 + 1; r++) for (let c = c0 - 1; c <= c1 + 1; c++) assert(ok(c, r), `flat low ground at ${c},${r} (arena and its ring)`);
-  const free = m.objects.filter(o => o.key && o.x >= arena.x && o.x <= arena.x + arena.w && o.y > arena.y && o.y <= arena.y + arena.h + 80);
-  assert.deepStrictEqual(free.map(o => o.key), ['bear-idle'], 'nothing in the arena but the Bear');
-  const gates = m.objects.filter(o => o.cls === 'gate' && o.x >= (c0 - 1) * T && o.x <= (c1 + 1) * T && o.y >= (r0 - 1) * T && o.y <= (r1 + 1) * T);
-  assert.strictEqual(gates.length, 2, 'a gate north (in) and south (the dock)');
-  const cells = gates.map(g => ({ c0: g.x / T, r0: g.y / T, c1: g.x / T, r1: g.y / T })), ring = ringPieces(c0, r0, c1, r1, cells);
-  assert.strictEqual(ring.filter(p => p.gate).length, 2); assert(ring.every(p => ok(p.c, p.r)), 'the ring stands on land');
-  // the shore: the south ring row is the last land row, water below it, and a dock plank section + the boat out there
-  const south = gates.find(g => g.y / T === r1 + 1), north = gates.find(g => g.y / T === r0 - 1);
-  assert(south && north); for (let c = c0; c <= c1; c++) assert(!lv[(r1 + 2) * m.w + c], 'water below the arena at col ' + c);
+  const gates = m.objects.filter(o => o.cls === 'gate'), campO = m.objects.filter(o => o.cls === 'camp'), arenaO = campO.find(o => o.props.kind === 'boss'), gnomeO = campO.find(o => o.props.kind !== 'boss');
+  const bs = campSpec(arenaO, gates, T, m.w), gs = campSpec(gnomeO, gates, T, m.w), xy = i => [i % m.w, Math.floor(i / m.w)], cs = [...bs.cells].map(xy);
+  const c0 = Math.min(...cs.map(c => c[0])), c1 = Math.max(...cs.map(c => c[0])), r0 = Math.min(...cs.map(c => c[1])), r1 = Math.max(...cs.map(c => c[1]));
+  assert(c1 - c0 + 1 >= 16 && r1 - r0 + 1 >= 14 && bs.cells.size >= 200, 'the arena is at least 16 x 14 and 200 cells: ' + (c1 - c0 + 1) + 'x' + (r1 - r0 + 1) + ', ' + bs.cells.size);
+  const ok = (c, r) => m.ground[r * m.w + c] === 1 && !m.raised[r * m.w + c] && !m.stairs[r * m.w + c];
+  for (const [c, r] of cs) assert(ok(c, r), `flat low ground at ${c},${r} inside the arena`);
+  const inside = (o, dy = -8) => bs.cells.has(Math.floor((o.y + dy) / T) * m.w + Math.floor(o.x / T));
+  const foes = m.objects.filter(o => o.cls === 'enemy' && inside(o, -80)); assert.deepStrictEqual(foes.map(o => o.key), ['bear-idle'], 'nothing in the arena but the Bear');
+  const open = o => [-1, 0, 1].every(dy => [-1, 0, 1].every(dx => bs.cells.has(Math.floor((o.y - 8) / T + dy) * m.w + Math.floor(o.x / T + dx))));
+  const clusters = m.objects.filter(o => o.key === 'rock4' && open(o)).length; assert(clusters >= 2 && clusters <= 3, 'two or three rock clusters to crash into: ' + clusters);
+  assert.strictEqual(bs.gaps.length, 1, 'one gap'); const gap = bs.gaps[0], bear = foes[0];
+  assert(gap.cells.every(([, r]) => r <= r0 + 1), 'the gap is in the north wall'); const near = Math.min(...gap.cells.map(([c, r]) => Math.hypot((c + 0.5) * T - bear.x, (r + 0.5) * T - (bear.y - 80))));
+  assert(near >= 8 * T, 'the Bear starts far from the gap: ' + Math.round(near / T) + ' tiles');
+  // the shore: water along the south edge, the dock's planks start on land and run out over the water, and the boat floats beside it
   const dock = m.objects.find(o => o.key === 'dock'), boat = m.objects.find(o => o.cls === 'boat'), zone = m.objects.find(o => o.cls === 'dock' && o.w > 0);
   assert(dock && dock.cls === 'stepstone' && boat && boat.key === 'boat' && zone, 'a dock (feet may stand on it), a boat and a dock zone');
-  assert(Math.abs(dock.x - (south.x + T / 2)) < 1, 'the dock leads out of the south gate'); assert(dock.y - 158 < (r1 + 1) * T + T && dock.y > (r1 + 2) * T + 64, 'it starts on the shore row and runs over the water');
-  assert(!lv[Math.floor(boat.x / T) + Math.floor((boat.y - 128) / T) * m.w], 'the boat floats on water'); assert(boat.x > dock.x + 33 && boat.x - dock.x < 3 * T, 'beside the dock');
-  assert(zone.x <= dock.x && zone.x + zone.w >= dock.x && zone.y >= (r1 + 1) * T, 'the dock zone is on the planks');
-  assert(m.objects.some(o => o.cls === 'enemy' && o.key === 'bear-idle') && m.objects.filter(o => o.cls === 'enemy' && o.key === 'bear-idle').length === 1, 'one bear');
-  // the way from the spawn to the arena's north gate is open ground (4-neighbours), round the gnome camp's fence
-  const camp = m.objects.find(o => o.cls === 'camp' && o.props.kind !== 'boss'), blocked = new Set();
-  for (let r = camp.y / T - 1; r <= (camp.y + camp.h) / T; r++) for (let c = camp.x / T - 1; c <= (camp.x + camp.w) / T; c++) blocked.add(r * m.w + c);   // its fence ring (and inside)
+  const dc = Math.floor(dock.x / T), top = Math.floor((dock.y - 158 + 8) / T);
+  assert(ok(dc, top) && bs.cells.has((top - 1) * m.w + dc) || bs.cells.has(top * m.w + dc), 'the planks start on the arena shore at col ' + dc + ' row ' + top);
+  assert(!m.ground[(top + 2) * m.w + dc], 'and run over the water'); assert(cs.some(([c, r]) => !m.ground[(r + 2) * m.w + c]), 'the arena has water along its south edge');
+  assert(!m.ground[Math.floor(boat.x / T) + Math.floor((boat.y - 128) / T) * m.w], 'the boat floats on water'); assert(boat.x > dock.x + 33 && boat.x - dock.x < 3 * T, 'beside the dock');
+  assert(zone.x <= dock.x && zone.x + zone.w >= dock.x && zone.y >= dock.y - 158, 'the dock zone is on the planks');
+  assert(m.objects.filter(o => o.cls === 'enemy' && o.key === 'bear-idle').length === 1, 'one bear');
+  // the way from the spawn to the arena's gap does not cross the gnome camp (tiles; the seal test in camp-check covers the walls)
+  const blocked = new Set(); for (const i of gs.cells) { const [c, r] = xy(i); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) blocked.add((r + dy) * m.w + c + dx) }
   const reach = (from, avoid) => { const seen = new Set(), q = [from]; while (q.length) { const [x, y] = q.pop(), k = y * m.w + x; if (x < 0 || y < 0 || x >= m.w || y >= m.h || seen.has(k) || avoid.has(k) || !ok(x, y)) continue; seen.add(k); q.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]) } return seen };
   const sp0 = m.objects.find(o => o.cls === 'spawn' && o.name === 'spawn'), seen = reach([Math.floor(sp0.x / T), Math.floor(sp0.y / T)], blocked);
-  assert(seen.has((r0 - 2) * m.w + north.x / T), 'the arena corridor is reachable from the spawn without crossing the camp');
+  assert(gap.cells.every(([c, r]) => seen.has(r * m.w + c)), 'the arena gap is reachable from the spawn without crossing the camp');
   // the enemy areas: each kind in its own area, far from the spawn, all on land and reachable
   const kinds = {}; for (const o of m.objects.filter(o => o.cls === 'enemy')) (kinds[o.key] ||= []).push(o);
   for (const k of ['snake-idle', 'spider-idle', 'slingshot-idle']) {
@@ -122,5 +128,5 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(__dirna
   assert.deepStrictEqual(at.map(o => o.name).sort(), ['arena', 'camp', 'dock', 'field', 'grove', 'snakes', 'spiders']);
   const wg = walkGrids(m), stones = m.objects.filter(o => o.cls === 'stepstone' && o.key === 'dock').map(o => ({ x0: o.x - 33, y0: o.y - 158, x1: o.x + 33, y1: o.y }));
   for (const o of at) assert(feetOk(m, wg, false, o.x, o.y, stones), '?at=' + o.name + ' puts the hero on walkable ground');
-  console.log('boss-check OK: arena', arena.w / T + 'x' + arena.h / T, '| bear hp', ENEMIES.bear.hp, '| perfect axe kill', perfect.toFixed(1) + 's | ?at', at.map(o => o.name).join(','));
+  console.log('boss-check OK: arena', (c1 - c0 + 1) + 'x' + (r1 - r0 + 1), bs.cells.size, 'cells | bear hp', ENEMIES.bear.hp, '| perfect axe kill', perfect.toFixed(1) + 's | ?at', at.map(o => o.name).join(','));
 }).catch(e => { console.error('FAIL', e.stack.split('\n').slice(0, 3).join('\n')); process.exit(1); });

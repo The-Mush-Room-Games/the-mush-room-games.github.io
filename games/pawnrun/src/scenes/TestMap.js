@@ -27,17 +27,6 @@ function artBox(scene, key) {
   }
   return ART_BOX[key] = x1 < 0 ? { x: 0, y: 0, w: fw, h: fh, fw, fh } : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1, fw, fh };
 }
-// Collision rects of an object in frame pixels: the ones drawn in Tiled, else a band along the bottom of the art
-// (only when the object has a `block` footprint). Trees block only the trunk, buildings most of their base.
-function objectRects(o, box) {
-  if (o.rects && o.rects.length) return o.rects;
-  if (!o.block || (!o.block[0] && !o.block[1])) return [];
-  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-  let w = 0.8 * box.w, h = clamp(0.3 * box.h, 12, 40);
-  if (/^tree/.test(o.key)) { w = 0.3 * box.w; h = 14 }
-  else if (/^(house|castle|tower|barracks|monastery)/.test(o.key)) { w = 0.9 * box.w; h = 0.4 * box.h }
-  return [{ x: box.x + (box.w - w) / 2, y: box.y + box.h - 2 - h, w, h }];
-}
 const HITTABLE = /^(tree|rock|bush|gold-stone|pig)/;
 
 // Does the unit's feet box (ground level) overlap rect r = { x, y, w, h }?
@@ -82,8 +71,7 @@ class TestMap extends Phaser.Scene {
       return R;
     };
     this.addRects = (o, key, high, rs) => {
-      const box = artBox(this, key), fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box, top = o.y - box.fh, left = o.x - box.fw / 2;
-      return (rs || objectRects({ ...o, key }, fb)).map(r => place({ x0: left + r.x, y0: top + r.y, x1: left + r.x + r.w, y1: top + r.y + r.h, high, gone: false }));
+      return worldRects({ ...o, key }, artBox(this, key), rs).map(r => place({ ...r, high, gone: false }));
     };
     for (const o of m.objects) {
       if (!o.key) continue;                                        // markers: spawn, entrance, loot...
@@ -136,11 +124,13 @@ class TestMap extends Phaser.Scene {
         if (e.b) this.boss = e;
       }
     }
-    // camps: the enemies standing inside a camp rect are the ones to clear; its fence ring and gates are built here
+    // camps: the enemies standing inside a camp's clearing are the ones to clear (and stay idle until it closes); its gap pieces are built here, and `block`
+    // rects (the cells of a clearing's tree and rock lines) are walls
+    for (const o of m.objects) if (o.cls === 'block' && o.w > 0) place({ x0: o.x, y0: o.y, x1: o.x + o.w, y1: o.y + o.h, high: false, gone: false });
     const gates = m.objects.filter(o => o.cls === 'gate' && o.w > 0);
-    this.camps = m.objects.filter(o => o.cls === 'camp' && o.w > 0).map(o => {
-      const c = new Camp(this, o, gates, place, T);
-      c.foes = this.enemies.filter(e => c.has(e.x, e.y));
+    this.camps = m.objects.filter(o => o.cls === 'camp' && (o.w > 0 || o.poly)).map(o => {
+      const c = new Camp(this, campSpec(o, gates, T, m.w), place);
+      c.adopt(this.enemies);
       return c;
     });
     for (const f of flock) new Sheep(this, f.x, f.y, f.high);
