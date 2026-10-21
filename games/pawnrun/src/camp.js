@@ -48,16 +48,22 @@ class Camp {
     this.state = next;
     next === 'closed' ? this.close() : this.open();
   }
-  // the gates pop up out of the ground with dust and block; anyone caught in a gap is moved inwards
+  // the gates pop up out of the ground with dust and block. A gnome that wandered out through an open gate is pulled back in (it could never be
+  // reached, and the camp would never clear); anyone caught in a gap is moved inwards
   close() {
-    const sc = this.scene;
+    const sc = this.scene, o = this.rect, ins = CAMP.inset;
+    for (const e of this.foes) if (!e.dead && !this.has(e.x, e.y)) {
+      puff(sc, e.x, e.y - 8);
+      e.sprite.setPosition(Phaser.Math.Clamp(e.x, o.x + ins, o.x + o.w - ins), Phaser.Math.Clamp(e.y, o.y + ins, o.y + o.h - ins));
+      puff(sc, e.x, e.y - 8);
+    }
     for (const g of this.gates) {
       for (const R of g.Rs) R.gone = false;
       g.img.setVisible(true).setAlpha(0).setY(g.y + CAMP.sink);
       sc.tweens.add({ targets: g.img, y: g.y, alpha: 1, duration: CAMP.rise, ease: 'Back.easeOut' });
       puff(sc, g.img.x + 32, g.y + 46);
     }
-    const o = this.rect, cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+    const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
     for (const u of [sc.hero, ...this.foes.filter(e => !e.dead)])
       for (let i = 0; i < 40 && sc.solid(u, u.x, u.y); i++) {
         const dx = cx - u.x, dy = cy - u.y, d = Math.hypot(dx, dy) || 1;

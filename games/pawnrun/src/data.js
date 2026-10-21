@@ -77,9 +77,9 @@ const BAG = 3, MEAT_HEAL = 2;                        // item slots, hp one meat 
 
 // Camps (src/camp.js). A Tiled `camp` rect is the inside; a Wooden Fence ring (the 4x3 sheet `fence`, 64 px tiles) stands on the cells around it,
 // with gaps where `gate` rects lie on the ring. The gate pieces only exist while the camp is closed. delay = s from the last gnome to the cards,
-// rise / drop = ms for a gate piece to pop up / sink (it moves `sink` px), push = px steps a unit stuck in a closing gate is moved inwards.
+// rise / drop = ms for a gate piece to pop up / sink (it moves `sink` px), push = px steps a unit stuck in a closing gate is moved inwards, inset = px from the rect's edge where a gnome that strayed out is put back.
 // The cards (scenes/Cards.js) ignore input for `lock` ms after they open (a swing or Space from the last fight must not pick), and show the pick for `confirm` ms.
-const CAMP = { delay: 0.5, rise: 240, drop: 200, sink: 18, push: 4, lock: 450, confirm: 560 };
+const CAMP = { delay: 0.5, rise: 240, drop: 200, sink: 18, push: 4, inset: 24, lock: 450, confirm: 560 };
 // Fence tiles: the frame [row, col] in the sheet and the collision bands [x0, y0, x1, y1] from the tile's top-left (rails, posts). c = corners,
 // hz0/hz1 = a top or bottom run, vl/vr = the left / right side, endL/endR = the post that ends a run next to a gate (rail on its left / right).
 const FENCE = {
