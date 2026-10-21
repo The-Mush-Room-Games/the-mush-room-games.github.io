@@ -142,9 +142,9 @@ class Hud {
     const A = (o, d = 0) => { o.setDepth(UI_D + d); o.icon?.setDepth(UI_D + d + 1); this.list.push(o); return o };
     const label = (x, y, str, size, ox = 0.5) => A(s.add.text(x, y, str, numTxt(size)).setOrigin(ox, 0.5).setScrollFactor(0), 3);   // HUD labels are all numbers
 
-    A(roundPortrait(s, 52, 52, 'avatar05'));                 // top left: hero portrait (Blue Pawn, no frame) and the HP bar beside it, the number on the bar
-    this.hp = A(bar(s, 220, 52, 240, 'big'), 1);
-    this.hpText = label(220, 53, '', 20);
+    A(roundPortrait(s, 52, 52, 'avatar05'), 2);              // top left: hero portrait (Blue Pawn, no frame) and the HP bar beside it, the number on the bar
+    this.hp = A(bar(s, 170, 52, 240, 'big'), 1);              // the bar's wood starts 40 px into its art: x 170 tucks it just under the portrait's rim
+    this.hpText = label(170, 53, '', 20);
     this.coin = A(icon(s, W - 36, 32, 'icon03'));                      // top right: gold, ducks under it once you have one
     this.goldText = label(W - 68, 34, '', 24, 1);
     this.duck = A(icon(s, W - 36, 84, 'duck', 0).setScale(2));
