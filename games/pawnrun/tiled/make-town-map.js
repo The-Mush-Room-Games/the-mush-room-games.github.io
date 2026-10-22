@@ -45,7 +45,7 @@ const onTower = new Set(towers.map(([c, r]) => idx(c, r)));
 // ---- the island: a wobbly ellipse, the hill block, the gate spit, a lobe for the washup beach, and a cell of land on either side of every wall cell
 const ground = new Uint8Array(W * H);
 for (const [cx, cy, rx, ry, seed, amp] of [[24.5, 18.5, 20.5, 15.5, 3, 0.14], [11.5, 31, 6, 3.5, 19, 0.12], [40, 28, 6, 4.5, 13, 0.15]]) for (const i of CL.ellipse(cx, cy, rx, ry, seed, { amp })) ground[i] = 1;
-fill(ground, 15, 3, 34, 12); fill(ground, 20, 27, 29, 35);
+fill(ground, 15, 3, 34, 12); fill(ground, 20, 27, 26, 32); fill(ground, 20, 33, 25, 36);   // the spit: the road runs down it to the ramp at its south-east corner
 for (const i of wall) { const c = i % W, r = Math.floor(i / W); fill(ground, Math.max(0, c - 1), Math.max(0, r - 1), Math.min(W - 1, c + 1), Math.min(H - 1, r + 1)) }
 CL.clean(ground);
 fill(ground, 5, 31, 6, 32, 0);                                                                // a bite at the south-west corner: the beach stairs get a clean corner
@@ -57,20 +57,19 @@ fill(raised, 20, 4, 29, 10);                                                    
 // stairs { cell: tile }: a left stair is 36 over 45 (the upper level to its east), a right one 39 over 48 (upper level to its west).
 // Up the hill on both sides of the keep (land cells beside the plateau); down to the sand at the spit's south-west corner (the pier) and at the south-west lobe
 // (the washup beach: sand painted west of it); those are sand cells beside the land.
-const stairs = { [idx(19, 9)]: 36, [idx(19, 10)]: 45, [idx(30, 9)]: 39, [idx(30, 10)]: 48, [idx(19, 35)]: 36, [idx(19, 36)]: 45, [idx(6, 33)]: 36, [idx(6, 34)]: 45 };
+const stairs = { [idx(19, 9)]: 36, [idx(19, 10)]: 45, [idx(30, 9)]: 39, [idx(30, 10)]: 48, [idx(26, 35)]: 39, [idx(26, 36)]: 48, [idx(6, 33)]: 36, [idx(6, 34)]: 45 };
 for (const i of Object.keys(stairs)) raised[i] = 0;
-for (const i of [idx(19, 35), idx(19, 36), idx(6, 33), idx(6, 34)]) ground[i] = 0;
-fill(sand, 1, 31, 5, 36);
+for (const i of [idx(26, 35), idx(26, 36), idx(6, 33), idx(6, 34)]) ground[i] = 0;
+fill(sand, 1, 31, 5, 36); fill(sand, 27, 34, 29, 38);                                         // the washup beach; the strand at the ramp's foot where the pier starts
 for (const i of wall) if (!ground[i] || raised[i]) throw new Error(`the wall is off the land at ${i % W},${Math.floor(i / W)}`);
 // streets (2 wide, they bend): the gate street up to the square, the square (a wobbly oval), the hill street up to the forecourt and each ramp's foot, lanes
 // west to the Barracks and east to the Monastery, a cross lane of houses, the road out to the pier
 const street = (c0, r0, c1, r1) => fill(dirt, c0, r0, c1, r1);
-street(23, 21, 24, 33);                                                                        // the gate street, straight up from the gate to the square
+street(23, 21, 24, 34); street(23, 35, 25, 36);                                                // the gate street, straight from the ramp top on the spit up through the gate to the square
 for (const i of CL.ellipse(24.5, 19.3, 6, 2.2, 29, { amp: 0.25 })) dirt[i] = 1;               // the square
 street(25, 14, 26, 18); street(18, 12, 31, 13); street(18, 10, 18, 11); street(31, 10, 31, 11);   // the hill street (a jog east of the gate street), the forecourt, the way to each ramp
 street(14, 18, 19, 19); street(30, 18, 35, 19);                                                // the lanes to the yards
 street(13, 26, 36, 27);                                                                        // the lane along the inside of the south wall
-street(21, 33, 22, 34); street(20, 34, 21, 35);                                                // the road steps west to the stairs down to the pier
 CL.clean(dirt);
 for (let i = 0; i < W * H; i++) if (dirt[i] && (!ground[i] || raised[i] || wall.has(i) || onTower.has(i))) throw new Error('a street off the land, or through the wall, at ' + i % W + ',' + Math.floor(i / W));
 const { layers: terrain } = terrainLayers({ w: W, h: H, ground, raised, water, sand, stairs, dirt });
@@ -173,12 +172,15 @@ add(feet('odeco18', 18.9, 22.2), feet('odeco16', 22.2, 21.9), feet('odeco07', 19
 reserve(18, 21, 22, 22);
 // the cross lane and the alleys: mushrooms, a bush, a rock between the houses
 add(feet('odeco03', 23.4, 25.3), feet('rock3', 33.6, 25.5), feet('bush3', 14.2, 24.6), feet('odeco11', 15.8, 25.1), feet('odeco10', 25.6, 22.3), feet('odeco16', 31.8, 25.4), feet('sheep-idle', 16.6, 24.1));
-// the gate: a signpost outside, then the road; the pier: planks starting on the sand in front of the spit's cliff (row 37), the boat tied at its end, the `sail` rect on the planks
-add(feet('odeco17', 22, 30.2), feet('odeco16', 26, 30.4, none, none, true));
-const dock = y => tileObj('dock', [24.5 * T, y], 'stepstone');
-add(dock(37.55 * T + 158), dock(37.55 * T + 316), tileObj('boat', [26.4 * T, 41.7 * T], 'boat'));
-add(rect('sail', 24 * T, 40.3 * T, T + 32, 2.2 * T));
-reserve(19, 29, 30, 36);
+// the gate: a signpost outside, then the road down the spit as an avenue (plants either side), a signpost at the ramp. The pier: two planks wide, three
+// segments long from the strand at the ramp's foot; each segment overlaps the one before by the posts (the art has posts at both ends and legs at the bottom,
+// 40 px), so the joins read as one pier with posts along it. The boat is moored at its end; the `sail` rect is the last segment.
+add(feet('odeco17', 22, 30.2), feet('odeco16', 26, 30.4, none, none, true), feet('odeco17', 25.5, 33.6));
+for (const r of [31, 32.3, 33.6]) add(feet(pick(['odeco10', 'odeco11']), 22.2 + jit(0.2), r), feet(pick(['odeco10', 'odeco11']), 25.3 + jit(0.2), r));
+for (let k = 0; k < 3; k++) for (const c of [26.5, 27.5]) add(tileObj('dock', [c * T, 37.3 * T + 158 + 118 * k], 'stepstone'));
+add(tileObj('boat', [28.8 * T, 43.6 * T], 'boat'));
+add(rect('sail', 26.5 * T, 41.3 * T, 2 * T, 1.6 * T));
+reserve(19, 29, 30, 38);
 // the fields outside the wall: a scarecrow over pumpkin rows to the west, a sheep meadow to the east, a pig pen outside the wall's jog
 add(feet('odeco18', 14.5, 31.6), feet('odeco12', 12.6, 30.4), feet('odeco13', 13.8, 30.6), feet('odeco12', 16.1, 30.5), feet('odeco13', 17.4, 30.7), feet('odeco12', 13.2, 32), feet('odeco13', 16.8, 32.1), feet('odeco11', 18.6, 31.3));
 reserve(11, 29, 19, 33);
@@ -218,7 +220,7 @@ for (let n = 0, g = 0; n < 3000 && g < 70; n++) {
 // spawn points for ?at=<name>: the first is where a new game starts
 const spawn = (name, cx, cy) => add(point('spawn', at(cx, cy), [], name));
 spawn('start', 23.5, 23.6); spawn('gate', 24, 29.6); spawn('blacksmith', 14.6, 21.3); spawn('healer', 33.5, 21.4); spawn('market', 28.5, 20.3); spawn('steward', 22.6, 9.8); spawn('trainer', 21.8, 22.6);
-spawn('beach', 3.5, 33.5); spawn('houseA', 19.5, 26.6); spawn('houseB', 27.5, 26.6);
+spawn('beach', 3.5, 33.5); spawn('pier', 24.5, 35.4); spawn('houseA', 19.5, 26.6); spawn('houseB', 27.5, 26.6);
 
 const map = {
   type: 'map', version: '1.10', tiledversion: '1.12.2', class: 'chunk', orientation: 'orthogonal', renderorder: 'right-down',

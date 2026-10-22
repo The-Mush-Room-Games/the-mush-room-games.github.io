@@ -14,7 +14,7 @@ class Sail extends Phaser.Scene {
     this.clouds = Array.from({ length: 5 }, (_, i) => ({ o: this.add.image(Math.random() * W, 40 + Math.random() * (H - 80), 'clouds' + (1 + (i * 3) % 8)).setAlpha(0.8).setDepth(30 + i), v: 0.25 + 0.1 * i }));
     // the boat bobs in the middle, with the Pawn aboard
     const bx = W / 2, by = H * 0.52;
-    this.boat = this.add.sprite(bx, by, 'boat').setScale(1.5).setFlipX(true).setDepth(10).play('boat');   // the art points left; flipped it heads right
+    this.boat = this.add.sprite(bx, by, 'boat').setScale(1.5).setDepth(10).play('boat');   // the art's bow is on the right (the notched transom on the left), so unflipped it heads right
     const f = d.hero.form, pawn = this.add.sprite(bx + 6, by - 14, f === 'old' ? 'opawn' : 'pawn-idle-' + d.hero.weapons[d.hero.active]).setDepth(11).play(f === 'old' ? 'opawn-idle' : 'pawn-idle-' + d.hero.weapons[d.hero.active]);
     this.tweens.add({ targets: [this.boat, pawn], y: '+=5', duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.time.addEvent({ delay: 140, loop: true, callback: () => this.wake(bx - 96, by + 36) });

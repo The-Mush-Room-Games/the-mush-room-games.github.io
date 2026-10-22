@@ -28,7 +28,7 @@ const load = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
   const doors = shapes.filter(o => o.cls === 'door');
   assert.strictEqual(doors.length, 2, 'two doors'); assert.deepStrictEqual(doors.map(d => d.props.npc).sort(), ['folk1', 'folk2']);
   for (const d of doors) { assert(fs.existsSync(path.join(root, d.props.interior)), d.props.interior); assert(NPCS[d.props.npc] && !/pawn/.test(NPCS[d.props.npc].key), 'door npc'); assert(/^\d+,\d+$/.test(d.props.npcAt), 'npcAt') }
-  assert(tiles.some(o => o.key === 'boat') && tiles.filter(o => o.cls === 'stepstone' && o.key === 'dock').length === 2, 'pier and boat');
+  assert(tiles.some(o => o.key === 'boat') && tiles.filter(o => o.cls === 'stepstone' && o.key === 'dock').length === 6, 'pier and boat');
   const sail = shapes.filter(o => o.cls === 'sail'); assert.strictEqual(sail.length, 1, 'one sail rect');
   assert(!land(sail[0].x + sail[0].w / 2, sail[0].y + sail[0].h / 2), 'the sail rect is on the pier over water');
 
