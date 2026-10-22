@@ -32,7 +32,7 @@ const fill = (m, c0, r0, c1, r1, v = 1) => { for (let y = r0; y <= r1; y++) for 
 
 // ---- the wall first: the land is shaped round it. A rectilinear ring through these corners (clockwise from the north-west sea end), 'T' = a Tower stands there.
 // It runs up to the sea on both sides of the keep, so the hill's own cliffs close the north. The gate is a gap in the south run between two more Towers.
-const corners = [[16, 3, 'T'], [16, 11], [12, 11, 'T'], [12, 18], [10, 18, 'T'], [10, 28, 'T'], [36, 28, 'T'], [36, 25], [39, 25, 'T'], [39, 17], [37, 17], [37, 11, 'T'], [33, 11], [33, 3, 'T']];
+const corners = [[16, 3, 'T'], [16, 11], [12, 11, 'T'], [12, 28, 'T'], [37, 28, 'T'], [37, 11, 'T'], [33, 11], [33, 3, 'T']];
 const GATE_ROW = 28, GATE = [23, 24], towers = [[21, GATE_ROW], [26, GATE_ROW]], wall = new Set();
 for (let k = 0; k + 1 < corners.length; k++) {
   const [c0, r0] = corners[k], [c1, r1] = corners[k + 1];
@@ -53,11 +53,11 @@ fill(ground, 0, 0, W - 1, 2, 0); fill(ground, 0, 0, 1, H - 1, 0); fill(ground, W
 CL.clean(ground);
 const has = (m, x, y) => x >= 0 && y >= 0 && x < W && y < H && m[idx(x, y)] === 1;
 const raised = new Uint8Array(W * H), water = new Uint8Array(W * H), sand = new Uint8Array(W * H), dirt = new Uint8Array(W * H);
-fill(raised, 19, 4, 30, 10);                                                                   // the keep's hill
+fill(raised, 20, 4, 29, 10);                                                                   // the keep's hill
 // stairs { cell: tile }: a left stair is 36 over 45 (the upper level to its east), a right one 39 over 48 (upper level to its west).
 // Up the hill on both sides of the keep (land cells beside the plateau); down to the sand at the spit's south-west corner (the pier) and at the south-west lobe
 // (the washup beach: sand painted west of it); those are sand cells beside the land.
-const stairs = { [idx(18, 9)]: 36, [idx(18, 10)]: 45, [idx(31, 9)]: 39, [idx(31, 10)]: 48, [idx(19, 35)]: 36, [idx(19, 36)]: 45, [idx(6, 33)]: 36, [idx(6, 34)]: 45 };
+const stairs = { [idx(19, 9)]: 36, [idx(19, 10)]: 45, [idx(30, 9)]: 39, [idx(30, 10)]: 48, [idx(19, 35)]: 36, [idx(19, 36)]: 45, [idx(6, 33)]: 36, [idx(6, 34)]: 45 };
 for (const i of Object.keys(stairs)) raised[i] = 0;
 for (const i of [idx(19, 35), idx(19, 36), idx(6, 33), idx(6, 34)]) ground[i] = 0;
 fill(sand, 1, 31, 5, 36);
@@ -65,11 +65,11 @@ for (const i of wall) if (!ground[i] || raised[i]) throw new Error(`the wall is 
 // streets (2 wide, they bend): the gate street up to the square, the square (a wobbly oval), the hill street up to the forecourt and each ramp's foot, lanes
 // west to the Barracks and east to the Monastery, a cross lane of houses, the road out to the pier
 const street = (c0, r0, c1, r1) => fill(dirt, c0, r0, c1, r1);
-street(23, 24, 24, 33); street(22, 21, 23, 24);                                                // the gate street, with a bend
-for (const i of CL.ellipse(24.5, 19.3, 5.2, 2.4, 29, { amp: 0.25 })) dirt[i] = 1;             // the square
-street(25, 14, 26, 18); street(18, 12, 31, 13); street(17, 10, 17, 12); street(32, 10, 32, 12);   // the hill street, the forecourt, the way to each ramp
-street(14, 18, 20, 19); street(29, 19, 35, 20);                                                // the lanes
-street(12, 26, 34, 27);                                                                        // the cross lane
+street(23, 21, 24, 33);                                                                        // the gate street, straight up from the gate to the square
+for (const i of CL.ellipse(24.5, 19.3, 6, 2.2, 29, { amp: 0.25 })) dirt[i] = 1;               // the square
+street(25, 14, 26, 18); street(18, 12, 31, 13); street(18, 10, 18, 11); street(31, 10, 31, 11);   // the hill street (a jog east of the gate street), the forecourt, the way to each ramp
+street(14, 18, 19, 19); street(30, 18, 35, 19);                                                // the lanes to the yards
+street(13, 26, 36, 27);                                                                        // the lane along the inside of the south wall
 street(21, 33, 22, 34); street(20, 34, 21, 35);                                                // the road steps west to the stairs down to the pier
 CL.clean(dirt);
 for (let i = 0; i < W * H; i++) if (dirt[i] && (!ground[i] || raised[i] || wall.has(i) || onTower.has(i))) throw new Error('a street off the land, or through the wall, at ' + i % W + ',' + Math.floor(i / W));
@@ -135,19 +135,18 @@ for (const i of wall) {
   fence(c, r, p);
 }
 for (const [c, r] of towers) { add(feet('tower', c + 0.5, r + 1.08)); reserve(c - 1, r - 3, c + 1, r + 1) }   // its feet a touch below its cell: it draws over the rails that run into it, and its base seals the join
-const inside = (c, r) => (c > 12 && c < 37 && r > 11 && r < 18) || (c > 10 && c < 39 && r >= 18 && r < 25) || (c > 10 && c < 36 && r >= 25 && r < GATE_ROW) || (c > 16 && c < 33 && r > 3 && r <= 11);
+const inside = (c, r) => (c > 12 && c < 37 && r > 11 && r < GATE_ROW) || (c > 16 && c < 33 && r > 3 && r <= 11);
 
 // ---- buildings. Houses share walls: 2 tiles apart in a row, each a little up or down so the row is not ruled
 building('castle', 24.5, 9.4, 5, 4);                                                           // the keep, on the plateau
-building('barracks', 14.5, 17.3, 3, 4);                                                        // the Blacksmith's, at the west end of the lane, under the wall
-building('monastery', 35, 17.5, 3, 5);                                                         // the Healer's, at the east end
-building('house2', 28.5, 17.4, 2, 3);                                                          // the Market, on the square, east of the hill street
-building('house2', 30.5, 17.1, 2, 3, undefined, true);
-building('house2', 22.5, 17.4, 2, 3, undefined, true); building('house2', 20.5, 17.1, 2, 3); building('house2', 18.5, 17.4, 2, 3, undefined, true);   // west of it, three more with their fronts on the square
-house(15.5, 25.8, 'maps/interiors/house_a.tmj', 'folk1', '370,300');                          // the cross lane: three houses west of the gate street, two east, their doors on the lane
-building('house2', 13.5, 25.6, 2, 3, undefined, true); building('house2', 17.5, 26, 2, 3, undefined, true);
-house(29.5, 25.8, 'maps/interiors/house_b.tmj', 'folk2', '420,330');
-building('house2', 31.5, 25.5, 2, 3); building('house2', 27.5, 25.7, 2, 3, undefined, true);
+building('barracks', 16.5, 17.3, 3, 4);                                                        // the north side of the square, west of the hill street: the Blacksmith's and three houses
+building('house2', 19.5, 17.5, 2, 3, undefined, true); building('house2', 21.5, 17.1, 2, 3); building('house2', 23.5, 17.4, 2, 3, undefined, true);
+building('house2', 28, 17.4, 2, 3); building('house2', 30, 17.1, 2, 3, undefined, true);       // east of it: the Market, a house, the Healer's Monastery
+building('monastery', 33, 17.5, 3, 5);
+house(19.5, 25.8, 'maps/interiors/house_a.tmj', 'folk1', '370,300');                          // the south lane: five houses with their doors on it, under the wall
+building('house2', 21.5, 25.5, 2, 3, undefined, true);
+house(27.5, 25.8, 'maps/interiors/house_b.tmj', 'folk2', '420,330');
+building('house2', 25.5, 25.6, 2, 3, undefined, true); building('house2', 29.5, 25.5, 2, 3);
 
 // ---- who stands where, and the clutter round each nook
 const npc = (role, cx, cy, flip) => add(feet(NPCS[role].key, cx, cy, 'npc', [P('role', role)], flip));
@@ -156,23 +155,23 @@ const none = undefined;
 npc('steward', 24.5, 10.5);
 add(feet('bush3', 21, 10.3), feet('bush1', 28.2, 10.4), feet('odeco17', 20.3, 7.6), feet('odeco03', 29.6, 8.2), feet('odeco10', 22, 6.5));
 // the Blacksmith: a yard under the Barracks against the wall, open to the lane on its north; ore piles, bones, a sign
-yard(11, 20, 15, 22, { wallW: true, gapN: [12, 13] });
-npc('blacksmith', 13.4, 21.9);
-add(feet('gold-stone4', 11.7, 21.2), feet('gold-stone2', 12.1, 22.1), feet('rock2', 14.7, 21.6), feet('odeco08', 14.2, 22.2), feet('odeco14', 12.6, 22.3), feet('odeco17', 15.9, 20.1, none, none, true));
+yard(13, 20, 17, 23, { wallW: true, gapN: [14, 15] });
+npc('blacksmith', 14.6, 22.1);
+add(feet('gold-stone4', 16.6, 21.3), feet('gold-stone2', 16.2, 22.3), feet('rock2', 13.6, 21.4), feet('odeco08', 15.3, 22.6), feet('odeco14', 13.8, 22.5), feet('odeco17', 17.6, 19.6, none, none, true));
 // the Healer: a herb garden under the Monastery, open to the lane: bushes, pumpkins, mushrooms, a sheep grazing by it
-yard(31, 21, 37, 24, { gapN: [33, 34] });
-npc('healer', 33.9, 23.3, true);
-add(feet('odeco13', 32.3, 22.6), feet('odeco12', 32.5, 23.5), feet('odeco07', 32.9, 22.2), feet('odeco08', 32.2, 23.9), feet('odeco13', 35.6, 22.6), feet('odeco12', 36.4, 22.5), feet('odeco07', 35.4, 23.5), feet('odeco11', 36.5, 23.6),
-  feet('odeco10', 35.1, 22.1), feet('odeco02', 34.8, 23.9), feet('odeco01', 36.1, 23.1), feet('odeco17', 31.2, 20.3), feet('sheep-idle', 38.2, 22.4), feet('bush2', 38.1, 23.6));
+yard(31, 20, 36, 23, { wallE: true, gapN: [33, 34] });
+npc('healer', 33.9, 22.3, true);
+add(feet('odeco13', 32.3, 21.6), feet('odeco12', 32.5, 22.5), feet('odeco07', 32.9, 21.2), feet('odeco08', 32.2, 22.9), feet('odeco13', 35.6, 21.6), feet('odeco12', 36.4, 21.5), feet('odeco07', 35.4, 22.5), feet('odeco11', 36.5, 22.6),
+  feet('odeco10', 35.1, 21.1), feet('odeco02', 34.8, 22.9), feet('odeco01', 36.1, 22.1), feet('odeco17', 30.4, 19.6), feet('sheep-idle', 33.2, 24.5), feet('bush2', 35.3, 24.4));
 // the square: the Merchant in front of the Market with his produce, a signpost in the middle, a sheep wandered in
-npc('market', 28.5, 19.3, true);
-add(feet('odeco13', 27, 18.9), feet('odeco12', 27.4, 19.9), feet('odeco15', 30.1, 19.2), feet('odeco14', 30.6, 20.3), feet('odeco17', 24.5, 20.2), feet('odeco04', 21.6, 20.9), feet('sheep-idle', 20.3, 18.6), feet('odeco05', 26.2, 21.6));
+npc('market', 28.3, 19.1, true);
+add(feet('odeco13', 26.9, 18.8), feet('odeco12', 27.3, 19.8), feet('odeco15', 29.8, 19.1), feet('odeco14', 30.2, 20.1), feet('odeco17', 24.5, 21.2), feet('odeco04', 21.6, 20.9), feet('sheep-idle', 18.6, 20.4), feet('odeco05', 26.2, 21.6));
 // the Trainer: a training ground in the square's south-west corner, between the houses and the bend of the street: a scarecrow to hit, a sign, bones
-npc('trainer', 20.4, 23.4, true);
-add(feet('odeco18', 18.9, 22.3), feet('odeco16', 21.3, 21.6), feet('odeco07', 19.5, 23.9), feet('odeco05', 21.2, 24.2), feet('odeco14', 18.4, 23.6));
-reserve(18, 21, 21, 24);
+npc('trainer', 20.6, 22.4, true);
+add(feet('odeco18', 18.9, 22.2), feet('odeco16', 22.2, 21.9), feet('odeco07', 19.6, 21.3), feet('odeco05', 21.4, 21.3), feet('odeco14', 18.3, 22.6));
+reserve(18, 21, 22, 22);
 // the cross lane and the alleys: mushrooms, a bush, a rock between the houses
-add(feet('odeco03', 19.1, 25.9), feet('rock3', 33.6, 25.5), feet('bush3', 12.2, 24.1), feet('odeco11', 35.2, 24.6), feet('odeco10', 25.6, 22.3));
+add(feet('odeco03', 23.4, 25.3), feet('rock3', 33.6, 25.5), feet('bush3', 14.2, 24.6), feet('odeco11', 15.8, 25.1), feet('odeco10', 25.6, 22.3), feet('odeco16', 31.8, 25.4), feet('sheep-idle', 16.6, 24.1));
 // the gate: a signpost outside, then the road; the pier: planks starting on the sand in front of the spit's cliff (row 37), the boat tied at its end, the `sail` rect on the planks
 add(feet('odeco17', 22, 30.2), feet('odeco16', 26, 30.4, none, none, true));
 const dock = y => tileObj('dock', [24.5 * T, y], 'stepstone');
@@ -217,8 +216,8 @@ for (let n = 0, g = 0; n < 3000 && g < 70; n++) {
 
 // spawn points for ?at=<name>: the first is where a new game starts
 const spawn = (name, cx, cy) => add(point('spawn', at(cx, cy), [], name));
-spawn('start', 23.5, 23.6); spawn('gate', 24, 29.6); spawn('blacksmith', 13.5, 20.6); spawn('healer', 33.5, 22.3); spawn('market', 28.5, 20.6); spawn('steward', 22.6, 9.8); spawn('trainer', 22.5, 23.6);
-spawn('beach', 3.5, 33.5); spawn('houseA', 15.5, 27.1); spawn('houseB', 29.5, 27.1);
+spawn('start', 23.5, 23.6); spawn('gate', 24, 29.6); spawn('blacksmith', 14.6, 21.3); spawn('healer', 33.5, 21.4); spawn('market', 28.5, 20.3); spawn('steward', 22.6, 9.8); spawn('trainer', 21.8, 22.6);
+spawn('beach', 3.5, 33.5); spawn('houseA', 19.5, 26.6); spawn('houseB', 27.5, 26.6);
 
 const map = {
   type: 'map', version: '1.10', tiledversion: '1.12.2', class: 'chunk', orientation: 'orthogonal', renderorder: 'right-down',
