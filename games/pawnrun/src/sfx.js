@@ -94,10 +94,13 @@ const SFX = {
     if (now - (this.last[name] || -1e9) < 40) return null;
     this.last[name] = now;
     const f = s.f[Math.floor(Math.random() * s.f.length)];
+    if (!scene.cache.audio.exists(f)) return null;         // a file the browser could not load or decode: silence, never a throw mid-frame
     return scene.sound.play(f, { volume: (s.v ?? 0.7) * v, rate: 1 + r + (s.r ? (Math.random() * 2 - 1) * s.r : 0), loop: !!s.loop });
   },
   loop(scene, name) {
-    const s = SOUNDS[name], snd = scene.sound.add(s.f[0], { volume: s.v ?? 0.7, loop: true });
+    const s = SOUNDS[name];
+    if (!scene.cache.audio.exists(s.f[0])) return null;
+    const snd = scene.sound.add(s.f[0], { volume: s.v ?? 0.7, loop: true });
     snd.play();
     return snd;
   },
@@ -105,7 +108,7 @@ const SFX = {
     const key = place && MUSIC[place] ? MUSIC[place][(island - 1) % MUSIC[place].length] : null;
     if (this.current && this.current.key === key) return;
     this.stopMusic(scene);
-    if (!key) return;
+    if (!key || !scene.cache.audio.exists(key)) return;
     const sound = scene.sound.add(key, { loop: true, volume: 0 });
     sound.play();
     scene.tweens.add({ targets: sound, volume: MUSIC_VOL, duration: FADE });

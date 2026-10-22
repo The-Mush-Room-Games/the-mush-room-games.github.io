@@ -166,7 +166,7 @@ class Enemy {
     sc.tweens.add({ targets: s, alpha: 0, duration: this.d.fade * 1000, onComplete: () => s.destroy() });
     const p = sc.add.sprite(this.x, this.y - 8, 'dust1').setDepth(s.depth + 1).play('dust1');
     p.once('animationcomplete', () => p.destroy());
-    fx(sc, 'fx-hit', this.x, this.y - this.sh.dy, { scale: this.b ? 2 : 1.25 });
+    const hb = this.d.hurtbox; fx(sc, 'fx-hit', this.x, this.y + (hb[1] + hb[3]) / 2, { scale: this.b ? 2 : 1.25 });   // the burst at the body's middle
     dropLoot(sc, DROPS[this.d.drops], this.x, this.y, this.high);
   }
 }
