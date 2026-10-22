@@ -217,10 +217,10 @@ function collisionRects(m, boxOf) {
 // anything on the land in front of it) and a plateau row y at (y + 2) * T, a cliff with the row above it. A plateau's shadow falls on the land row two below
 // it, so it sits between that row and the plateau (the .1 steps are only there to keep the order of equal rows).
 // low / high / sand: texture keys of the colour files for the land, the plateaus and the beach (the guide: one colour per level).
-function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2', sand = 'sand') {
+function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2', sand = 'sand', dirt = 'dirt') {
   const c = cellFns(m), mid = n => n * T + T / 2, dirtAt = (x, y) => x >= 0 && y >= 0 && x < m.w && y < m.h && m.dirt[y * m.w + x] === 1;
   const map = scene.make.tilemap({ tileWidth: T, tileHeight: T, width: m.w, height: m.h });
-  const sets = [low, high, sand].map((k, i) => map.addTilesetImage('set' + i, k, T, T, 0, 0, 54 * i));   // tile ids: land 0-53, plateau 54-107, sand 108-161
+  const sets = [low, high, sand, dirt].map((k, i) => map.addTilesetImage('set' + i, k, T, T, 0, 0, 54 * i));   // tile ids: land 0-53, plateau 54-107, sand 108-161, dirt 162-215
   const flat = map.createBlankLayer('flat', sets).setDepth(-3000);
   const stairs = map.createBlankLayer('stairs', sets).setDepth(-2800);
   const foam = [], shadows = [], rows = new Map();
@@ -238,7 +238,7 @@ function dressTerrain(scene, m, low = 'tilemap1', high = 'tilemap2', sand = 'san
     const near = k => { const { tp } = tier(c, k); return tp(x - 1, y) || tp(x + 1, y) };
     if (c.G(x, y)) {
       row(y, y * T - 0.5).putTileAt(near(0) ? 15 : autotile(c.G, x, y, 5), x, 0);
-      if (m.dirt && m.dirt[y * m.w + x]) row(y, y * T - 0.45).putTileAt(108 + autotile(dirtAt, x, y), x, 0);   // a street: the sand set over the grass, under units
+      if (m.dirt && m.dirt[y * m.w + x]) row(y, y * T - 0.45).putTileAt(162 + autotile(dirtAt, x, y), x, 0);   // a street: the dirt set over the grass, under units
       shadow(x, y + 1, -2900);
       if (hasCliff(c, x, y, 0)) {
         row(y + 1, y * T - 0.5).putTileAt(cliffTile(c, x, y, 0), x, 0);

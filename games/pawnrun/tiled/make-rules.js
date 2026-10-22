@@ -10,7 +10,7 @@ const tsj = (name, extra) => ({ type: 'tileset', name, tiledversion: '1.12.2', v
 
 // --- tilesets in maps/. The land, its cliffs and the stairs down to the beach: tilemap1 (the elevated set, +5). Plateaus on it, their cliffs and stairs: tilemap2 (lime).
 // The beach: sand.png, the old pack's sand set in the same 9x6 layout. As the game draws them.
-for (const [name, img] of [['terrain', 'tilemap1'], ['terrain-high', 'tilemap2'], ['sand', 'sand']])
+for (const [name, img] of [['terrain', 'tilemap1'], ['terrain-high', 'tilemap2'], ['sand', 'sand'], ['dirt', 'dirt']])   // dirt: the sand set recoloured brown, the streets
   json(path.join(R, `maps/${name}.tsj`), tsj(name, { image: `../assets/terrain/${img}.png`, imagewidth: 576, imageheight: 384,
     tilewidth: 64, tileheight: 64, columns: 9, tilecount: 54 }));
 // foam: 192 px frames, tile 0 animated like the game; shadow: one 192 px image. tileoffset centres a 192 tile on a 64 cell.

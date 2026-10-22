@@ -49,6 +49,10 @@
    "source": "../../maps/sand.tsj"
   },
   {
+   "firstgid": 181,
+   "source": "../../maps/dirt.tsj"
+  },
+  {
    "firstgid": 300,
    "source": "../automap-rules.tsj"
   }

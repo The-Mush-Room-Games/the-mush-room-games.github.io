@@ -69,6 +69,10 @@
   },
   {
    "firstgid": 181,
+   "source": "dirt.tsj"
+  },
+  {
+   "firstgid": 235,
    "source": "objects.tsj"
   }
  ],

@@ -28,6 +28,7 @@ const ASSETS = {
   tilemap3: ['terrain/tilemap3.png'],
   tilemap4: ['terrain/tilemap4.png'],
   tilemap5: ['terrain/tilemap5.png'],
+  dirt: ['terrain/dirt.png'],                                   // the sand sheet recoloured brown (python, hue -27deg, value x0.7): the streets
   sand: ['terrain/sand.png'],                                   // the old pack's sand set (CC0) in a 9x6 sheet: the 16 pieces in cols 0-3, rows 0-3
   foam: ['terrain/foam.png', 192, 192],
   shadow: ['terrain/shadow.png'],
