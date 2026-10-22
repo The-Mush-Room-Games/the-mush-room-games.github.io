@@ -25,6 +25,14 @@ function puff(scene, x, y) {
   const p = scene.add.sprite(x, y, 'dust1').setDepth(1e5).play('dust1');
   p.once('animationcomplete', () => p.destroy());
 }
+// a one-shot effect sheet (assets/fx, 15 fps; fx-hit, fx-smoke, fx-sparkle, fx-heal, fx-alert) at (x, y), gone when it ends. o = { scale, depth, tint, angle }
+function fx(scene, key, x, y, o = {}) {
+  const s = scene.add.sprite(x, y, key).setDepth(o.depth ?? 1e5).setScale(o.scale ?? 1).play(key);
+  if (o.tint) s.setTint(o.tint);
+  if (o.angle) s.setAngle(o.angle);
+  s.once('animationcomplete', () => s.destroy());
+  return s;
+}
 // n small chips flying out of (x, y); power < 1 for a spark
 function chips(scene, x, y, colors, n, power = 1) {
   for (let i = 0; i < n; i++) {

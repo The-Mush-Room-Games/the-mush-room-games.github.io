@@ -200,7 +200,7 @@ class TestMap extends Phaser.Scene {
   }
   // Second Wind: a flash of sparks and a line over the hero
   rise({ x, y }) {
-    chips(this, x, y - 30, [0xffe888, 0xffffff, 0x9be37a], 18, 1.6);
+    fx(this, 'fx-sparkle', x, y - 30, { scale: 2 });
     const t = this.add.text(x, y - 70, 'Second Wind!', txt(20)).setOrigin(0.5).setDepth(1e5);
     this.tweens.add({ targets: t, y: t.y - 30, alpha: 0, delay: 600, duration: 700, onComplete: () => t.destroy() });
   }
@@ -248,7 +248,8 @@ class TestMap extends Phaser.Scene {
       const b = t.hb;                                              // the slash box must overlap the hurtbox, same level only
       if ((t.high | 0) !== (high | 0) || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
       this.hits++;
-      if (t.enemy) { SFX.play(this, 'hit'); t.enemy.hurt(damage, this.hero.x, this.hero.y, t.enemy.d.knockback * this.hero.pw.kb); continue }
+      const x = (Math.max(h.x0, b.x0) + Math.min(h.x1, b.x1)) / 2, y = (Math.max(h.y0, b.y0) + Math.min(h.y1, b.y1)) / 2;   // where the slash met it
+      if (t.enemy) { SFX.play(this, 'hit'); fx(this, 'fx-hit', x, y); t.enemy.hurt(damage, this.hero.x, this.hero.y, t.enemy.d.knockback * this.hero.pw.kb); continue }
       if (t.sheep) { t.sheep.hurt(this.hero.x, this.hero.y); continue }
       if (t.drop && !this.town) { dropLoot(this, DROPS[t.drop], t.ox, b.y1 + 4, high); t.drop = false }   // once per bush: rolled on the first hit
       const s = t.s;                                               // every prop wobbles and flashes white; props with hp (t.prop) also react
@@ -257,7 +258,6 @@ class TestMap extends Phaser.Scene {
       if (t.flash) t.flash.remove();
       t.flash = this.time.delayedCall(90, () => s.active && s.clearTint().setTintMode(Phaser.TintModes.MULTIPLY));
       this.tweens.add({ targets: s, x: t.ox + 3, duration: 35, yoyo: true, repeat: 2, onComplete: () => s.x = t.ox });
-      const x = (Math.max(h.x0, b.x0) + Math.min(h.x1, b.x1)) / 2, y = (Math.max(h.y0, b.y0) + Math.min(h.y1, b.y1)) / 2;   // where the slash met it
       if (t.prop) t.prop.hit(weapon, x, y);
       else { const k = s.texture.key; puff(this, x, y); SFX.play(this, /^(tree|stump)/.test(k) ? (weapon === 'axe' ? 'chop' : 'hit-wood') : /^(rock|gold)/.test(k) ? 'hit-rock' : 'hit-bush') }
     }

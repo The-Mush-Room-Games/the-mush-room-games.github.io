@@ -1,0 +1,3 @@
+Effects credits
+- Super Pixel Effects Gigapack (Free Version) - Will Tice / unTied Games (untiedgames.com): fx-hit (symmetrical_impact_001), fx-smoke (symmetrical_smoke_burst_001),
+  fx-sparkle (round_sparkle_burst_001), fx-heal (spell_heal_001), fx-alert (symbol_alert_001), dazed (status_sparkling_001). Licence: untiedgames.com/files/license.txt

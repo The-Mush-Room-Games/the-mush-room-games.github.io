@@ -20,7 +20,7 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(root, p
 
   // ride the ramp: walk right from anywhere in the foot cell, end up on the plateau; walk back down
   const all3 = rampsOf(m), ramps = all3.filter(r => r.hi === 1);
-  assert.strictEqual(all3.length, 3, 'a plateau ramp and two beach ramps'); assert.strictEqual(ramps.length, 1);
+  assert.strictEqual(all3.length, 4, 'a plateau ramp and three beach ramps (two outside the arena, one from it down to the dock)'); assert.strictEqual(ramps.length, 1);
   for (const dy of [10, 26, 38, 50, 58]) {
     const u = { x: 4 * T + 20, y: 7 * T + dy, high: false, rail: null };
     if (!ok(u, u.x, u.y)) continue;
@@ -68,7 +68,7 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(root, p
 
   // the stairs down to the beach: from the foot cell on the sand, walking east climbs onto the field, and back
   const beach = all3.filter(r => r.hi === 0);
-  assert.strictEqual(beach.length, 2, 'two beach ramps (the field\'s south-west corner and the strip west of the boss clearing)');
+  assert.strictEqual(beach.length, 3, 'three beach ramps (the field\'s south-west corner, the strip west of the boss clearing, and the arena\'s own stairs down to the dock)');
   for (const r of beach) {
     const [fc, fr] = r.footCell, u = { x: r.F.x, y: r.F.y, high: -1, rail: null }, okU = (w, bx, by) => feetOk(m, wg, w.high, bx, by);
     assert(okU(u, u.x, u.y), 'the foot of the ramp is standable sand at ' + fc + ',' + fr);
@@ -80,7 +80,7 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(root, p
   }
   // and by land: the top of each beach stair can be walked to from the start (trees, rocks and the clearings' walls in the way)
   const sp = m.objects.find(o => o.cls === 'spawn' && o.name === 'spawn'), reach = SEAL.flood(m, SEAL.mapRects(m), SEAL.stonesOf(m), [[sp.x, sp.y]], 8);
-  for (const r of beach) assert(reach.has(r.P.x, r.P.y), 'the start walks to the top of the stairs at ' + r.topCell);
+  for (const r of beach) assert(reach.has(r.P.x - r.side * 4, r.P.y), 'the start walks to the top of the stairs at ' + r.topCell);   // (4 px in from P: a lattice point on P's far side has a feet corner on the stair cell; boarding takes within 8 px)
   // the beach is connected: from the stairs' foot to the sand islet (over the stones), the dock and the other stairs, flooded over the cells
   const wgc = wg, seen = new Set(), q = [[2, 20]];
   const pass = (x, y) => feetOk(m, wgc, -1, x * T + 32, y * T + 32) || feetOk(m, wgc, -1, x * T + 32, y * T + 52);

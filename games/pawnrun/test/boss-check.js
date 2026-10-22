@@ -98,9 +98,12 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(__dirna
   const foes = m.objects.filter(o => o.cls === 'enemy' && inside(o, -80)); assert.deepStrictEqual(foes.map(o => o.key), ['bear-idle'], 'nothing in the arena but the Bear');
   const open = o => [-1, 0, 1].every(dy => [-1, 0, 1].every(dx => bs.cells.has(Math.floor((o.y - 8) / T + dy) * m.w + Math.floor(o.x / T + dx))));
   const clusters = m.objects.filter(o => o.key === 'rock4' && open(o)).length; assert(clusters >= 2 && clusters <= 3, 'two or three rock clusters to crash into: ' + clusters);
-  assert.strictEqual(bs.gaps.length, 1, 'one gap'); const gap = bs.gaps[0], bear = foes[0];
-  assert(gap.cells.every(([, r]) => r <= r0 + 1), 'the gap is in the north wall'); const near = Math.min(...gap.cells.map(([c, r]) => Math.hypot((c + 0.5) * T - bear.x, (r + 0.5) * T - (bear.y - 80))));
+  assert.strictEqual(bs.gaps.length, 2, 'the north gap and the stairs down to the dock'); const bear = foes[0];
+  const gap = bs.gaps.find(g => g.cells.every(([, r]) => r <= r0 + 1)), st = bs.gaps.find(g => g !== gap);
+  assert(gap, 'a gap in the north wall'); const near = Math.min(...gap.cells.map(([c, r]) => Math.hypot((c + 0.5) * T - bear.x, (r + 0.5) * T - (bear.y - 80))));
   assert(near >= 8 * T, 'the Bear starts far from the gap: ' + Math.round(near / T) + ' tiles');
+  assert(st.cells.some(([c, r]) => m.stairs[r * m.w + c]) && st.cells.every(([c, r]) => r >= r1), 'the second gap holds the stairs at the arena\'s south edge');
+  assert(st.cells.some(([c, r]) => [-1, 1].some(dx => bs.cells.has(r * m.w + c + dx))), 'the stairs start inside the arena');
   // the shore: water along the south edge, the dock's planks start on land and run out over the water, and the boat floats beside it
   const dock = m.objects.find(o => o.key === 'dock'), boat = m.objects.find(o => o.cls === 'boat'), zone = m.objects.find(o => o.cls === 'dock' && o.w > 0);
   assert(dock && dock.cls === 'stepstone' && boat && boat.key === 'boat' && zone, 'a dock (feet may stand on it), a boat and a dock zone');

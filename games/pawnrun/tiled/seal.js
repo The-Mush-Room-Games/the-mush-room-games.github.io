@@ -81,7 +81,9 @@ function sealReport(m, spec, rects, stones = [], step = 4) {
   const cs = [...cells].map(i => [i % mw, Math.floor(i / mw)]), cx = cs.reduce((a, c) => a + c[0], 0) / cs.length, cy = cs.reduce((a, c) => a + c[1], 0) / cs.length;
   for (const [c, r] of cs) { const d = Math.hypot(c - cx, r - cy); if (d < best) { best = d; start = [(c + 0.5) * T, (r + 0.5) * T] } }
   const open = flood(m, rects, stones, [start], step), shut = flood(m, closed, stones, [start], step);
-  const reached = gaps.map(g => g.cells.some(([c, r]) => {          // the cell beyond: opposite the inside neighbour
+  const reached = gaps.map(g => g.cells.some(([c, r]) => {          // the cell beyond: opposite the inside neighbour (a stair cell leads off the clearing's level, which the flood keeps to: reaching it is enough)
+    const rp = m.stairs[r * mw + c] && TR.rampsOf(m).find(q => q.topCell[0] + q.side === c && q.topCell[1] === r);   // a stair top cell: the ramp is boarded at P, beside it
+    if (m.stairs[r * mw + c]) return !!rp && open.has(rp.P.x - rp.side * 4, rp.P.y);   // (P itself has the feet box on the stair edge; boarding takes within 8 px of it)
     for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) if (has(c + dx, r + dy)) return open.has((c - dx + 0.5) * T, (r - dy + 0.5) * T);
     return false;
   }));

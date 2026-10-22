@@ -38,8 +38,17 @@ function campGaps(gates, cells, T, mw) {
   }
   return out;
 }
-// Pure. What stands in each cell of a gap: [{ c, r, type }], type = a FENCE key, or 'rock' (a boulder) for a boss den. A 'v' fence piece is 'vl' when the inside is east of it.
-const gapPieces = (gap, cells, mw, boss) => gap.cells.map(([c, r]) => ({ c, r, type: boss ? 'rock' : gap.dir === 'h' ? 'hz' + (c & 1) : cells.has(r * mw + c + 1) ? 'vl' : 'vr' }));
+// Pure. What stands in each cell of a gap: [{ c, r, type }], type = a FENCE key, or 'rock' (a boulder) for a boss den. A run along a row has a post at each end (el, er;
+// both in one cell for a 1-cell gap); a column is side posts (vl when the inside is east of it) with a post head (capl / capr) over the bottom cell, so no rail ends loose.
+function gapPieces(gap, cells, mw, boss) {
+  if (boss) return gap.cells.map(([c, r]) => ({ c, r, type: 'rock' }));
+  if (gap.dir === 'h') {
+    const cs = [...gap.cells].sort((a, b) => a[0] - b[0]), n = cs.length;
+    return cs.flatMap(([c, r], i) => n === 1 ? [{ c, r, type: 'el' }, { c, r, type: 'er' }] : [{ c, r, type: i === 0 ? 'el' : i === n - 1 ? 'er' : 'hz' + (c & 1) }]);
+  }
+  const ps = [...gap.cells].sort((a, b) => a[1] - b[1]).map(([c, r]) => ({ c, r, type: cells.has(r * mw + c + 1) ? 'vl' : 'vr' })), last = ps[ps.length - 1];
+  return [...ps, { c: last.c, r: last.r, type: 'cap' + last.type[1] }];
+}
 // Pure. The collision of one gap piece in world px: a boulder fills its cell, a fence piece has its rail / post bands (FENCE).
 const pieceRects = (p, T) => (p.type === 'rock' ? [[0, 0, T, T]] : FENCE[p.type][1]).map(b => ({ x0: p.c * T + b[0], y0: p.r * T + b[1], x1: p.c * T + b[2], y1: p.r * T + b[3] }));
 // Pure. The camp spec for a `camp` object and the map's `gate` objects.
@@ -63,10 +72,10 @@ class Camp {
         this.pieces.push({ imgs: [mk(big, 0, CAMP.scale), mk('rock1', p.c % 2 ? -18 : 18, 1)], Rs: pieceRects(p, T).map(R => place({ ...R, high: false, gone: true })), y: rest, rock: true });
         continue;
       }
-      const [[fr, fc], bands] = FENCE[p.type], name = `${fr},${fc}`;
-      if (!tex.has(name)) tex.add(name, 0, fc * T, fr * T, T, T);
-      const img = scene.add.image(x, y, 'fence', name).setOrigin(0).setDepth(y + Math.max(...bands.map(b => b[3]))).setVisible(false);
-      this.pieces.push({ imgs: [img], Rs: pieceRects(p, T).map(R => place({ ...R, high: false, gone: true })), y });
+      const [[fr, fc], bands, crop] = FENCE[p.type], name = crop ? `${fr},${fc},cap` : `${fr},${fc}`, y0 = y + (crop ? crop[1] : 0);
+      if (!tex.has(name)) tex.add(name, 0, fc * T, fr * T, T, crop ? crop[0] : T);
+      const img = scene.add.image(x, y0, 'fence', name).setOrigin(0).setDepth(crop ? y + T + 1 : y + Math.max(...bands.map(b => b[3]))).setVisible(false);
+      this.pieces.push({ imgs: [img], Rs: pieceRects(p, T).map(R => place({ ...R, high: false, gone: true })), y: y0 });
     }
   }
   has(x, y) { return this.cells.has(cellAt(x, y, this.T, this.mw)) }
@@ -119,7 +128,7 @@ class Camp {
       img.setVisible(true).setAlpha(1).setY(to - CAMP.height);
       sc.tweens.add({ targets: img, y: to, delay, duration: CAMP.fall, ease: 'Quad.easeIn', onComplete: () => {
         if (img !== big) return;
-        puff(sc, x, g.y - 10); chips(sc, x, g.y - 20, [0x8fb0b0, 0x5a7a80, 0xc9d6d6], 8); sc.cameras.main.shake(180, 0.008); SFX.play(sc, 'rock-drop');
+        fx(sc, 'fx-smoke', x, g.y - 24, { scale: 1.5 }); chips(sc, x, g.y - 20, [0x8fb0b0, 0x5a7a80, 0xc9d6d6], 8); sc.cameras.main.shake(180, 0.008); SFX.play(sc, 'rock-drop');
         small.setScale(1.2); sc.tweens.add({ targets: small, scale: 1, duration: 120 });
       } });
     }
@@ -134,7 +143,7 @@ class Camp {
         const x = g.imgs[0].x;
         sc.tweens.killTweensOf(g.imgs); g.shadow?.destroy();
         for (const img of g.imgs) sc.tweens.add({ targets: img, scale: img.scale * 0.6, alpha: 0, y: img.y + 10, duration: CAMP.crumble, onComplete: () => img.setVisible(false) });
-        chips(sc, x, g.y - 24, [0x8fb0b0, 0x5a7a80, 0xc9d6d6], 12); puff(sc, x - 14, g.y - 10); puff(sc, x + 14, g.y - 14);
+        chips(sc, x, g.y - 24, [0x8fb0b0, 0x5a7a80, 0xc9d6d6], 12); fx(sc, 'fx-smoke', x, g.y - 28, { scale: 1.5 });
         continue;
       }
       const img = g.imgs[0];

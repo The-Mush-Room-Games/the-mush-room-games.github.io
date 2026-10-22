@@ -122,9 +122,11 @@ const BAG = 3, MEAT_HEAL = 2;                        // item slots, hp one meat 
 const CAMP = { delay: 0.5, rise: 240, drop: 200, sink: 18, push: 4, clear: 2.5 * 64, lock: 450, confirm: 560,
   fall: 420, stagger: 110, height: 320, crumble: 500, scale: 1.3, wake: 0.6, intro: 1.0 };
 // Fence tiles: the frame [row, col] in the sheet and the collision bands [x0, y0, x1, y1] from the tile's top-left (rails, posts).
-// hz0 / hz1 = a run across a gap that is crossed north-south, vl / vr = across one crossed east-west (vl on the clearing's west side, vr on its east).
+// hz0 / hz1 = a run across a gap that is crossed north-south, el / er = its ends (the post mid-cell, the rail to its right / left; the band spans the cell: the wall meets the post), vl / vr = across one crossed east-west (vl on the clearing's
+// west side, vr on its east; each has its post at the top), capl / capr = the post head alone, [crop px, drawn dy] of the side piece, capping the bottom of a column.
 const FENCE = {
-  hz0: [[0, 1], [[0, 30, 64, 48]]], hz1: [[0, 2], [[0, 30, 64, 48]]], vl: [[1, 0], [[24, 0, 42, 64]]], vr: [[1, 3], [[22, 0, 43, 64]]],
+  hz0: [[0, 1], [[0, 30, 64, 48]]], hz1: [[0, 2], [[0, 30, 64, 48]]], el: [[2, 2], [[0, 30, 64, 48]]], er: [[2, 1], [[0, 30, 64, 48]]],
+  vl: [[1, 0], [[24, 0, 42, 64]]], vr: [[1, 3], [[22, 0, 43, 64]]], capl: [[1, 0], [], [44, 26]], capr: [[1, 3], [], [44, 26]],
 };
 
 // The town's fences, from the same sheet: piece -> [row, col, collision bands [x0, y0, x1, y1] from the tile's top-left]. tl tr bl br = corners, h0 h1 = a run, v = a side,

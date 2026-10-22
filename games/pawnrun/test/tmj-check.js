@@ -20,7 +20,7 @@ const loadJson = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8
     else assert.strictEqual(m.stairTiles[i], -1);
   }
   const st = [...m.stairTiles].filter(v => v >= 0);
-  assert.deepStrictEqual(st, [36, 45, 36, 45, 36, 45], 'three left stairs (the plateau\'s and two to the beach), top then bottom');
+  assert.deepStrictEqual(st, [36, 45, 36, 45, 36, 45, 39, 48], 'three left stairs (the plateau\'s and two to the beach) and the arena\'s right stair down to the dock, top then bottom');
 
   assert.strictEqual(m.cls, 'chunk');
   assert.deepStrictEqual(m.props, { biomes: 'forest', kind: 'landmark', minIsland: 1, mirror: false, weight: 1 }, JSON.stringify(m.props));

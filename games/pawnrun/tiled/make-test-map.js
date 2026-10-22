@@ -54,8 +54,9 @@ CL.clean(ground);
 
 // Stairs ({ cell: tile }, left stair 36 over 45): the plateau's, beside its west edge and down to the land; the beach's, from the field's south-west corner and from the
 // strip of land west of the boss clearing's wall (outside it, so the closed arena has no way out), down to the sand. The sand islet is painted (cols 0-3, rows 24-26); the beach cells a ring leaves as notches are painted in too.
-const stairs = { [idx(5, 6)]: 36, [idx(5, 7)]: 45, [idx(3, 19)]: 36, [idx(3, 20)]: 45, [idx(36, 42)]: 36, [idx(36, 43)]: 45 };
+const stairs = { [idx(5, 6)]: 36, [idx(5, 7)]: 45, [idx(3, 19)]: 36, [idx(3, 20)]: 45, [idx(36, 42)]: 36, [idx(36, 43)]: 45, [idx(54, 43)]: 39, [idx(54, 44)]: 48 };
 for (let y = 42; y <= 44; y++) sand[idx(35, y)] = 1;                                                                      // the foot of the arena's west stairs
+for (let y = 43; y <= 45; y++) sand[idx(55, y)] = 1;                                                                      // the foot of the arena's own stairs (right stair 39/48 at col 54, down to the dock)
 for (const i of Object.keys(stairs)) if (ground[i] && !(+i === idx(5, 6) || +i === idx(5, 7))) throw new Error('a beach stair on land at ' + i);
 for (let y = 24; y <= 26; y++) for (let x = 0; x <= 3; x++) sand[idx(x, y)] = 1;
 
@@ -76,6 +77,7 @@ function clearing(name, kind, G, gapDefs) {
 }
 const camp = clearing('camp', 'gnome', { ...CAMP, amp: 0.2 }, [['W', [16, 17, 18]], ['S', [32, 33]]]);
 const arena = clearing('arena', 'boss', { ...ARENA, amp: 0.1 }, [['N', [49, 50, 51]]]);
+arena.gaps.push({ side: 'E', cells: [[53, 43], [54, 43]] });   // the way down to the dock: the cell before the stairs and their top cell are a second gap, so boulders close it in the fight (a ramp is boarded from the cell beside its top)
 if (process.env.DEBUG) for (const cl of [camp, arena]) {
   const ring = CL.ringOf(cl.inside);
   for (let y = 0; y < H; y++) { let row = ''; for (let x = 0; x < W; x++) { const i = idx(x, y); row += cl.inside.has(i) ? '.' : cl.gapSet.has(i) ? 'G' : cl.block.includes(i) ? '#' : ring.has(i) ? '~' : ground[i] ? ',' : ' ' } if (row.trim()) console.log(String(y).padStart(2), row) }
@@ -204,9 +206,9 @@ objects.push(
   loot('meat', centre(27, 28)),
 );
 // The boss clearing: a boss `camp` polygon (about 20 x 16 cells of open ground, the Bear in it far from the gap, 3 rock clusters to crash into), its gap in the north
-// (the corridor from the snake den arrives there), a plateau and a pond in its wall, and the shore along its south edge, a cliff over the beach. The way down to the sand is not through the arena (a closed
-// clearing has no exit but its gap): the stairs on the land west of its wall lead down. The dock is one plank section standing on the beach, out over the water (a stepstone: feet may stand on it); the boat floats
-// beside it. Standing in the `dock` rect shows the Board prompt, once the Bear is down.
+// (the corridor from the snake den arrives there), a plateau and a pond in its wall, and the shore along its south edge, a cliff over the beach. Stairs in its south-east corner lead down to the
+// beach and the dock (boulders close them in the fight, like the gap); the stairs on the land west of its wall are the long way round. The dock is one plank section standing on the beach,
+// out over the water (a stepstone: feet may stand on it); the boat floats beside it. Standing in the `dock` rect shows the Board prompt, once the Bear is down.
 const rocks = (cx, cy) => (inCl(arena, Math.floor(cx), Math.floor(cy)), [feet('rock4', cx * T, cy * T), feet('rock2', cx * T + 50, cy * T - 14), feet('rock3', cx * T + 22, cy * T - 30), feet('rock1', cx * T - 30, cy * T + 4)]);
 objects.push(
   polyObj('camp', CL.outline(arena.inside, T), [P('kind', 'boss')]), ...arena.gaps.map(gateOf), ...wallObjects(arena, 29, 0.6, [[35, 30, 41, 43]]),

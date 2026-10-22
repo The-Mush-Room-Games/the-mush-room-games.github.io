@@ -28,9 +28,13 @@ const gN = { x: 12 * TT, y: 19 * TT, w: 2 * TT, h: TT }, gE = { x: 16 * TT, y: 2
 const gaps = campGaps([gN, gE, gFar], rc, TT, MW);
 assert.strictEqual(gaps.length, 2, 'a gate that does not touch the inside is not a gap');
 assert.deepStrictEqual(gaps.map(g => g.dir), ['h', 'v']); assert.deepStrictEqual(gaps[0].cells, [[12, 19], [13, 19]]); assert.deepStrictEqual(gaps[1].cells, [[16, 21], [16, 22]]);
-assert.deepStrictEqual(gapPieces(gaps[0], rc, MW, false).map(p => p.type), ['hz0', 'hz1'], 'a run along a row: the frames alternate');
-assert.deepStrictEqual(gapPieces(gaps[1], rc, MW, false).map(p => p.type), ['vr', 'vr'], 'inside to the west: the east side post');
-assert.deepStrictEqual(gapPieces(campGaps([gW], rc, TT, MW)[0], rc, MW, false).map(p => p.type), ['vl', 'vl'], 'inside to the east: the west side post');
+assert.deepStrictEqual(gapPieces(gaps[0], rc, MW, false).map(p => p.type), ['el', 'er'], 'a run along a row: a post at each end');
+assert.deepStrictEqual(gapPieces({ dir: 'h', cells: [[5, 2], [3, 2], [4, 2]] }, rc, MW, false).map(p => p.type), ['el', 'hz0', 'er'], 'a longer run: rails between the end posts, whatever the cell order');
+assert.deepStrictEqual(gapPieces({ dir: 'h', cells: [[3, 2]] }, rc, MW, false).map(p => p.type), ['el', 'er'], 'a 1-cell gap: both posts in the cell');
+assert.deepStrictEqual(gapPieces(gaps[1], rc, MW, false).map(p => p.type), ['vr', 'vr', 'capr'], 'inside to the west: the east side post, capped at the bottom');
+assert.deepStrictEqual(gapPieces(campGaps([gW], rc, TT, MW)[0], rc, MW, false).map(p => p.type), ['vl', 'vl', 'capl'], 'inside to the east: the west side post');
+assert(gapPieces(gaps[1], rc, MW, false).slice(-1)[0].r === Math.max(...gaps[1].cells.map(c => c[1])), 'the cap is on the bottom cell');
+assert(pieceRects({ c: 1, r: 1, type: 'capr' }, 64).length === 0, 'a cap has no collision of its own');
 assert(gapPieces(gaps[0], rc, MW, true).every(p => p.type === 'rock'), 'a boss clearing is closed with boulders');
 assert.deepStrictEqual(pieceRects({ c: 12, r: 19, type: 'rock' }, TT), [{ x0: 768, y0: 1216, x1: 832, y1: 1280 }], 'a boulder fills its cell');
 const hz = pieceRects({ c: 12, r: 19, type: 'hz0' }, TT); assert.deepStrictEqual(hz, [{ x0: 768, y0: 1246, x1: 832, y1: 1264 }], 'a fence run is a rail band');
@@ -100,7 +104,7 @@ readMap('maps/test.tmj', async p => JSON.parse(fs.readFileSync(path.join(root, p
   for (const sp of [gs, bs]) {
     assert(sp.gaps.length >= 1 && sp.gaps.length <= 2, 'one or two gaps'); assert(sp.gaps.every(g => g.cells.length >= 2 && g.cells.length <= 3), 'each gap is 2-3 tiles');
     for (const i of sp.cells) assert(m.ground[i] && !m.raised[i] && !m.stairs[i], 'the inside is low ground, cell ' + i);
-    for (const g of sp.gaps) for (const [c, r] of g.cells) assert(m.ground[r * m.w + c] && !m.raised[r * m.w + c], 'a gap is open ground');
+    for (const g of sp.gaps) for (const [c, r] of g.cells) assert((m.ground[r * m.w + c] || (sp.boss && m.stairs[r * m.w + c])) && !m.raised[r * m.w + c], 'a gap is open ground (or the arena\'s stairs)');
   }
   assert.strictEqual(gates.length, gs.gaps.length + bs.gaps.length, 'every gate is a gap of one clearing');
   const cellOf = (x, y) => Math.floor(y / T) * m.w + Math.floor(x / T), inside = (sp, o, dy = -8) => sp.cells.has(cellOf(o.x, o.y + dy));

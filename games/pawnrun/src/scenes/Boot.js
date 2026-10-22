@@ -1,5 +1,6 @@
 // Loads every ASSETS entry, makes the 10 fps animations, then starts the scene in registry 'start'.
-const ONESHOT = /attack|shoot|throw|interact|dust|explosion|splash|spawn|dead|build|chop|roll|-up$|-down$/;
+const ONESHOT = /attack|shoot|throw|interact|dust|explosion|splash|spawn|dead|build|chop|roll|-up$|-down$|^fx-/;
+const FAST = /^fx-|^dazed$/;                             // the effect sheets are drawn for 15 fps
 
 class Boot extends Phaser.Scene {
   constructor() { super('Boot') }
@@ -26,7 +27,7 @@ class Boot extends Phaser.Scene {
     SFX.init(this.game);
     // animations are global: make them once here. Every Tiny Swords animation runs at 10 fps.
     const make = (key, frames) => {
-      this.anims.create({ key, frames, frameRate: 10, repeat: ONESHOT.test(key) ? 0 : -1 });
+      this.anims.create({ key, frames, frameRate: FAST.test(key) ? 15 : 10, repeat: ONESHOT.test(key) ? 0 : -1 });
       keys.push(key);
     };
     const keys = [];

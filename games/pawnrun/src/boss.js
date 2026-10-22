@@ -1,16 +1,19 @@
 // The Bear: a boss that sleeps until its arena closes (Camp.close calls wake: it rears and roars), then walks at the hero and picks a move (bossMove): swipe,
 // charge or ground slam. Below half its hp it roars and goes faster, with shorter telegraphs (phase 2). Numbers: data.js ENEMIES.bear.boss; the pure rules are in enemies.js.
 //   st = 'idle' (asleep) | 'walk' (chasing, then waiting out the rest after a move) | 'swipe' | 'charge' | 'slam' | 'roar' | 'stun' ; ph = the step of the current move; t = seconds left in it.
-// Every move has a telegraph (a pose, a blink, and a ground marker for the charge's line and the slam's ring) and then a rest in which it only stands and pants: the hero's window.
+// Every move has a telegraph (a '!' over its head, a pose, a blink, and a ground marker for the charge's line and the slam's ring, drawn flat on the ground under
+// everyone: an ellipse GROUND_K as tall as wide) and then a rest in which it only stands and pants: the hero's window.
 // It is an Enemy (hurt flash, knockback, loot, death are shared) that draws bigger, collides wider and does not stop for a hit.
 // Scene contract (TestMap): as Enemy, plus scene.walkable(unit, bx, by), scene.cameras, scene.hud (boss bar), scene.boss (set by the scene).
+const GROUND_K = 0.6;                              // the ground plane's foreshortening: a ring of radius r is drawn r wide and r x GROUND_K tall, and hit the same way
 class Boss extends Enemy {
   constructor(scene, kind, x, y, high) {
     super(scene, kind, x, y, high);
     const b = this.b = this.d.boss;
     this.sprite.setScale(b.scale);
     this.phase = 1; this.st = 'idle'; this.ph = ''; this.t = 0; this.last = null; this.hitDone = false;
-    this.ring = null; this.g = scene.add.graphics();
+    this.ring = null; this.g = scene.add.graphics(); this.g2 = scene.add.graphics();   // ground markers: the half above its feet and the half below (disc)
+    this.daze = null;                                // the dazed sparkles over its head while stunned
     this.stuckT = 0; this.det = null;                // stuckT: s blocked while walking; det = a sidestep round an obstacle { t, x, y }
   }
   // moves with a wide box: the feet point and points up to b.r to each side must all be on walkable ground, so it stops at a wall or rock with its body, not its toes.
@@ -31,7 +34,18 @@ class Boss extends Enemy {
     SFX.play(this.scene, 'roar'); SFX.music(this.scene, 'boss');
   }
   face(dx) { if (Math.abs(dx) > this.b.dead) this.sprite.setFlipX(dx < 0) }   // a dead zone: with the hero straight above or below it keeps its side
-  go(st, ph, t) { this.st = st; this.ph = ph; this.t = t; this.hitDone = false; this.blink = false; this.g.clear() }
+  // a ground ellipse round its feet (radius r, GROUND_K as tall): a filled disc with an edge, or (band > 0) a ring 2 x band wide with a bright rim outside it.
+  // The ground is drawn in one-row layers at their own y (terrain.js), so one depth cannot both clear the rows the ellipse covers and stay under the Bear: it is
+  // drawn as two half discs, the upper just under the Bear, the lower just over the last ground row it reaches (it only covers the Bear's feet)
+  disc(r, { fill, fa, edge, ea, band = 0 }) {
+    const K = GROUND_K;
+    for (const [g, a0, a1, depth] of [[this.g, Math.PI, 2 * Math.PI, this.y - 0.1], [this.g2, 0, Math.PI, this.y + (r + band) * K + 0.1]]) {
+      g.clear().setPosition(this.x, this.y).setScale(1, K).setDepth(depth);
+      if (band) g.lineStyle(2 * band, fill, fa).beginPath().arc(0, 0, r, a0, a1).strokePath().lineStyle(4, edge, ea).beginPath().arc(0, 0, r + band, a0, a1).strokePath();
+      else g.fillStyle(fill, fa).beginPath().arc(0, 0, r, a0, a1).closePath().fillPath().lineStyle(3, edge, ea).beginPath().arc(0, 0, r, a0, a1).strokePath();
+    }
+  }
+  go(st, ph, t) { this.st = st; this.ph = ph; this.t = t; this.hitDone = false; this.blink = false; this.g.clear(); this.g2.clear(); this.daze?.destroy(); this.daze = null }
   update(dt) {
     dt = Math.min(dt, 0.05);
     const sc = this.scene, h = sc.hero, s = this.sprite, b = this.b, k = bossK(this.phase, b), same = !h.dead && lvOf(h) === lvOf(this);
@@ -53,7 +67,6 @@ class Boss extends Enemy {
     s.setScale(b.scale * (stun ? 1.05 : 1), b.scale * (stun ? 0.92 : 1));   // a stunned bear sags
     this.tint = stun ? 0xd0d8ff : this.phase === 2 ? 0xffb090 : 0;
     this.look();
-    this.g.setDepth(this.y + 2);
   }
   // chasing: it walks up to `keep` px and stands there (the rest is the hero's window), then picks. Blocked by a rock or the wall, it sidesteps for a moment instead of pushing on
   walk(dx, dy, dist, dt, k, same) {
@@ -79,6 +92,7 @@ class Boss extends Enemy {
     }
     const mv = this.last = bossMove(Math.random, dist, this.last, b, this.phase), k = bossK(this.phase, b);
     this.go(mv, 'tele', b[mv].tele * k.tele);
+    fx(sc, 'fx-alert', this.x, this.y - 170 * b.scale, { scale: 2, depth: this.y + 3 });   // the '!' over its head
     this.face(sc.hero.x - this.x);                   // it picks its side now and keeps it through a swipe or a slam
     this.sprite.anims.timeScale = 1;
     if (mv === 'slam') this.sprite.play({ key: 'bear-attack-rear', timeScale: 4 / (10 * (b[mv].tele + b[mv].hold) * k.tele) });   // the rear plays over the whole telegraph
@@ -98,9 +112,10 @@ class Boss extends Enemy {
       if (this.t <= 0) this.go('walk', '', sp.rec);
     }
   }
-  // the charge's line: a red band on the ground from the bear towards (ux, uy), as wide as it hits, filling as the telegraph runs out
+  // the charge's line: a red band on the ground from the bear towards (ux, uy), as wide as it hits, filling as the telegraph runs out (over the ground rows it crosses)
   lane(ux, uy, hw, len, a) {
-    const g = this.g, nx = -uy * hw, ny = ux * hw, x = this.x, y = this.y;
+    const nx = -uy * hw, ny = ux * hw, x = this.x, y = this.y, g = this.g2.setPosition(0, 0).setScale(1).setDepth(uy < 0 ? y - 0.1 : y + uy * len + hw + 0.1);   // upwards: under the Bear
+    this.g.clear();
     g.clear().fillStyle(0xff3030, a).fillPoints([{ x: x + nx, y: y + ny }, { x: x + ux * len + nx, y: y + uy * len + ny }, { x: x + ux * len - nx, y: y + uy * len - ny }, { x: x - nx, y: y - ny }], true);
   }
   charge(dx, dy, dist, same, k, dt) {
@@ -122,23 +137,23 @@ class Boss extends Enemy {
     if (!this.hitDone && same && dist <= c.hitR && this.bite2(c.dmg, c.kb)) this.hitDone = true;
     if (moved < want * 0.4) {                        // a wall or a rock: it crashes and is stunned
       this.go('stun', '', c.stun);
+      this.daze = this.scene.add.sprite(this.x, this.y, 'dazed').setScale(2).play('dazed');
       s.anims.timeScale = 1; s.play(this.d.idle); s.anims.pause();
       this.scene.cameras.main.shake(260, 0.012); this.puffs(5); SFX.play(this.scene, 'crash');
     } else if (this.left <= 0) { s.anims.timeScale = 1; this.go('walk', '', c.rec) }
     else this.lane(this.lv.x, this.lv.y, c.hitR, this.left + 30, 0.25 * Math.min(1, this.left / 120));
   }
-  // dazed after a crash: it sags, stars circle its head, and a hit does more damage
+  // dazed after a crash: it sags, sparkles circle its head, and a hit does more damage
   stun(dt) {
-    const g = this.g, s = this.sprite, t = this.scene.time.now / 1000;
-    g.clear().fillStyle(0xffe066, 1);
-    for (let i = 0; i < 3; i++) { const a = t * 6 + i * 2.094; g.fillCircle(this.x + Math.cos(a) * 46, this.y - 92 * this.b.scale / 1.6 + Math.sin(a) * 9, 5) }
+    const s = this.sprite;
+    this.daze?.setPosition(this.x, this.y - 135 * this.b.scale).setDepth(this.y + 3);
     if (this.t <= 0) { s.anims.resume(); this.go('walk', '', this.b.charge.rec) }
   }
   slam(dist, same, k, dt) {
-    const m = this.b.slam, s = this.sprite, g = this.g, sc = this.scene;
+    const m = this.b.slam, s = this.sprite, sc = this.scene;
     if (this.ph === 'tele' || this.ph === 'hold') {  // the ring's size is marked on the ground: step out of it, or dash through
       const left = Math.max(0, this.t) + (this.ph === 'tele' ? m.hold : 0), a = 0.1 + 0.25 * (1 - left / ((m.tele + m.hold) * k.tele));
-      g.clear().fillStyle(0xff3030, a * 0.5).fillCircle(this.x, this.y, m.r).lineStyle(3, 0xff6040, a + 0.2).strokeCircle(this.x, this.y, m.r);
+      this.disc(m.r, { fill: 0xff3030, fa: a * 0.5, edge: 0xff6040, ea: a + 0.2 });
     }
     if (this.ph === 'tele') {
       if (this.t <= 0) { this.ph = 'hold'; this.t = m.hold; s.anims.timeScale = 1 }
@@ -150,10 +165,9 @@ class Boss extends Enemy {
       }
     } else if (this.ph === 'ring') {
       this.ring += m.speed * k.speed * dt;
-      const r = this.ring, d = Math.hypot(sc.hero.x - this.x, sc.hero.y - this.y);
+      const r = this.ring, K = GROUND_K, d = Math.hypot(sc.hero.x - this.x, (sc.hero.y - this.y) / K);   // distance on the foreshortened ground
       if (!this.hitDone && same && Math.abs(d - r) <= m.w && this.bite2(m.dmg, m.kb)) this.hitDone = true;   // the ring passes him: only a dash (invulnerable) goes through
-      g.clear().lineStyle(2 * m.w, 0xfff4c9, Math.max(0.2, 1 - r / m.r)).strokeCircle(this.x, this.y, r)
-        .lineStyle(4, 0xffffff, 0.9).strokeCircle(this.x, this.y, r + m.w);
+      this.disc(r, { fill: 0xfff4c9, fa: Math.max(0.2, 1 - r / m.r), edge: 0xffffff, ea: 0.9, band: m.w });
       if (r >= m.r) { this.ring = null; this.go('walk', '', m.rec) }
     }
   }
@@ -182,7 +196,7 @@ class Boss extends Enemy {
   }
   die() {
     super.die();
-    this.g.destroy();
+    this.g.destroy(); this.g2.destroy(); this.daze?.destroy();
     this.scene.cameras.main.shake(500, 0.014); this.puffs(10);
     this.scene.hud?.hideBoss();
     SFX.music(this.scene, 'island', this.scene.island);

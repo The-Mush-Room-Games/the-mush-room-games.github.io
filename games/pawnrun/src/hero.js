@@ -192,7 +192,7 @@ class Hero {
     this.kbV.normalize().scale(kb / HERO.knockbackTime);
     this.kbT = HERO.knockbackTime;
     this.scene.events.emit('hero-hurt', { hp: this.hp, dmg, x: this.x, y: this.y });
-    SFX.play(this.scene, 'hurt');
+    SFX.play(this.scene, 'hurt'); fx(this.scene, 'fx-hit', this.x, this.y - HERO[this.form].bodyY, { tint: 0xff7060 });
     if (this.hp <= 0) this.revive > 0 ? this.rise() : this.die();
     return true;
   }

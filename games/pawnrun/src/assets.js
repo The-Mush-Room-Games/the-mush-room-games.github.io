@@ -122,6 +122,13 @@ const ASSETS = {
   fire2: ['fx/fire2.png', 64, 64],
   fire3: ['fx/fire3.png', 64, 64],
   'water-splash': ['fx/water-splash.png', 192, 192],
+  // unTied Games' Super Pixel Effects (assets/fx/CREDITS.txt), 15 fps: one-shots (props.js fx) and the looping 'dazed' sparkles (5 x 5 frames, ANIMS)
+  'fx-hit': ['fx/fx-hit.png', 96, 96],
+  'fx-smoke': ['fx/fx-smoke.png', 64, 64],
+  'fx-sparkle': ['fx/fx-sparkle.png', 64, 64],
+  'fx-heal': ['fx/fx-heal.png', 64, 64],
+  'fx-alert': ['fx/fx-alert.png', 40, 40],
+  dazed: ['fx/dazed.png', 48, 48],
   odynamite: ['fx/odynamite.png', 64, 64],
   'bomb-idle': ['fx/bomb-idle.png'],
   'bomb-spin': ['fx/bomb-spin.png', 128, 128],
@@ -265,6 +272,7 @@ const ANIMS = {
   'bear-attack-wind': ['bear-attack', 0, 1],       // the Bear's attack sheet in three parts: crouch, rear up (arms raised), swipe (the arc)
   'bear-attack-rear': ['bear-attack', 2, 5],
   'bear-attack-swipe': ['bear-attack', 6, 8],
+  dazed: ['dazed', 0, 24],
 };
 
 if (typeof module === 'object') module.exports = { ASSETS, ANIMS };
