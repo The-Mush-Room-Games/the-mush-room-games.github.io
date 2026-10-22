@@ -37,7 +37,7 @@ class Hero {
     this.inv = 0;                                    // invulnerable seconds left (dash and hurt)
     this.hurtT = 0; this.flashT = 0;                 // blink time, red flash time
     this.kbT = 0; this.kbV = new Phaser.Math.Vector2();
-    this.dead = false;
+    this.dead = false; this.stepT = 0;               // stepT: seconds to the next footstep
     this.items = [];                                 // the bag: item keys, at most `bag`
     this.sprite.play(this.anim('idle'));
   }
@@ -118,6 +118,10 @@ class Hero {
       this.step(move.x * k, move.y * k);
     }
 
+    if ((this.stepT -= dt) <= 0 && moving && this.dashT <= 0 && this.kbT <= 0) {   // a footstep every 0.28 s on the move: wood on a dock, a stepstone or indoors
+      this.stepT = 0.28;
+      SFX.play(scene, scene.floors || (scene.stones && onStone(scene.stones, this.x, this.y)) ? 'step-wood' : 'step');
+    }
     if (this.swing) this.tickSwing(dt);
     else if (this.dashT <= 0) {                      // the roll plays out on its own (startDash)
       s.anims.timeScale = 1;
@@ -136,6 +140,7 @@ class Hero {
     st.damage *= this.pw.dmg; st.speed *= this.pw.swing;                // power-ups
     this.buf = 0;
     this.swing = { w, key: this.weapon, hit: false, ...st };           // damage and speed at this tier
+    SFX.play(this.scene, this.weapon === 'hammer' ? 'swing-heavy' : 'swing');
     s.anims.timeScale = st.speed;
     const v = this.aim.y < 0 ? 'up' : this.aim.y > 0 ? 'down' : '';   // up/down have their own back/front-view strips
     if (v) s.setFlipX(false);                                         // up/down strips are drawn right-handed: never mirror them
@@ -173,6 +178,7 @@ class Hero {
     const key = this.anim('roll'), s = this.sprite;
     s.anims.timeScale = 1; s.play({ key, frameRate: this.scene.anims.get(key).frames.length / DASH.time });
     this.puff(this.x, this.y);
+    SFX.play(this.scene, 'dash');
   }
 
   // true when the hit landed (not while invulnerable or dead)
@@ -186,6 +192,7 @@ class Hero {
     this.kbV.normalize().scale(kb / HERO.knockbackTime);
     this.kbT = HERO.knockbackTime;
     this.scene.events.emit('hero-hurt', { hp: this.hp, dmg, x: this.x, y: this.y });
+    SFX.play(this.scene, 'hurt');
     if (this.hp <= 0) this.revive > 0 ? this.rise() : this.die();
     return true;
   }
@@ -193,9 +200,11 @@ class Hero {
   rise() {
     this.revive--; this.hp = Math.ceil(this.maxHp / 2); this.inv = 1.5; this.hurtT = 1.5; this.kbT = 0;
     this.scene.events.emit('hero-rise', { x: this.x, y: this.y });
+    SFX.play(this.scene, 'rise');
   }
   die() {
     this.dead = true; this.sprite.setVisible(false);
+    SFX.play(this.scene, 'die');
     const s = this.scene.add.sprite(this.x, this.y, 'odead').setOrigin(0.5, 0.72).setDepth(this.scene.depthOf(this)).play('odead-dead');
     s.once('animationcomplete', () => s.play('odead-buried'));
     this.scene.events.emit('hero-dead');

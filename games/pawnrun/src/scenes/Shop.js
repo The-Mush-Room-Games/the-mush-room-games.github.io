@@ -34,8 +34,8 @@ class Shop extends Sheet {
   }
   purchase(id) {
     const info = shopInfo(SAVE, id);
-    if (info.state !== 'buy') { this.msg = info.state === 'max' ? 'You have it already' : `Not enough ${info.cur}`; this.build(); this.time.delayedCall(1400, () => { this.msg = ''; this.scene.isActive() && this.build() }); return }
-    buy(SAVE, id); commit(this);
+    if (info.state !== 'buy') { this.msg = info.state === 'max' ? 'You have it already' : `Not enough ${info.cur}`; SFX.play(this, 'error'); this.build(); this.time.delayedCall(1400, () => { this.msg = ''; this.scene.isActive() && this.build() }); return }
+    buy(SAVE, id); commit(this); SFX.play(this, 'buy');
     this.msg = UPGRADES[id].name + ' bought!'; this.build();
     chips(this, this.scale.width / 2, this.scale.height / 2, [0xffe888, 0xffffff, 0x9be37a], 14, 1.4);
     this.time.delayedCall(1400, () => { this.msg = ''; this.scene.isActive() && this.build() });

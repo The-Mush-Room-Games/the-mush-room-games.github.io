@@ -11,7 +11,7 @@ class Npc {
   get busy() { const sc = this.scene; return sc.leaving || sc.hero.dead || sc.scene.isPaused() }
   talk() {
     if (this.busy) return false;
-    const sc = this.scene;
+    const sc = this.scene; SFX.play(sc, 'talk');
     sc.scene.launch('Talk', { from: sc.scene.key, role: this.role });
     sc.scene.pause();
     return true;

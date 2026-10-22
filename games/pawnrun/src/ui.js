@@ -52,7 +52,7 @@ function button(s, x, y, w, h, label, colour = 'blue', onClick) {
   let down = false;
   const set = d => { down = d; b.setTexture(d ? key + '_pressed' : key); t.y = y - 4 + (d ? 8 : 0) };
   uiHand(s, b, new Phaser.Geom.Rectangle(19, 17, b.width - 38, b.height - 36));
-  b.on('pointerdown', () => set(true)).on('pointerout', () => down && set(false))
+  b.on('pointerdown', () => { set(true); SFX.play(s, 'click') }).on('pointerout', () => down && set(false))
    .on('pointerup', () => { if (down) { set(false); onClick && onClick() } });
   b.on('destroy', () => t.destroy());
   b.label = t; b.setLabel = v => t.setText(v);
@@ -60,12 +60,12 @@ function button(s, x, y, w, h, label, colour = 'blue', onClick) {
 }
 // small (128 art, has _pressed) or tiny (64 art, no pressed art: the icon dips instead) round/square button with an icon on top, kit icon at 1x.
 // Fires onDown on press (touch controls want the press, not the release). Returns the button image; .icon is the icon.
-function iconButton(s, x, y, shape, size, iconKey, onDown) {
+function iconButton(s, x, y, shape, size, iconKey, onDown, quiet) {   // quiet: no click (the swing and dash buttons have their own sounds)
   const key = `btn-${size}-${shape}`, small = size === 'small', b = s.add.image(x, y, key).setScrollFactor(0);
   const ic = iconKey ? s.add.image(x, y, iconKey).setScrollFactor(0) : null;
   const dy = small ? 6 : 3, set = d => { if (small) b.setTexture(d ? key + '-pressed' : key); if (ic) ic.y = y + (d ? dy : 0) };
   uiHand(s, b);
-  b.on('pointerdown', () => { set(true); onDown && onDown() }).on('pointerup', () => set(false)).on('pointerout', () => set(false));
+  b.on('pointerdown', () => { set(true); quiet || SFX.play(s, 'click'); onDown && onDown() }).on('pointerup', () => set(false)).on('pointerout', () => set(false));
   b.on('destroy', () => ic && ic.destroy());
   b.icon = ic;
   return b;
@@ -188,6 +188,8 @@ class Hud {
 
     if (this.touch) this._touchControls(A, W, H);
     else A(iconButton(s, W - 36, 150, 'round', 'tiny', 'icon11', () => s.events.emit('hud-map')), 1);   // map: info (M). On touch it sits with the other buttons
+    this.mute = A(iconButton(s, W - 36, this.touch ? 150 : 198, 'round', 'tiny', 'icon12', () => this.setMuted(SFX.toggleMute(s))), 1);   // sound on/off (N); dim while muted
+    this.setMuted(SFX.muted);
     this.setHp(v.hp, v.max); this.setGold(v.gold); this.setDucks(v.ducks);
     this.setWeapons(v.weapons, v.active); this.setItems(v.items); this.setPowers(v.powers); this.setDash(...v.dash);
     v.boss ? this.showBoss(...v.boss) : this.boss.setVisible(false);
@@ -200,8 +202,8 @@ class Hud {
     const home = { x: 100, y: H - 190 }, C = { ...home, r: 52 };
     const ring = A(s.add.image(C.x, C.y, 'btn-tiny-round').setScale(2).setScrollFactor(0).setAlpha(0.4));   // tiny round button at exactly 2x
     this.knob = A(s.add.image(C.x, C.y, 'btn-small-round').setScrollFactor(0).setAlpha(0.4), 1);
-    A(iconButton(s, W - 76, H - 110, 'round', 'small', 'icon05', ev('hud-swing')), 1);    // swing: crossed swords
-    A(iconButton(s, W - 172, H - 76, 'round', 'small', 'icon07', ev('hud-dash')), 1);     // dash: green play arrow
+    A(iconButton(s, W - 76, H - 110, 'round', 'small', 'icon05', ev('hud-swing'), true), 1);    // swing: crossed swords
+    A(iconButton(s, W - 172, H - 76, 'round', 'small', 'icon07', ev('hud-dash'), true), 1);     // dash: green play arrow
     A(iconButton(s, W - 44, H - 214, 'round', 'small', 'icon11', ev('hud-map')), 1);      // map: info. Swap = tap a weapon slot
     const zone = new Phaser.Geom.Rectangle(0, 120, W / 2, H - 230), stick = this._stick;
     const place = (x, y, a) => { C.x = x; C.y = y; ring.setPosition(x, y).setAlpha(a); this.knob.setPosition(x, y).setAlpha(a) };
@@ -219,6 +221,7 @@ class Hud {
     this.resetStick = () => end(this.sp);                       // a scene that slept never saw the finger lift
   }
 
+  setMuted(m) { this.mute.setAlpha(m ? 0.5 : 1); this.mute.icon.setAlpha(m ? 0.5 : 1) }
   setHp(cur, max) { Object.assign(this.v, { hp: cur, max }); this.hp.set(cur / max) }
   setGold(n) { this.v.gold = n; this.goldText.setText(n) }
   setDucks(n) { this.v.ducks = n; this.duck.setVisible(n > 0); this.duckText.setText(n).setVisible(n > 0) }

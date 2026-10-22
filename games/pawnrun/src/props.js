@@ -45,13 +45,15 @@ class Prop {
   }
   hit(weapon, x, y) {
     const sc = this.scene, r = strike(this, weapon);
-    if (r === 'clank') return chips(sc, x, y, [0xffffff, 0xffe066], 5, 0.6);   // a spark; the scene's wobble is the recoil
+    if (r === 'clank') { SFX.play(sc, 'hit-metal'); return chips(sc, x, y, [0xffffff, 0xffe066], 5, 0.6) }   // a spark; the scene's wobble is the recoil
+    SFX.play(sc, this.kind === 'tree' ? (weapon === 'axe' ? 'chop' : 'hit-wood') : 'hit-rock');
     chips(sc, x, y, PROPS[this.kind].chips, r === 'done' ? 10 : 4);
     if (r === 'done') this.done();
   }
   // the prop's last hit (also what a blast calls)
   done() {
     const sc = this.scene, s = this.s;
+    SFX.play(sc, this.kind === 'tree' ? 'tree-fall' : 'rock-break');
     if (this.kind === 'tree') {                                 // a stump with its own, smaller collision
       const key = this.key.replace('tree', 'stump'), b = artBox(sc, key);
       this.swap(key, [{ x: b.x + (b.w - STUMP.w) / 2, y: b.y + b.h - 2 - STUMP.h, w: STUMP.w, h: STUMP.h }]);
@@ -133,6 +135,7 @@ class Sheep {
     Object.assign(this.hb, { x0: this.x + b[0], y0: this.y + b[1], x1: this.x + b[2], y1: this.y + b[3] });
   }
   hurt(fromX, fromY) {
+    SFX.play(this.scene, 'hit-bush');
     this.flashT = SHEEP.flash; this.fleeT = SHEEP.flee; this.from = { x: fromX, y: fromY };
     if (!this.paid) { this.paid = true; dropLoot(this.scene, DROPS.sheep, this.x, this.y, this.high) }
   }

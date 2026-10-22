@@ -19,6 +19,7 @@ class Sheet extends Phaser.Scene {
   }
   leave(next, data) {
     const from = this.d.from;
+    SFX.play(this, next ? 'open' : 'close');
     this.scene.stop();
     next ? this.scene.launch(next, { ...this.d, ...data }) : this.scene.resume(from);
   }
@@ -66,7 +67,7 @@ class Talk extends Sheet {
     const bw = 150, gap = 8, x0 = cx - (this.acts.length * bw + (this.acts.length - 1) * gap) / 2 + bw / 2, by = top + ph - 64;
     this.acts.forEach(([label, colour, go], i) => this.btn(items, x0 + i * (bw + gap), by, bw, label, colour, go));
   }
-  next() { this.page++; this.build() }
+  next() { this.page++; SFX.play(this, 'next'); this.build() }
   key(e) {
     const last = this.page >= this.n.lines.length - 1, k = e.code;
     if (k === 'Escape') return this.leave();

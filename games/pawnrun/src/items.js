@@ -23,9 +23,9 @@ const blinkOn = (t, fuse) => Math.floor((2 * t + 5 * t * t / fuse) * 2) % 2 === 
 function useItem(scene, i) {
   const h = scene.hero, k = h.items[i];
   if (!k || h.dead || scene.leaving) return;
-  if (k === 'meat') return eatMeat(h, i, MEAT_HEAL * h.pw.meat);
+  if (k === 'meat') { if (eatMeat(h, i, MEAT_HEAL * h.pw.meat)) SFX.play(scene, 'eat'); return }
   if (!scene.hittables) return;
-  h.items.splice(i, 1);
+  h.items.splice(i, 1); SFX.play(scene, 'throw');
   if (k === 'dynamite') throwDynamite(scene); else plantBomb(scene);
 }
 // dynamite: up and over to its landing spot (spinning, with a shadow on the ground), then it lies there with the fuse sparking
@@ -52,18 +52,20 @@ function plantBomb(scene) {
 }
 // the fuse burns `fuse` s: sparks at the tip (flashing white, faster and faster), then the item is gone and it blasts
 function fuse(scene, kind, s, x, y, high, shadow, tip) {
-  const d = ITEMS[kind];
+  const d = ITEMS[kind], loop = SFX.loop(scene, 'fuse'), off = () => loop.destroy();   // the lit fuse ticks until the bang (or until the scene goes)
   let last = 0;
+  scene.events.once('shutdown', off);
   scene.tweens.addCounter({ from: 0, to: d.fuse, duration: d.fuse * 1000,
     onUpdate: t => {
       if (scene.time.now - last > 90) { last = scene.time.now; const p = tip(); chips(scene, p.x, p.y, [0xffd34d, 0xffffff, 0xff8a2a], 2, 0.5) }
       blinkOn(t.getValue(), d.fuse) ? s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL) : s.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
     },
-    onComplete: () => { s.destroy(); shadow && shadow.destroy(); explode(scene, kind, x, y, high) } });
+    onComplete: () => { scene.events.off('shutdown', off); off(); s.destroy(); shadow && shadow.destroy(); explode(scene, kind, x, y, high) } });
 }
 // the bang: the kit's Explosion scaled to the blast circle, a shake, damage and a push to enemies, sheep and the hero inside it, and rock piles break
 function explode(scene, kind, x, y, high) {
   const d = ITEMS[kind], h = scene.hero, r = d.radius, b = HERO.box;
+  SFX.play(scene, kind === 'bomb' ? 'blast-big' : 'blast');
   const e = scene.add.sprite(x, y - 12, d.art).setDepth(1e5).setScale(r / d.artR).play(d.art);
   e.once('animationcomplete', () => e.destroy());
   scene.cameras.main.shake(180, kind === 'bomb' ? 0.012 : 0.007);

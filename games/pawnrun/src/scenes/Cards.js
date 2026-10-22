@@ -57,6 +57,7 @@ class Cards extends Phaser.Scene {
     return c;
   }
   select(i, still) {
+    if (!still) SFX.play(this, 'card');
     this.sel = i;
     this.cards.forEach((c, j) => {
       this.tweens.killTweensOf(c);
@@ -76,7 +77,7 @@ class Cards extends Phaser.Scene {
   // the pick pops up with a burst of sparks, the others fade; then the scene underneath gets the power-up and runs again
   pick(i) {
     if (!this.ok || this.done) return;
-    this.done = true;
+    this.done = true; SFX.play(this, 'confirm');
     const c = this.cards[i], id = this.d.cards[i], R = RARITY[POWERUPS[id].rarity];
     this.cards.forEach((o, j) => { this.tweens.killTweensOf(o); if (j !== i) this.tweens.add({ targets: o, alpha: 0, duration: 160 }) });
     this.tweens.add({ targets: c, y: c.baseY - 26, alpha: 1, duration: 140, yoyo: true, ease: 'Quad.easeOut' });

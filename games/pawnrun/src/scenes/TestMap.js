@@ -50,12 +50,14 @@ class TestMap extends Phaser.Scene {
     dressTerrain(this, m);
     const q = new URLSearchParams(location.search);
     this.island = this.run.island ?? (+q.get('island') || 1);       // island number: enemies and power-ups scale with it (ISLAND, powerK)
+    if (!this.town) SFX.music(this, 'island', this.island);          // (the town plays its own, Town.build)
     const lv = heightGrid(m), wg = walkGrids(m), rectsAt = new Map(), rects = [];   // rectsAt: cell index -> collision rects touching it
     const onRaised = (px, py) => levelAt(lv, m.w, px, py);          // the level a thing is placed on: -1 beach, 0 land, 1 plateau (its `high`)
 
     this.hittables = []; this.enemies = []; this.loot = []; this.herd = []; this.shots = []; this.npcs = [];
     let boatArt = null;
     const foes = [], flock = [], stones = [];                     // enemy and sheep objects: spawned once walkable exists
+    this.stones = stones;                                         // the hero's footsteps ring on wood there
     // the art of `key` standing at o: its hurtbox (tall art, trees: only the trunk end) and collision rects (rs: frame-pixel rects, else objectRects)
     this.hurtboxOf = (o, key) => {
       const box = artBox(this, key), fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box, tall = box.h > 64, w = tall ? 0.4 * box.w : box.w;
@@ -216,6 +218,7 @@ class TestMap extends Phaser.Scene {
       this.on(kb, 'keydown-' + key, e => { if (e.repeat || key === 'E' && this.near?.talk()) return; key === 'E' && this.boat?.state === 'board' ? this.boat.board() : useItem(this, i) });
     this.on(kb, 'keydown-H', e => { if (!e.repeat) this.hurtTest = true });
     this.on(kb, 'keydown-M', e => { if (!e.repeat) this.openMap() });
+    this.on(kb, 'keydown-N', e => { if (!e.repeat) this.hud?.setMuted(SFX.toggleMute(this)) });   // N mutes (M is the map)
     this.move = new Phaser.Math.Vector2();
     this.on(this.input, 'pointerdown', p => { if (!p.wasTouch && p.leftButtonDown()) this.pend.swing = true });   // a click swings; the hero swings the way he faces
 
@@ -245,7 +248,7 @@ class TestMap extends Phaser.Scene {
       const b = t.hb;                                              // the slash box must overlap the hurtbox, same level only
       if ((t.high | 0) !== (high | 0) || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
       this.hits++;
-      if (t.enemy) { t.enemy.hurt(damage, this.hero.x, this.hero.y, t.enemy.d.knockback * this.hero.pw.kb); continue }
+      if (t.enemy) { SFX.play(this, 'hit'); t.enemy.hurt(damage, this.hero.x, this.hero.y, t.enemy.d.knockback * this.hero.pw.kb); continue }
       if (t.sheep) { t.sheep.hurt(this.hero.x, this.hero.y); continue }
       if (t.drop && !this.town) { dropLoot(this, DROPS[t.drop], t.ox, b.y1 + 4, high); t.drop = false }   // once per bush: rolled on the first hit
       const s = t.s;                                               // every prop wobbles and flashes white; props with hp (t.prop) also react
@@ -255,7 +258,8 @@ class TestMap extends Phaser.Scene {
       t.flash = this.time.delayedCall(90, () => s.active && s.clearTint().setTintMode(Phaser.TintModes.MULTIPLY));
       this.tweens.add({ targets: s, x: t.ox + 3, duration: 35, yoyo: true, repeat: 2, onComplete: () => s.x = t.ox });
       const x = (Math.max(h.x0, b.x0) + Math.min(h.x1, b.x1)) / 2, y = (Math.max(h.y0, b.y0) + Math.min(h.y1, b.y1)) / 2;   // where the slash met it
-      t.prop ? t.prop.hit(weapon, x, y) : puff(this, x, y);
+      if (t.prop) t.prop.hit(weapon, x, y);
+      else { const k = s.texture.key; puff(this, x, y); SFX.play(this, /^(tree|stump)/.test(k) ? (weapon === 'axe' ? 'chop' : 'hit-wood') : /^(rock|gold)/.test(k) ? 'hit-rock' : 'hit-bush') }
     }
   }
   // dynamite hook: breaks every rock pile whose hurtbox touches rect r = { x0, y0, x1, y1 } (what a blast covers), and the circle c = { x, y, r } if given
@@ -307,7 +311,7 @@ class TestMap extends Phaser.Scene {
   // the explored map: the Map scene over this one, which stands still until it is closed. Not in a room (Interior has no `exp`).
   openMap() {
     if (!this.exp || !this.ready || this.leaving || this.hero.dead || this.scene.isPaused()) return;
-    this.senseDucks();
+    this.senseDucks(); SFX.play(this, 'map-open');
     const h = this.hero;
     this.scene.launch('Map', { ...this.exp, from: this.scene.key, island: this.island, hero: [h.x / T, h.y / T], ducks: shownDucks(this.ducksSeen, this.loot), dock: SAVE?.up.spyglass && this.dockAt });
     this.scene.pause();
@@ -318,12 +322,13 @@ class TestMap extends Phaser.Scene {
   takePower(id) {
     const h = this.hero;
     h.addPower(id, this.island);
+    SFX.play(this, 'power');
     const t = this.add.text(h.x, h.y - 70, powerText(id, this.island), txt(18)).setOrigin(0.5).setDepth(1e5);
     this.tweens.add({ targets: t, y: t.y - 30, alpha: 0, delay: 500, duration: 700, onComplete: () => t.destroy() });
   }
   // a door is entered by walking up into it; the hero's feet box (ground level) must overlap its rect
   enter(d) {
-    this.leaving = true;
+    this.leaving = true; SFX.play(this, 'door');
     const cam = this.cameras.main;
     cam.fadeOut(250);
     cam.once('camerafadeoutcomplete', () => {

@@ -130,10 +130,12 @@ class Enemy {
   bite(dist, range) {
     const h = this.scene.hero;
     if (dist > range || lvOf(h) !== lvOf(this) || !h.hurt(this.dmg, this.x, this.y)) return false;
+    SFX.play(this.scene, 'bite');
     if (h.pw.thorns) this.hurt(h.pw.thorns, h.x, h.y);
     return true;
   }
   fire() {                                           // an acorn leaves towards where the hero stands now
+    SFX.play(this.scene, 'shoot');
     const sc = this.scene, h = sc.hero, sh = this.d.shot, v = new Phaser.Math.Vector2(h.x - this.x, h.y - this.y).normalize();
     sc.shots.push(new Acorn(sc, this.x + v.x * sh.ox, this.y + v.y * sh.ox, v.x * sh.speed, v.y * sh.speed, this.high, sh, this.dmg));
   }
@@ -149,6 +151,7 @@ class Enemy {
   hurt(dmg, fromX, fromY, kb = this.d.knockback) {      // kb = knockback distance in px (a blast pushes harder)
     if (this.dead) return;
     const d = this.d;
+    SFX.play(this.scene, 'enemy-hurt', this.b && { r: -0.3 });   // the Bear (this.b) lower
     this.hp -= dmg; this.flashT = d.flash; this.stunT = d.stun; this.mode = 'chase'; this.sprite.anims.resume();   // (a coiled snake's pause ends)
     this.kbV.set(this.x - fromX, this.y - fromY);
     if (this.kbV.lengthSq() < 1e-4) this.kbV.set(1, 0);
@@ -157,7 +160,7 @@ class Enemy {
   }
   die() {                                            // the Tiny Swords enemies have no death art: a white fade, a dust puff, then loot
     const sc = this.scene, s = this.sprite;
-    this.dead = true;
+    this.dead = true; SFX.play(sc, this.b ? 'boss-die' : 'enemy-die');
     sc.enemies = sc.enemies.filter(e => e !== this); sc.hittables = sc.hittables.filter(t => t !== this.ht);
     s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     sc.tweens.add({ targets: s, alpha: 0, duration: this.d.fade * 1000, onComplete: () => s.destroy() });

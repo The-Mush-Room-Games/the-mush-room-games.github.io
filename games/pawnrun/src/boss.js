@@ -28,6 +28,7 @@ class Boss extends Enemy {
   wake() {
     this.go('roar', '', CAMP.intro); this.face(this.scene.hero.x - this.x);
     this.sprite.play('bear-attack-rear'); this.scene.cameras.main.shake(300, 0.01); this.puffs(6);
+    SFX.play(this.scene, 'roar'); SFX.music(this.scene, 'boss');
   }
   face(dx) { if (Math.abs(dx) > this.b.dead) this.sprite.setFlipX(dx < 0) }   // a dead zone: with the hero straight above or below it keeps its side
   go(st, ph, t) { this.st = st; this.ph = ph; this.t = t; this.hitDone = false; this.blink = false; this.g.clear() }
@@ -73,7 +74,7 @@ class Boss extends Enemy {
     const b = this.b, sc = this.scene;
     if (bossPhase(this.hp, this.maxHp, b) > this.phase) {
       this.phase = 2; this.go('roar', '', b.roar);
-      this.sprite.play('bear-attack-rear'); sc.cameras.main.shake(300, 0.01); this.puffs(6);
+      this.sprite.play('bear-attack-rear'); sc.cameras.main.shake(300, 0.01); this.puffs(6); SFX.play(sc, 'roar');
       return;
     }
     const mv = this.last = bossMove(Math.random, dist, this.last, b, this.phase), k = bossK(this.phase, b);
@@ -87,7 +88,7 @@ class Boss extends Enemy {
     const sp = this.b.swipe, s = this.sprite, k = bossK(this.phase, this.b);
     if (this.ph === 'tele') {
       this.blink = Math.floor(this.t * 20) % 2 === 0 && this.t < sp.tele * k.tele * 0.5;
-      if (this.t <= 0) { this.go('swipe', 'hit', 0.3); s.play('bear-attack-swipe') }
+      if (this.t <= 0) { this.go('swipe', 'hit', 0.3); s.play('bear-attack-swipe'); SFX.play(this.scene, 'boss-swipe') }
     } else if (this.ph === 'hit') {
       if (!this.hitDone) {                           // the arc is drawn from its first frame: the blow lands then, on whoever is in front within range
         this.hitDone = true;                         // (in front = not behind it: straight above or below counts)
@@ -122,7 +123,7 @@ class Boss extends Enemy {
     if (moved < want * 0.4) {                        // a wall or a rock: it crashes and is stunned
       this.go('stun', '', c.stun);
       s.anims.timeScale = 1; s.play(this.d.idle); s.anims.pause();
-      this.scene.cameras.main.shake(260, 0.012); this.puffs(5);
+      this.scene.cameras.main.shake(260, 0.012); this.puffs(5); SFX.play(this.scene, 'crash');
     } else if (this.left <= 0) { s.anims.timeScale = 1; this.go('walk', '', c.rec) }
     else this.lane(this.lv.x, this.lv.y, c.hitR, this.left + 30, 0.25 * Math.min(1, this.left / 120));
   }
@@ -145,7 +146,7 @@ class Boss extends Enemy {
       this.blink = Math.floor(this.t * 20) % 2 === 0;
       if (this.t <= 0) {                             // down it comes: the ring starts at its feet
         this.blink = false; this.ph = 'ring'; this.ring = 0;
-        s.play('bear-attack-wind'); sc.cameras.main.shake(220, 0.01); this.puffs(8);
+        s.play('bear-attack-wind'); sc.cameras.main.shake(220, 0.01); this.puffs(8); SFX.play(sc, 'slam');
       }
     } else if (this.ph === 'ring') {
       this.ring += m.speed * k.speed * dt;
@@ -184,6 +185,7 @@ class Boss extends Enemy {
     this.g.destroy();
     this.scene.cameras.main.shake(500, 0.014); this.puffs(10);
     this.scene.hud?.hideBoss();
+    SFX.music(this.scene, 'island', this.scene.island);
     this.scene.tweens.add({ targets: this.sprite, scale: this.b.scale * 1.15, duration: this.d.fade * 1000 });
   }
 }

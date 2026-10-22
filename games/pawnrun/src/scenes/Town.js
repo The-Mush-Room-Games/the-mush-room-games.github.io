@@ -16,6 +16,7 @@ class Town extends TestMap {
   }
   build(m, name) {
     super.build(m, name);
+    SFX.music(this, 'town');
     this.sailRect = m.objects.find(o => o.cls === 'sail');
     const tex = this.textures.get('fence');                           // the yards' fences: one rect per cell, the piece named in `p` (data.js YARD), from the Camp's sheet
     for (const o of m.objects) if (o.cls === 'fence' && YARD[o.props.p]) {
@@ -40,6 +41,7 @@ class Town extends TestMap {
     const lie = this.add.sprite(x, y, 'odead').setOrigin(0.5, 0.72).setDepth(d).setFrame(6).setVisible(false);
     this.time.delayedCall(300, () => {
       const s = this.add.sprite(x, y + 4, 'water-splash').setDepth(d + 1).play('water-splash');
+      SFX.play(this, 'splash');
       s.once('animationcomplete', () => s.destroy());
       lie.setVisible(true).anims.playReverse('odead-dead');
     });
@@ -53,7 +55,7 @@ class Town extends TestMap {
   }
   // through the main gate: the sea takes him to island 1
   setSail() {
-    this.leaving = true;
+    this.leaving = true; SFX.play(this, 'sail'); SFX.stopMusic(this, 400);   // (under the 500 ms fade: the tween must end before this scene stops)
     const cam = this.cameras.main;
     cam.fadeOut(500);
     cam.once('camerafadeoutcomplete', () => this.scene.start('Sail', { island: 1, hero: this.startHero() }));

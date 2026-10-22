@@ -61,7 +61,7 @@ class MapView extends Phaser.Scene {
   }
   close() {
     if (this.done) return;
-    this.done = true;
+    this.done = true; SFX.play(this, 'map-close');
     this.scene.stop(); this.scene.resume(this.d.from);
   }
 }

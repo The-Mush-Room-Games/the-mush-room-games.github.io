@@ -84,6 +84,7 @@ class Camp {
   // never leave), and anyone caught in a gap is moved inwards
   close() {
     const sc = this.scene, T = this.T;
+    if (!this.boss) SFX.play(sc, 'camp-close');         // (the boss den's boulders sound as each lands, drop)
     for (const e of this.foes) if (!e.dead && !this.has(e.x, e.y)) {
       let best = null, bd = 1e12;
       for (const i of this.cells) { const x = (i % this.mw + 0.5) * T, y = (Math.floor(i / this.mw) + 0.5) * T, d = Math.hypot(x - e.x, y - e.y); if (d < bd) { bd = d; best = [x, y] } }
@@ -118,7 +119,7 @@ class Camp {
       img.setVisible(true).setAlpha(1).setY(to - CAMP.height);
       sc.tweens.add({ targets: img, y: to, delay, duration: CAMP.fall, ease: 'Quad.easeIn', onComplete: () => {
         if (img !== big) return;
-        puff(sc, x, g.y - 10); chips(sc, x, g.y - 20, [0x8fb0b0, 0x5a7a80, 0xc9d6d6], 8); sc.cameras.main.shake(180, 0.008);
+        puff(sc, x, g.y - 10); chips(sc, x, g.y - 20, [0x8fb0b0, 0x5a7a80, 0xc9d6d6], 8); sc.cameras.main.shake(180, 0.008); SFX.play(sc, 'rock-drop');
         small.setScale(1.2); sc.tweens.add({ targets: small, scale: 1, duration: 120 });
       } });
     }
@@ -126,6 +127,7 @@ class Camp {
   // the gaps open: the fence pieces sink away, the boulders crumble, and the cards open once the dust has settled
   open() {
     const sc = this.scene;
+    if (!this.boss) SFX.play(sc, 'camp-clear');         // (the Bear's death has its own fanfare)
     for (const g of this.pieces) {
       for (const R of g.Rs) R.gone = true;
       if (g.rock) {

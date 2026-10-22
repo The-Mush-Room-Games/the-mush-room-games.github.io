@@ -40,13 +40,13 @@ class Skills extends Sheet {
   train(id) {
     const i = skillInfo(SAVE, id);
     if (i.state === 'max') this.say('Maxed out'); else if (i.state === 'poor') this.say('Not enough gold');
-    if (i.state !== 'buy') return this.build();
-    buySkill(SAVE, id); commit(this); this.say(SKILLS[id].text); this.build();
+    if (i.state !== 'buy') { SFX.play(this, 'error'); return this.build() }
+    buySkill(SAVE, id); commit(this); SFX.play(this, 'train'); this.say(SKILLS[id].text); this.build();
     chips(this, this.scale.width / 2, this.scale.height / 2, [0xffe888, 0xffffff, 0x9be37a], 10, 1.2);
   }
   untrain(id) {
     const back = refundSkill(SAVE, id);
-    back ? commit(this) : this.say(SAVE.skills[id] ? 'Your class needs level ' + CLASS_LEVEL : 'Nothing to refund');
+    back ? (commit(this), SFX.play(this, 'click')) : (SFX.play(this, 'error'), this.say(SAVE.skills[id] ? 'Your class needs level ' + CLASS_LEVEL : 'Nothing to refund'));
     this.build();
   }
   classes(items, W, H) {
@@ -76,8 +76,8 @@ class Skills extends Sheet {
     items.push(pan, sp, tx, tag);
   }
   choose() {
-    if (!pickClass(SAVE, this.sel)) { this.say(classState(SAVE) === 'low' ? `Reach level ${CLASS_LEVEL} first` : 'Your class is chosen'); return this.build() }
-    commit(this); this.say(CLASSES[this.sel].name + '!'); this.build();
+    if (!pickClass(SAVE, this.sel)) { SFX.play(this, 'error'); this.say(classState(SAVE) === 'low' ? `Reach level ${CLASS_LEVEL} first` : 'Your class is chosen'); return this.build() }
+    commit(this); SFX.play(this, 'class'); this.say(CLASSES[this.sel].name + '!'); this.build();
     chips(this, this.scale.width / 2, this.scale.height / 2, [0xffe888, 0xffffff, 0x9be37a], 20, 1.8);
   }
   key(e) {

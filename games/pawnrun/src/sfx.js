@@ -3,7 +3,7 @@
 //   SFX.play(scene, 'hit')          one of the name's files, at its volume, with a little random pitch; the same name never twice within 40 ms
 //   SFX.loop(scene, 'fuse')         a looping effect; returns the sound (stop() it)
 //   SFX.music(scene, 'town')        the place's loop, crossfaded from whatever plays; 'island' alternates its two tracks by island number
-//   SFX.toggleMute(scene)           M key and the HUD button; kept in localStorage MUTE_KEY
+//   SFX.toggleMute(scene)           N key and the HUD button; kept in localStorage MUTE_KEY
 // Tunables: v = volume 0-1, r = pitch jitter (+- rate), files without an extension are .ogg (Kenney), sfx_* / roar are Junkala's .wav.
 const MUTE_KEY = 'pawnrun-mute', MUSIC_VOL = 0.35, FADE = 700;
 const SOUNDS = {

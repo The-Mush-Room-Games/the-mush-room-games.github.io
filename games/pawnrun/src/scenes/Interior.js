@@ -77,7 +77,7 @@ class Interior extends TestMap {
     this.ready = true;
   }
   leave() {
-    this.leaving = true;
+    this.leaving = true; SFX.play(this, 'door-close');
     const cam = this.cameras.main, d = this.data;
     cam.fadeOut(250);
     cam.once('camerafadeoutcomplete', () => {
