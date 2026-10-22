@@ -110,8 +110,9 @@ const house = (cx, cy, interior, role, npcAt) => {
 // fences: one `fence` rect per 64 px cell, `p` = the piece of the sheet (data.js YARD): tl tr bl br corners, h0 h1 (a run), v (a side), el / er (an end post, rail to its left / right).
 // The sheet has no loose vertical end, so every vertical run ends in a corner: a yard is a full ring c0..c1 x r0..r1, with gaps only in its north (gapN) or south
 // (gapS) side, [first, last] column, never next to a corner; a side that is the town wall (wallW / wallE) is left out, its runs meet the wall's rail.
-const fence = (c, r, p, dx = 0) => add(rect('fence', c * T + dx, r * T, T, T, [P('p', p)]));   // dx: a run that meets the town wall slides 24 px into its post (a `v` post is x 24-42 of its cell)
+const fence = (c, r, p, dx = 0) => add(rect('fence', c * T + dx, r * T, T, T, [P('p', p)]));   // dx: a yard against the town wall slides 24 px into its post (a `v` post is x 24-42 of its cell)
 function yard(c0, r0, c1, r1, { wallW, wallE, gapN, gapS } = {}) {
+  const dx = wallW ? -24 : wallE ? 24 : 0;                         // the whole ring slides, so its rails stay continuous and the open side's rail runs into the wall's post
   const edge = (r, top, gap) => {
     if (gap && (gap[0] <= c0 + (wallW ? 0 : 1) || gap[1] >= c1 - (wallE ? 0 : 1))) throw new Error(`a gap next to a corner at row ${r}`);
     for (let c = c0; c <= c1; c++) {
@@ -119,11 +120,11 @@ function yard(c0, r0, c1, r1, { wallW, wallE, gapN, gapS } = {}) {
       let p = (c + r) % 2 ? 'h1' : 'h0';
       if (c === c0 && !wallW) p = top ? 'tl' : 'bl'; else if (c === c1 && !wallE) p = top ? 'tr' : 'br';
       else if (gap && c === gap[0] - 1) p = 'er'; else if (gap && c === gap[1] + 1) p = 'el';   // the end posts either side of the gap
-      fence(c, r, p, c === c0 && wallW ? -24 : c === c1 && wallE ? 24 : 0);
+      fence(c, r, p, dx);
     }
   };
   edge(r0, true, gapN); edge(r1, false, gapS);
-  for (let r = r0 + 1; r < r1; r++) { if (!wallW) fence(c0, r, 'v'); if (!wallE) fence(c1, r, 'v') }
+  for (let r = r0 + 1; r < r1; r++) { if (!wallW) fence(c0, r, 'v', dx); if (!wallE) fence(c1, r, 'v', dx) }
   reserve(c0 - 0.5, r0 - 0.5, c1 + 0.5, r1 + 0.5);
 }
 // the wall's pieces, from each cell's wall neighbours (a Tower's cell gets none: the Tower stands on it and the rails run into its base)
