@@ -79,7 +79,7 @@ class TestMap extends Phaser.Scene {
       const box = artBox(this, o.key), top = o.y - box.fh, left = o.x - box.fw / 2;   // frame top-left in the world
       const fb = o.flipX ? { ...box, x: box.fw - box.x - box.w } : box;   // the art box as drawn (mirrored when flipped)
       const gap = box.fh - (box.y + box.h);                        // transparent rows under the art: the drawn feet sit that much higher
-      const high = onRaised(o.x, o.y - 1);
+      const high = onRaised(o.x, o.y - gap - 1);                   // the level under the drawn feet (a tall frame's bottom can hang over the cliff below)
       if (o.cls === 'enemy') { foes.push({ o, y: o.y - gap, high }); continue }   // an Enemy draws and moves itself
       if (/^sheep/.test(o.key)) { flock.push({ x: o.x, y: o.y - gap, high }); continue }   // so does a Sheep
       const s = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setFlipX(o.flipX).setDepth(o.cls === 'stepstone' ? -5 : o.cls === 'boat' ? -4 : o.y - gap + lift(high));

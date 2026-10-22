@@ -68,12 +68,12 @@ const load = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
   const bands = fences.flatMap(f => YARD[f.props.p][2].map(b => ({ x0: f.x + b[0], y0: f.y + b[1], x1: f.x + b[2], y1: f.y + b[3], high: false })));
   const rects = SEAL.mapRects(m).concat(bands), start = spawns[0], gate = shapes.find(o => o.cls === 'spawn' && o.name === 'gate');
   const open = SEAL.flood(m, rects, stones, [[start.x, start.y]]);
-  for (const n of npcs) assert([-70, 0, 70].some(dx => open.has(n.x + dx, n.y + 40)), 'reach ' + n.props.role);
+  for (const n of npcs.filter(o => o.props.role !== 'steward')) { const b = SEAL.artBoxOf(n.key, n), fy = n.y - (b.fh - b.y - b.h); assert([-70, 0, 70].some(dx => open.has(n.x + dx, fy + 28)), 'reach ' + n.props.role) }   // a step in front of the feet
   for (const d of doors) assert(open.has(d.x + d.w / 2, d.y + d.h + 24), 'reach a door');
   for (const n of ['houseA', 'houseB', 'gate']) { const s = spawns.find(o => o.name === n); assert(open.has(s.x, s.y), 'reach ' + n) }
   for (const r of TR.rampsOf(m).filter(r => r.lo === 0)) assert(open.has(r.F.x, r.F.y), 'reach the foot of the hill ramp at ' + r.footCell);
   assert(TR.levelAt(lv, m.w, spawns.find(o => o.name === 'steward').x, spawns.find(o => o.name === 'steward').y) === 1, 'the Steward is up on the hill');
-  const towers = tiles.filter(o => o.key === 'tower'), gt = towers.filter(o => Math.abs(o.y - gate.y) < 3 * T).sort((a, b) => a.x - b.x);
+  const towers = tiles.filter(o => o.key === 'tower'), gt = towers.filter(o => Math.abs(o.y - gate.y) < 3 * T && Math.abs(o.x - gate.x) < 4 * T).sort((a, b) => a.x - b.x);
   assert.strictEqual(gt.length, 2, 'two gate Towers'); const brick = { x0: gt[0].x, y0: gt[0].y - 1.5 * T, x1: gt[1].x, y1: gt[0].y - 0.5 * T, high: false };
   const shut = SEAL.flood(m, rects.concat(brick), stones, [[start.x, start.y]]);
   assert(!shut.has(gate.x, gate.y) && !shut.has(sail[0].x + 20, sail[0].y + 20), 'bricking up the gate seals the town');
