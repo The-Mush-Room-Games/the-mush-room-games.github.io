@@ -447,6 +447,10 @@ function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483
       <summary class="btn pink"><span class="c">More games</span><span class="o">Fewer games</span></summary>
       <div class="shelf">
         <article class="win toy gcard">
+          <div class="tc th"><img src="img/thumbs/pawnrun.png" alt="Pawn Run: the old pawn in his town of blue-roofed houses"></div>
+          <div class="wc"><h3>Pawn Run</h3><p>Sail between islands, fight gnomes and bosses, and keep your gold when you die. Spend it in town.</p><div><a class="btn" href="#arcade">Play in the arcade</a></div></div>
+        </article>
+        <article class="win toy gcard">
           <div class="tc th"><img class="ph" src="img/dogmosh.jpg" alt="Dog Mosh Festival: dogs dancing at a festival stage"></div>
           <div class="wc"><h3>Dog Mosh Festival</h3><p>Make a dog and hang out at a daytime music festival in the park, with 28 minigames.</p><div><a class="btn" href="#arcade">Play in the arcade</a></div></div>
         </article>
@@ -489,6 +493,11 @@ function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483
           <div class="info"><b>Goblin Bop</b><p>Our second test game: torch goblins pop out of the bushes, bop them before they light the fire. 30-second rounds, three lives, and the goblins get faster as you go.</p>
             <ul class="tags"><li>Whack-a-goblin</li><li>Desktop + phone</li><li>Free</li></ul></div>
         </div>
+        <div class="sel" data-pane="pr" hidden>
+          <div class="feat"><div class="tc th"><img src="img/thumbs/pawnrun.png" alt=""><div class="t"><b class="metal">Pawn Run</b></div></div></div>
+          <div class="info"><b>Pawn Run</b><p>An exploration roguelite with Tiny Swords art. Sail between islands, fight gnomes and bosses, and keep your gold when you die: spend it in town on the next run.</p>
+            <ul class="tags"><li>Roguelite</li><li>Desktop + phone</li><li>Work in progress</li></ul></div>
+        </div>
         <div class="w95" id="w95" hidden role="region" aria-label="Game player">
           <div class="tb"><img src="img/sprites/kami3_pink.png" alt=""><span class="ttl" id="w95name">Game</span><button id="w95full" aria-label="Full screen" title="Full screen">▢</button><button id="w95close" aria-label="Close the game" title="Close">×</button></div>
           <div class="scr95" id="w95stage"></div>
@@ -500,9 +509,10 @@ function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483
             <button class="card on" type="button" data-pick="dm" aria-pressed="true"><span class="tc th"><img class="ph" src="img/dogmosh.jpg" alt=""><span class="t"><b class="metal two">Dog Mosh<br>Festival</b></span></span></button>
             <button class="card" type="button" data-pick="ss" aria-pressed="false"><span class="tc th"><img src="img/thumbs/shroomsnake.png" alt=""><span class="t"><b class="metal">Shroom Snake</b></span></span></button>
             <button class="card" type="button" data-pick="gb" aria-pressed="false"><span class="tc th"><img src="img/thumbs/goblinbop.png" alt=""><span class="t"><b class="metal">Goblin Bop</b></span></span></button>
+            <button class="card" type="button" data-pick="pr" aria-pressed="false"><span class="tc th"><img src="img/thumbs/pawnrun.png" alt=""><span class="t"><b class="metal">Pawn Run</b></span></span></button>
             <div class="card soon" role="group" aria-label="Jam vault, coming soon"><span class="tc soon"><b>Jam vault</b><small>Coming soon</small></span></div>
           </div>
-          <span class="cpos" id="cpos" aria-live="polite">1 / 4</span>
+          <span class="cpos" id="cpos" aria-live="polite">1 / 5</span>
           <button class="cbtn cnext" id="cnext" type="button" aria-label="Next game"><span aria-hidden="true">▶</span></button>
         </div>
         <div class="press"><button class="psb" id="a2start" type="button"><span class="metal"><b>▶</b> Press start</span></button><span class="blink">Insert coin</span></div>
@@ -595,8 +605,9 @@ const w95 = document.getElementById('w95'), stage = document.getElementById('w95
 const ctrls = document.getElementById('ctrls'), CONTROLS = {
   ss: [[['↑', '↓', '←', '→'], 'Steer'], [['W', 'A', 'S', 'D'], 'Steer'], [['Swipe', 'Pad'], 'Steer on a phone'], [['Space', 'Enter'], 'Start or play again'], [['▢'], 'Full screen'], [['Esc', '×'], 'Leave full screen, then close']],
   gb: [[['Click', 'Tap'], 'Bop a goblin'], [['1', '–', '9'], 'Bop that bush (1 is top left)'], [['Space', 'Enter'], 'Start or play again'], [['▢'], 'Full screen'], [['Esc', '×'], 'Leave full screen, then close']],
+  pr: [[['W', 'A', 'S', 'D'], 'Walk'], [['↑', '↓', '←', '→'], 'Walk'], [['Space', 'J', 'Click'], 'Swing'], [['Shift', 'K'], 'Dash'], [['E'], 'Talk, board, use first item'], [['1', '–', '4'], 'Use that bag item'], [['Q'], 'Swap weapon'], [['F'], 'Swap in the ground weapon'], [['M'], 'Map'], [['N'], 'Mute'], [['Stick', 'Buttons'], 'Walk and fight on a phone'], [['▢'], 'Full screen'], [['Esc', '×'], 'Leave full screen, then close']],
   dm: [[['▢'], 'Full screen'], [['Esc', '×'], 'Leave full screen, then close'], [['?'], 'Game controls are listed in the game itself']] };
-const GAMES = { ss: { src: 'games/shroomsnake/index.html', name: 'Shroom Snake' }, gb: { src: 'games/goblinbop/index.html', name: 'Goblin Bop' }, dm: { name: 'Dog Mosh Festival' } };
+const GAMES = { ss: { src: 'games/shroomsnake/index.html', name: 'Shroom Snake' }, gb: { src: 'games/goblinbop/index.html', name: 'Goblin Bop' }, pr: { src: 'games/pawnrun/index.html', name: 'Pawn Run' }, dm: { name: 'Dog Mosh Festival' } };
 const a2 = w95.closest('.crt'), panes = a2.querySelectorAll('[data-pane]'), press = a2.querySelector('.press'); let picked = 'dm';
 /* the carousel: a scroll-snap row (swipe, wheel, arrows, arrow keys). ci = the card in the centre; picking a game card also centres it. */
 const car = a2.querySelector('.car'), track = car.querySelector('.track'), cards = [...track.children], cprev = document.getElementById('cprev'), cnext = document.getElementById('cnext'), cpos = document.getElementById('cpos');
