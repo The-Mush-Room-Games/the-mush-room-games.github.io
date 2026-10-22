@@ -1,0 +1,4 @@
+Sound credits (all CC0 / public domain)
+- Kenney (kenney.nl): RPG Audio, Impact Sounds, Interface Sounds.
+- Juhani Junkala (opengameart.org): The Essential Retro Video Game Sound Effects Collection (512 sounds); "Chiptune Adventures" music
+  (Stage 1, Stage 2, Boss Fight, Stage Select), renamed island1, island2, boss, town.

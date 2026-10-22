@@ -9,6 +9,7 @@ class Boot extends Phaser.Scene {
       w ? this.load.spritesheet(k, 'assets/' + file, { frameWidth: w, frameHeight: h }) : this.load.image(k, 'assets/' + file);
       if (w) this.sheets.push([k, h]);
     }
+    for (const { key, url } of SFX.files()) this.load.audio(key, url);   // every effect and music loop (src/sfx.js)
     // art added to the Tiled object tileset loads too, so a new kit image there needs no code change
     this.load.json('objects-tsj', 'maps/objects.tsj');
     this.load.once('filecomplete-json-objects-tsj', (key, type, ts) => {
@@ -22,6 +23,7 @@ class Boot extends Phaser.Scene {
     });
   }
   create() {
+    SFX.init(this.game);
     // animations are global: make them once here. Every Tiny Swords animation runs at 10 fps.
     const make = (key, frames) => {
       this.anims.create({ key, frames, frameRate: 10, repeat: ONESHOT.test(key) ? 0 : -1 });
