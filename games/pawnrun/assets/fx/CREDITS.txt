@@ -1,3 +1,4 @@
 Effects credits
 - Super Pixel Effects Gigapack (Free Version) - Will Tice / unTied Games (untiedgames.com): fx-hit (symmetrical_impact_001), fx-smoke (symmetrical_smoke_burst_001),
-  fx-sparkle (round_sparkle_burst_001), fx-heal (spell_heal_001), fx-alert (symbol_alert_001), dazed (status_sparkling_001). Licence: untiedgames.com/files/license.txt
+  fx-sparkle (round_sparkle_burst_001), fx-heal (spell_heal_001), fx-alert (symbol_alert_001), dazed (status_sparkling_001), fx-eruption (directional_impact_004, large), fx-hit-small (directional_impact_001, small, first 6 of 7 frames). Licence: untiedgames.com/files/license.txt
+Hand-made in the same pixel style (not from a pack): fx-zone (the slam's dithered danger zone), fx-chevron (the charge lane's arrow head).

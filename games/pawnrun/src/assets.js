@@ -128,6 +128,10 @@ const ASSETS = {
   'fx-sparkle': ['fx/fx-sparkle.png', 64, 64],
   'fx-heal': ['fx/fx-heal.png', 64, 64],
   'fx-alert': ['fx/fx-alert.png', 40, 40],
+  'fx-hit-small': ['fx/fx-hit-small.png', 32, 32],     // the sword/axe landing on an enemy (TestMap.onHit): a small spray along the swing
+  'fx-eruption': ['fx/fx-eruption.png', 80, 80],       // the Bear's slam: a ground pad (frame 0) marks the ring, spikes (1-4) are its shockwave (boss.js)
+  'fx-zone': ['fx/fx-zone.png'],                       // hand-made: the slam's danger zone, a dithered ellipse (190 x 114 = r 190 at GROUND_K 0.6, shown at 2x)
+  'fx-chevron': ['fx/fx-chevron.png'],                 // hand-made: an arrow head pointing right, the charge lane's marker
   dazed: ['fx/dazed.png', 48, 48],
   odynamite: ['fx/odynamite.png', 64, 64],
   'bomb-idle': ['fx/bomb-idle.png'],

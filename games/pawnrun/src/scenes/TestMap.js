@@ -249,7 +249,7 @@ class TestMap extends Phaser.Scene {
       if ((t.high | 0) !== (high | 0) || h.x1 <= b.x0 || h.x0 >= b.x1 || h.y1 <= b.y0 || h.y0 >= b.y1) continue;
       this.hits++;
       const x = (Math.max(h.x0, b.x0) + Math.min(h.x1, b.x1)) / 2, y = (Math.max(h.y0, b.y0) + Math.min(h.y1, b.y1)) / 2;   // where the slash met it
-      if (t.enemy) { SFX.play(this, 'hit'); fx(this, 'fx-hit', x, y); t.enemy.hurt(damage, this.hero.x, this.hero.y, t.enemy.d.knockback * this.hero.pw.kb); continue }
+      if (t.enemy) { SFX.play(this, 'hit'); fx(this, 'fx-hit-small', x, y, { scale: 1.5, angle: Phaser.Math.RadToDeg(Math.atan2(this.hero.aim.y, this.hero.aim.x)) }); t.enemy.hurt(damage, this.hero.x, this.hero.y, t.enemy.d.knockback * this.hero.pw.kb); continue }
       if (t.sheep) { t.sheep.hurt(this.hero.x, this.hero.y); continue }
       if (t.drop && !this.town) { dropLoot(this, DROPS[t.drop], t.ox, b.y1 + 4, high); t.drop = false }   // once per bush: rolled on the first hit
       const s = t.s;                                               // every prop wobbles and flashes white; props with hp (t.prop) also react
