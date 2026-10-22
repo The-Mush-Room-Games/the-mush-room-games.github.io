@@ -15,9 +15,9 @@ class MapView extends Phaser.Scene {
     this.layout();
   }
   layout() {
-    const d = this.d, W = this.scale.width, H = this.scale.height, PAD = 44, HEAD = 76, FOOT = 44, RIB = 56;   // RIB: the ribbon hangs this far over the panel's top edge
-    const ts = Phaser.Math.Clamp(Math.floor(Math.min((Math.min(W - 24, 800) - 2 * PAD) / d.w, (H - RIB - 16 - HEAD - FOOT - PAD) / d.h)), 1, 16);
-    const mw = d.w * ts, mh = d.h * ts, pw = Math.max(mw + 2 * PAD, 288), ph = Math.max(mh + HEAD + FOOT + PAD, 288), top = Math.round((H + RIB - 16 - ph) / 2), mx = Math.round((W - mw) / 2), my = top + HEAD;
+    const d = this.d, W = this.scale.width, H = this.scale.height, PAD = 44, HEAD = 150, FOOT = 128, RIB = 56;   // HEAD: ribbon + sword divider; FOOT: legend row + hint; RIB: the ribbon hangs this far over the panel's top edge
+    const ts = Phaser.Math.Clamp(Math.floor(Math.min((Math.min(W - 24, 800) - 2 * PAD) / d.w, (H - RIB - 16 - HEAD - FOOT) / d.h)), 1, 16);
+    const mw = d.w * ts, mh = d.h * ts, pw = Math.max(mw + 2 * PAD, 380), ph = Math.max(mh + HEAD + FOOT, 288), top = Math.round((H + RIB - 16 - ph) / 2), mx = Math.round((W - mw) / 2), my = top + HEAD;
     this.dim.setSize(W, H);
     this.box?.destroy(true);
     if (this.textures.exists('explored')) this.textures.remove('explored');
@@ -32,9 +32,23 @@ class MapView extends Phaser.Scene {
     const ring = this.add.circle(...at(d.hero), 10).setStrokeStyle(2, 0x161c2e).setScrollFactor(0);
     this.tweens.add({ targets: ring, scale: 1.8, alpha: 0, duration: 1100, repeat: -1 });
     items.push(ring, me);
-    items.push(ribbon(this, W / 2, top + 14, Math.min(pw - 40, 320), 'blue', 'big', 'Island ' + d.island));
-    items.push(this.add.text(W / 2, top + ph - 34, uiTouch(this) ? 'Tap to close' : 'M, Esc or click to close', txt(16, UI_BROWN, null)).setOrigin(0.5).setScrollFactor(0));
+    items.push(sword(this, W / 2, top + 100, Math.min(pw - 60, 360)));
+    items.push(ribbon(this, W / 2, top + 4, Math.min(pw - 40, 320), 'blue', 'big', 'Island ' + d.island));
+    this.legend(items, W / 2, my + mh + 40, d);
+    items.push(this.add.text(W / 2, top + ph - 40, uiTouch(this) ? 'Tap to close' : 'M, Esc or click to close', txt(16, UI_BROWN, null)).setOrigin(0.5).setScrollFactor(0));
     this.box = this.add.container(0, 0, items).setScrollFactor(0);
+  }
+  // the legend under the map: a tiny slot with the sign, the word beside it (duck; the dock with the Spyglass; the door)
+  legend(items, x, y, d) {
+    const door = Phaser.Display.Color.HexStringToColor(EXPLORE.door).color, row = [['duck', (px) => this.add.image(px, y, 'duck', 0).setScale(1.5).setTint(LOOT.duck.tint)]];
+    if (d.dock) row.push(['dock', px => icon(this, px, y, 'icon11')]);
+    row.push(['door', px => this.add.rectangle(px, y, 12, 12, door).setStrokeStyle(2, 0x161c2e)]);
+    const lb = row.map(([t]) => this.add.text(0, y + 2, t, txt(14, UI_BROWN, null)).setOrigin(0, 0.5).setScrollFactor(0)), gap = 24;
+    let px = x - (row.reduce((a, _, i) => a + 72 + lb[i].width, 0) + (row.length - 1) * gap) / 2;
+    row.forEach(([, mk], i) => {
+      items.push(this.add.image(px + 32, y, 'btn-tiny-square').setScrollFactor(0), mk(px + 32).setScrollFactor(0), lb[i].setX(px + 72));
+      px += 72 + lb[i].width + gap;
+    });
   }
   // the island to the 'explored' canvas texture: seen tiles in their kit colour (a pale rim on land next to seen water, blobs for trees, rocks, buildings), the rest fogged
   paint(mw, mh, ts) {

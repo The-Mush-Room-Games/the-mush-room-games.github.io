@@ -194,23 +194,23 @@ const SHOPS = {
   steward: ['newpawn', 'spyglass', 'ferry'],
 };
 // Skills (the trainer): points go into a stat tree. Level = the points bought. The next point costs SKILL_COST.base + step x level (gold, so a refund returns the price of the last
-// point whichever stat it comes from). cap = ranks; perm = what a rank adds to the hero's stats. A class (CLASSES) can be picked from level CLASS_LEVEL.
+// point whichever stat it comes from). cap = ranks; perm = what a rank adds to the hero's stats. cls = the class this stat line unlocks (CLASSES) at rank CLASS_RANK.
 const SKILLS = {
-  hp:      { name: 'Vitality', text: '+1 max HP', cap: 5, perm: { hp: 1 }, icon: ['icon06'] },
-  dmg:     { name: 'Might', text: '+8% damage', cap: 5, perm: { dmg: 0.08 }, icon: ['tool2', 0, 2] },
+  hp:      { name: 'Vitality', text: '+1 max HP', cap: 5, perm: { hp: 1 }, icon: ['icon06'], cls: 'warrior' },
+  dmg:     { name: 'Might', text: '+8% damage', cap: 5, perm: { dmg: 0.08 }, icon: ['tool2', 0, 2], cls: 'lancer' },
   speed:   { name: 'Swiftness', text: '+5% speed', cap: 4, perm: { speed: 0.05 }, icon: ['icon07'] },
-  dash:    { name: 'Agility', text: '+12% dash recharge', cap: 4, perm: { dashRate: 0.12 }, icon: ['icon10'] },
+  dash:    { name: 'Agility', text: '+12% dash recharge', cap: 5, perm: { dashRate: 0.12 }, icon: ['icon10'], cls: 'archer' },
   charges: { name: 'Double Dash', text: '+1 dash charge', cap: 1, perm: { charges: 1 }, icon: ['icon08'] },
 };
 const SKILL_COST = { base: 20, step: 15 };
-const CLASS_LEVEL = 5;
-// The classes: art = the idle sheet (a 'frame' px square), perks = [level, text] unlocked as the level climbs. ponytail: only the pick and the perk list exist; the hero stays the Pawn
-// (its own sprites, weapon and special move are a follow-up), so a class changes nothing in a run yet.
+const CLASS_RANK = 3;
+// The classes, one per stat line: stat = the SKILLS id that unlocks it at rank CLASS_RANK, perks = [rank, text] of that stat, gained as it climbs past that. art = the idle sheet.
+// You switch between unlocked classes at the trainer, free, as often as you like; a refund that drops the stat under CLASS_RANK drops the class.
+// ponytail: only the pick and the perk list exist; the hero stays the Pawn (its own sprites, weapon and special move are a follow-up), so a class changes nothing in a run yet.
 const CLASSES = {
-  warrior: { name: 'Warrior', art: 'warrior-idle', text: 'Heavy blows and a thick shield. Fights up close.', perks: [[7, 'Shield bash'], [10, 'Guard stance'], [14, 'Whirlwind']] },
-  lancer:  { name: 'Lancer', art: 'lancer-idle', text: 'Long reach and charges. Keeps foes at spear length.', perks: [[7, 'Longer thrust'], [10, 'Charge'], [14, 'Skewer']] },
-  archer:  { name: 'Archer', art: 'archer-idle', text: 'Shoots from afar and rolls away. Fragile up close.', perks: [[7, 'Quick draw'], [10, 'Volley'], [14, 'Piercing arrows']] },
-  monk:    { name: 'Monk', art: 'monk-idle', text: 'Heals as he fights and mends his friends.', perks: [[7, 'Small heal'], [10, 'Blessing'], [14, 'Sanctuary']] },
+  warrior: { name: 'Warrior', stat: 'hp', art: 'warrior-idle', text: 'Heavy blows and a thick shield. Fights up close.', perks: [[4, 'Shield bash'], [5, 'Whirlwind']] },
+  lancer:  { name: 'Lancer', stat: 'dmg', art: 'lancer-idle', text: 'Long reach and charges. Keeps foes at spear length.', perks: [[4, 'Longer thrust'], [5, 'Charge']] },
+  archer:  { name: 'Archer', stat: 'dash', art: 'archer-idle', text: 'Shoots from afar and rolls away. Fragile up close.', perks: [[4, 'Quick draw'], [5, 'Volley']] },
 };
 // The townsfolk (NPCs on the town map: a tile object of class `npc` with a `role`; or inside a house, set by the door). key = the idle sheet, avatar = the Human Avatar on the dialog,
 // shop = a SHOPS id the dialog leads into, train = the skill tree (+ the class pick) instead. lines = what they say, one page each.
@@ -225,4 +225,4 @@ const NPCS = {
 };
 const TALK = { range: 78 };                          // px from the NPC's feet to the hero's at which the E prompt shows
 
-if (typeof module === 'object') module.exports = { YARD, SAVE_KEY, UPGRADES, SHOPS, SKILLS, SKILL_COST, CLASS_LEVEL, CLASSES, NPCS, TALK, EXPLORE, ISLAND, CAMP, FENCE, RARITY, POWER_SCALE, STAT0, POWERUPS, HIT2, WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };
+if (typeof module === 'object') module.exports = { YARD, SAVE_KEY, UPGRADES, SHOPS, SKILLS, SKILL_COST, CLASS_RANK, CLASSES, NPCS, TALK, EXPLORE, ISLAND, CAMP, FENCE, RARITY, POWER_SCALE, STAT0, POWERUPS, HIT2, WEAPONS, TIER, ITEMS, HERO, DASH, ENEMIES, DROPS, LOOT, PICKUP, BAG, MEAT_HEAL, PROPS, STUMP, SHEEP };

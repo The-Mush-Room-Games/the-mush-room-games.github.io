@@ -14,16 +14,17 @@ class Cards extends Phaser.Scene {
     this.layout(true);
   }
   layout(first) {
-    const W = this.scale.width, H = this.scale.height, col = H > W * 1.25, ids = this.d.cards, n = ids.length, gap = 16;
-    const cw = col ? Math.min(W - 48, 460) : Phaser.Math.Clamp(Math.floor((W - 48 - (n - 1) * gap) / n), 160, 250), ch = col ? 214 : 300;
-    const block = 128 + 36 + (col ? n * ch + (n - 1) * gap : ch) + 44, top = Math.max(8, (H - block) / 2);
+    const W = this.scale.width, H = this.scale.height, col = H > W * 1.25, ids = this.d.cards, n = ids.length, gap = 16, HD = 240;
+    const cw = col ? Math.min(W - 48, 460) : Phaser.Math.Clamp(Math.floor((W - 48 - (n - 1) * gap) / n), 160, 250), ch = col ? Phaser.Math.Clamp(Math.floor((H - HD - 52 - 2 * gap) / n), 170, 206) : 300;
+    const block = HD + (col ? n * ch + (n - 1) * gap : ch) + 44, top = Math.max(8, (H - block) / 2);
     this.dim.setSize(W, H);
     this.box?.destroy();
     const items = [], cards = this.cards = [];
     const title = ribbon(this, W / 2, top + 64, Math.min(W - 40, 440), 'blue', 'big', 'Choose a power-up');
-    items.push(title);
+    const div = sword(this, W / 2, top + 172, Math.min(W - 60, 360));
+    items.push(div, title);
     ids.forEach((id, i) => {
-      const x = col ? W / 2 : W / 2 + (i - (n - 1) / 2) * (cw + gap), y = col ? top + 128 + 36 + ch / 2 + i * (ch + gap) : top + 128 + 36 + ch / 2;
+      const x = col ? W / 2 : W / 2 + (i - (n - 1) / 2) * (cw + gap), y = col ? top + HD + ch / 2 + i * (ch + gap) : top + HD + ch / 2;
       const c = this.card(id, i, x, y, cw, ch, col);
       c.baseY = y; cards.push(c); items.push(c);
     });
@@ -31,7 +32,7 @@ class Cards extends Phaser.Scene {
     items.push(hint);
     this.box = this.add.container(0, 0, items).setScrollFactor(0);
     this.select(this.sel, true);
-    if (first) [title, ...cards, hint].forEach((o, i) => {              // everything drops in, one after the other
+    if (first) [title, div, ...cards, hint].forEach((o, i) => {              // everything drops in, one after the other
       const y = o.y, alpha = o.alpha;
       o.setAlpha(0).y = y + 28;
       this.tweens.add({ targets: o, y, alpha, duration: 260, delay: i * 70, ease: 'Back.easeOut' });
@@ -45,11 +46,12 @@ class Cards extends Phaser.Scene {
     pan.on('pointerover', () => uiDesktop(this) && this.select(i)).on('pointerdown', () => this.pick(i));
     const tag = ribbon(this, 0, -ch / 2 + 6, Math.min(cw - 40, col ? 220 : 180), R.ribbon, 'small', R.label);
     tag.label.setStroke('#161c2e', 2);                                 // the kit's 3 px stroke fills the opening of a small C
-    const ic = icon(this, side, col ? 14 : -ch / 2 + 112, P.icon[0], P.icon[1]).setScale(P.icon[2] || 1);
+    const iy = col ? 14 : -ch / 2 + 112, fr = this.add.image(side, iy, 'btn-tiny-square').setScrollFactor(0);     // the icon sits in a tiny slot frame
+    const ic = icon(this, side, iy, P.icon[0], P.icon[1]).setScale(P.icon[2] || 1);
     const tw = col ? cw - 168 : cw - 56, tx = col ? -cw / 2 + 138 : 0;
     const name = this.add.text(tx, col ? -22 : -ch / 2 + 166, P.name, { ...txt(col ? 28 : sm ? 20 : 22, ink, null), wordWrap: { width: tw + 16 } }).setOrigin(col ? 0 : 0.5, 0.5).setScrollFactor(0);
     const fx = this.add.text(tx, col ? 8 : -ch / 2 + 190, powerText(id, this.d.island), { ...txt(col ? 22 : sm ? 17 : 18, ink, null), wordWrap: { width: tw }, align: col ? 'left' : 'center' }).setOrigin(col ? 0 : 0.5, 0).setScrollFactor(0);
-    c.pan = pan; c.add([pan, tag, ic, name, fx]);
+    c.pan = pan; c.add([pan, tag, fr, ic, name, fx]);
     if (!uiTouch(this)) {                                              // the key, in the same badge as the HUD's tier numbers
       const bx = col ? cw / 2 - 40 : 0, by = ch / 2 - 44;
       c.add([this.add.rectangle(bx, by, 24, 24, R.tint).setStrokeStyle(2, 0x161c2e).setScrollFactor(0), this.add.text(bx, by, i + 1, numTxt(14)).setOrigin(0.5).setScrollFactor(0)]);

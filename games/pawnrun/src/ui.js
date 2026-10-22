@@ -31,6 +31,8 @@ function panel(s, x, y, w, h, special) {
 function board(s, x, y, w, h, kind = 'wood') {
   return uiNine(s, x, y, kind === 'banner' ? 'banner_wide' : 'woodtable_wide', uiMin(w, 256), uiMin(h, 256), 128, 128, 128, 128);
 }
+// woodtable_wide whose VISIBLE wood is vw x vh centred on (x, y): the art has a transparent margin (44 each side, 43 top, 25 bottom), so the nineslice is that much bigger
+const woodBoard = (s, x, y, vw, vh) => board(s, x, y - 9, vw + 88, vh + 68);
 // ribbon_big_<colour> (320x128, insets 128,128,0,0, smallest 256 wide) or ribbon_small_<colour>_<fishtail|pointed> (192x64, insets 64, smallest 128 wide).
 // Returns a container; .label is the text. Sideways stretch only: the height stays the image height.
 function ribbon(s, x, y, w, colour = 'blue', size = 'big', label = '', tail = 'pointed') {
@@ -156,10 +158,12 @@ class Hud {
 
     A(roundPortrait(s, 62, 62, 'avatar05'), 2);              // top left: hero portrait (Blue Pawn, wood ring) and the HP bar beside it (no number)
     this.hp = A(bar(s, 188, 62, 240, 'big'), 1);              // the bar's wood starts 40 px into its art: x 188 tucks it 12 px under the ring
-    this.coin = A(icon(s, W - 36, 32, 'icon03'));                      // top right: gold, ducks under it once you have one
-    this.goldText = label(W - 68, 34, '', 24, 1);
-    this.duck = A(icon(s, W - 36, 84, 'duck', 0).setScale(2));
-    this.duckText = label(W - 68, 86, '', 24, 1);
+    this.goldSlot = A(s.add.image(W - 36, 36, 'btn-tiny-square').setScrollFactor(0));    // top right: gold, ducks under it once you have one; each icon sits in a tiny slot, the number to its left
+    this.coin = A(icon(s, W - 36, 36, 'icon03'), 1);
+    this.goldText = label(W - 74, 38, '', 24, 1);
+    this.duckSlot = A(s.add.image(W - 36, 100, 'btn-tiny-square').setScrollFactor(0));
+    this.duck = A(icon(s, W - 36, 100, 'duck', 0).setScale(1.5), 1);
+    this.duckText = label(W - 74, 102, '', 24, 1);
 
     // power-ups: the owned ones as a row of kit icons under the HP bar (a badge in the rarity colour counts stacks), the dash charges as pips beside the bar
     this.pRow = A(uiBox(s, 160, 126, []), 1);
@@ -187,8 +191,8 @@ class Hud {
     });
 
     if (this.touch) this._touchControls(A, W, H);
-    else A(iconButton(s, W - 36, 150, 'round', 'tiny', 'icon11', () => s.events.emit('hud-map')), 1);   // map: info (M). On touch it sits with the other buttons
-    this.mute = A(iconButton(s, W - 36, this.touch ? 150 : 198, 'round', 'tiny', 'icon12', () => this.setMuted(SFX.toggleMute(s))), 1);   // sound on/off (N); dim while muted
+    else A(iconButton(s, W - 36, 166, 'round', 'tiny', 'icon11', () => s.events.emit('hud-map')), 1);   // map: info (M). On touch it sits with the other buttons
+    this.mute = A(iconButton(s, W - 36, this.touch ? 166 : 214, 'round', 'tiny', 'icon12', () => this.setMuted(SFX.toggleMute(s))), 1);   // sound on/off (N); dim while muted
     this.setMuted(SFX.muted);
     this.setHp(v.hp, v.max); this.setGold(v.gold); this.setDucks(v.ducks);
     this.setWeapons(v.weapons, v.active); this.setItems(v.items); this.setPowers(v.powers); this.setDash(...v.dash);
@@ -224,7 +228,7 @@ class Hud {
   setMuted(m) { this.mute.setAlpha(m ? 0.5 : 1); this.mute.icon.setAlpha(m ? 0.5 : 1) }
   setHp(cur, max) { Object.assign(this.v, { hp: cur, max }); this.hp.set(cur / max) }
   setGold(n) { this.v.gold = n; this.goldText.setText(n) }
-  setDucks(n) { this.v.ducks = n; this.duck.setVisible(n > 0); this.duckText.setText(n).setVisible(n > 0) }
+  setDucks(n) { this.v.ducks = n; this.duck.setVisible(n > 0); this.duckSlot.setVisible(n > 0); this.duckText.setText(n).setVisible(n > 0) }
   setWeapons(slots, active) {
     Object.assign(this.v, { weapons: slots, active });
     this.w.forEach((sl, i) => {

@@ -13,7 +13,7 @@ function mergeSave(raw) {
   const ranks = (into, from, table, cap) => { for (const id of Object.keys(table)) { const n = natural(from && from[id], cap(table[id])); if (n) into[id] = n } };
   ranks(s.up, raw.up, UPGRADES, u => u.cost.length); ranks(s.skills, raw.skills, SKILLS, k => k.cap);
   s.form = raw.form === 'new' || s.up.newpawn ? 'new' : 'old';
-  s.cls = CLASSES[raw.cls] && level(s) >= CLASS_LEVEL ? raw.cls : null;
+  s.cls = CLASSES[raw.cls] && classRank(s, raw.cls) >= CLASS_RANK ? raw.cls : null;
   return s;
 }
 // The browser side. ponytail: one save slot, no versioning; a bad or missing save is a fresh one.
@@ -51,18 +51,20 @@ function buySkill(save, id) {
   save.gold -= i.cost; save.skills[id] = i.rank + 1;
   return true;
 }
-// Pure. Give a skill point back for the price of the last one bought (any stat: what you spent is the same sum). Not below a chosen class's level. Returns the gold, or 0.
+// Pure. Give a skill point back for the price of the last one bought (any stat: what you spent is the same sum). A class whose stat drops under CLASS_RANK is dropped. Returns the gold, or 0.
 function refundSkill(save, id) {
   const rank = save.skills[id] || 0, lv = level(save);
-  if (!rank || (save.cls && lv - 1 < CLASS_LEVEL)) return 0;
+  if (!rank) return 0;
   const back = skillCost(lv - 1);
   save.gold += back; rank > 1 ? save.skills[id] = rank - 1 : delete save.skills[id];
+  if (save.cls && classRank(save, save.cls) < CLASS_RANK) save.cls = null;
   return back;
 }
-// Pure. Can a class be picked now? ('pick' = yes, 'low' = level too low, 'chosen' = one was chosen already). Picking is for good.
-const classState = save => save.cls ? 'chosen' : level(save) >= CLASS_LEVEL ? 'pick' : 'low';
+// Pure. A class: the rank of its stat, and its state ('locked' = the stat is under CLASS_RANK, 'open' = can be picked, 'chosen' = the current one). Picking is free and can be redone.
+const classRank = (save, id) => save.skills[CLASSES[id].stat] || 0;
+const classState = (save, id) => classRank(save, id) < CLASS_RANK ? 'locked' : save.cls === id ? 'chosen' : 'open';
 function pickClass(save, id) {
-  if (!CLASSES[id] || classState(save) !== 'pick') return false;
+  if (!CLASSES[id] || classState(save, id) !== 'open') return false;
   save.cls = id;
   return true;
 }
@@ -86,4 +88,4 @@ function runStart(save) {
     items: Array((save.up.meat || 0) && Math.min(save.up.meat, BAG + (perm.slots || 0))).fill('meat') };
 }
 
-if (typeof module === 'object') module.exports = { defaultSave, mergeSave, loadSave, writeSave, level, shopInfo, buy, skillCost, skillInfo, buySkill, refundSkill, classState, pickClass, permStats, runStart, upgradeText };
+if (typeof module === 'object') module.exports = { defaultSave, mergeSave, loadSave, writeSave, level, shopInfo, buy, skillCost, skillInfo, buySkill, refundSkill, classRank, classState, pickClass, permStats, runStart, upgradeText };
