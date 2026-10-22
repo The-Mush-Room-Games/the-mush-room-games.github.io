@@ -34,7 +34,7 @@ const load = async p => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
 
   // yards: every fence cell names a piece of the sheet; sheep, trees, a pig
   const fences = shapes.filter(o => o.cls === 'fence'); assert(fences.length > 40, 'fences');
-  for (const f of fences) { assert(YARD[f.props.p], 'fence piece ' + f.props.p); assert.deepStrictEqual([f.w, f.h], [T, T]); assert(f.x % T === 0 && f.y % T === 0, 'fence on the grid') }
+  for (const f of fences) { assert(YARD[f.props.p], 'fence piece ' + f.props.p); assert.deepStrictEqual([f.w, f.h], [T, T]); assert([0, 24, T - 24].includes(f.x % T) && f.y % T === 0, 'fence on the grid (or slid 24 px into the wall post)') }
   assert(tiles.filter(o => /^sheep/.test(o.key)).length >= 4, 'sheep'); assert(tiles.filter(o => /^tree\d$/.test(o.key)).length >= 40, 'trees');
   assert(tiles.some(o => o.key === 'pig-idle'), 'a pig');
 

@@ -69,7 +69,7 @@ street(23, 24, 24, 33); street(22, 21, 23, 24);                                 
 for (const i of CL.ellipse(24.5, 19.3, 5.2, 2.4, 29, { amp: 0.25 })) dirt[i] = 1;             // the square
 street(25, 14, 26, 18); street(18, 12, 31, 13); street(17, 10, 17, 12); street(32, 10, 32, 12);   // the hill street, the forecourt, the way to each ramp
 street(14, 18, 20, 19); street(29, 19, 35, 20);                                                // the lanes
-street(12, 26, 35, 27); street(33, 21, 34, 26);                                                // the cross lane, an alley up to the east lane
+street(12, 26, 34, 27);                                                                        // the cross lane
 street(21, 33, 22, 34); street(20, 34, 21, 35);                                                // the road steps west to the stairs down to the pier
 CL.clean(dirt);
 for (let i = 0; i < W * H; i++) if (dirt[i] && (!ground[i] || raised[i] || wall.has(i) || onTower.has(i))) throw new Error('a street off the land, or through the wall, at ' + i % W + ',' + Math.floor(i / W));
@@ -110,7 +110,7 @@ const house = (cx, cy, interior, role, npcAt) => {
 // fences: one `fence` rect per 64 px cell, `p` = the piece of the sheet (data.js YARD): tl tr bl br corners, h0 h1 (a run), v (a side), el / er (an end post, rail to its left / right).
 // The sheet has no loose vertical end, so every vertical run ends in a corner: a yard is a full ring c0..c1 x r0..r1, with gaps only in its north (gapN) or south
 // (gapS) side, [first, last] column, never next to a corner; a side that is the town wall (wallW / wallE) is left out, its runs meet the wall's rail.
-const fence = (c, r, p) => add(rect('fence', c * T, r * T, T, T, [P('p', p)]));
+const fence = (c, r, p, dx = 0) => add(rect('fence', c * T + dx, r * T, T, T, [P('p', p)]));   // dx: a run that meets the town wall slides 24 px into its post (a `v` post is x 24-42 of its cell)
 function yard(c0, r0, c1, r1, { wallW, wallE, gapN, gapS } = {}) {
   const edge = (r, top, gap) => {
     if (gap && (gap[0] <= c0 + (wallW ? 0 : 1) || gap[1] >= c1 - (wallE ? 0 : 1))) throw new Error(`a gap next to a corner at row ${r}`);
@@ -119,7 +119,7 @@ function yard(c0, r0, c1, r1, { wallW, wallE, gapN, gapS } = {}) {
       let p = (c + r) % 2 ? 'h1' : 'h0';
       if (c === c0 && !wallW) p = top ? 'tl' : 'bl'; else if (c === c1 && !wallE) p = top ? 'tr' : 'br';
       else if (gap && c === gap[0] - 1) p = 'er'; else if (gap && c === gap[1] + 1) p = 'el';   // the end posts either side of the gap
-      fence(c, r, p);
+      fence(c, r, p, c === c0 && wallW ? -24 : c === c1 && wallE ? 24 : 0);
     }
   };
   edge(r0, true, gapN); edge(r1, false, gapS);
@@ -143,11 +143,11 @@ building('barracks', 14.5, 17.3, 3, 4);                                         
 building('monastery', 35, 17.5, 3, 5);                                                         // the Healer's, at the east end
 building('house2', 28.5, 17.4, 2, 3);                                                          // the Market, on the square, east of the hill street
 building('house2', 30.5, 17.1, 2, 3, undefined, true);
-building('house2', 21.5, 17.2, 2, 3, undefined, true); building('house2', 19.5, 17.5, 2, 3);  // west of it, two more with their fronts on the square
+building('house2', 22.5, 17.4, 2, 3, undefined, true); building('house2', 20.5, 17.1, 2, 3); building('house2', 18.5, 17.4, 2, 3, undefined, true);   // west of it, three more with their fronts on the square
 house(15.5, 25.8, 'maps/interiors/house_a.tmj', 'folk1', '370,300');                          // the cross lane: three houses west of the gate street, two east, their doors on the lane
 building('house2', 13.5, 25.6, 2, 3, undefined, true); building('house2', 17.5, 26, 2, 3, undefined, true);
 house(29.5, 25.8, 'maps/interiors/house_b.tmj', 'folk2', '420,330');
-building('house2', 31.5, 25.5, 2, 3);
+building('house2', 31.5, 25.5, 2, 3); building('house2', 27.5, 25.7, 2, 3, undefined, true);
 
 // ---- who stands where, and the clutter round each nook
 const npc = (role, cx, cy, flip) => add(feet(NPCS[role].key, cx, cy, 'npc', [P('role', role)], flip));
@@ -160,9 +160,10 @@ yard(11, 20, 15, 22, { wallW: true, gapN: [12, 13] });
 npc('blacksmith', 13.4, 21.9);
 add(feet('gold-stone4', 11.7, 21.2), feet('gold-stone2', 12.1, 22.1), feet('rock2', 14.7, 21.6), feet('odeco08', 14.2, 22.2), feet('odeco14', 12.6, 22.3), feet('odeco17', 15.9, 20.1, none, none, true));
 // the Healer: a herb garden under the Monastery, open to the lane: bushes, pumpkins, mushrooms, a sheep grazing by it
-yard(31, 21, 36, 24, { gapN: [33, 34] });
-npc('healer', 34.4, 22.6);
-add(feet('bush4', 35.5, 22.1), feet('bush2', 32.9, 23.4), feet('odeco12', 35.6, 23.6), feet('odeco13', 33.2, 22.2), feet('odeco02', 33.7, 21.6), feet('odeco01', 34.9, 24.1), feet('odeco17', 31.2, 20.3), feet('sheep-idle', 37.6, 21.9));
+yard(31, 21, 37, 24, { gapN: [33, 34] });
+npc('healer', 33.9, 23.3, true);
+add(feet('odeco13', 32.3, 22.6), feet('odeco12', 32.5, 23.5), feet('odeco07', 32.9, 22.2), feet('odeco08', 32.2, 23.9), feet('odeco13', 35.6, 22.6), feet('odeco12', 36.4, 22.5), feet('odeco07', 35.4, 23.5), feet('odeco11', 36.5, 23.6),
+  feet('odeco10', 35.1, 22.1), feet('odeco02', 34.8, 23.9), feet('odeco01', 36.1, 23.1), feet('odeco17', 31.2, 20.3), feet('sheep-idle', 38.2, 22.4), feet('bush2', 38.1, 23.6));
 // the square: the Merchant in front of the Market with his produce, a signpost in the middle, a sheep wandered in
 npc('market', 28.5, 19.3, true);
 add(feet('odeco13', 27, 18.9), feet('odeco12', 27.4, 19.9), feet('odeco15', 30.1, 19.2), feet('odeco14', 30.6, 20.3), feet('odeco17', 24.5, 20.2), feet('odeco04', 21.6, 20.9), feet('sheep-idle', 20.3, 18.6), feet('odeco05', 26.2, 21.6));
@@ -171,7 +172,7 @@ npc('trainer', 20.4, 23.4, true);
 add(feet('odeco18', 18.9, 22.3), feet('odeco16', 21.3, 21.6), feet('odeco07', 19.5, 23.9), feet('odeco05', 21.2, 24.2), feet('odeco14', 18.4, 23.6));
 reserve(18, 21, 21, 24);
 // the cross lane and the alleys: mushrooms, a bush, a rock between the houses
-add(feet('odeco03', 19.1, 25.9), feet('odeco02', 27.7, 25.9), feet('rock3', 33.6, 25.5), feet('bush3', 12.2, 24.1), feet('odeco11', 35.2, 24.4), feet('odeco10', 25.6, 22.3));
+add(feet('odeco03', 19.1, 25.9), feet('rock3', 33.6, 25.5), feet('bush3', 12.2, 24.1), feet('odeco11', 35.2, 24.6), feet('odeco10', 25.6, 22.3));
 // the gate: a signpost outside, then the road; the pier: planks starting on the sand in front of the spit's cliff (row 37), the boat tied at its end, the `sail` rect on the planks
 add(feet('odeco17', 22, 30.2), feet('odeco16', 26, 30.4, none, none, true));
 const dock = y => tileObj('dock', [24.5 * T, y], 'stepstone');
@@ -197,10 +198,17 @@ for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
   const i = idx(x, y);
   if (!ground[i] || raised[i] || used.has(i) || nearWall(x, y)) continue;
   const edge = !(has(ground, x - 2, y) && has(ground, x + 2, y) && has(ground, x, y - 2) && has(ground, x, y + 2));   // within 2 cells of the water
-  const p = inside(x, y) ? 0.08 : edge ? (dense(x, y) ? 0.7 : 0.4) : dense(x, y) ? 0.45 : 0.12;
+  const p = inside(x, y) ? 0.16 : edge ? (dense(x, y) ? 0.7 : 0.4) : dense(x, y) ? 0.45 : 0.12;
   if (rnd() < p) { treeAt(x + 0.5, y + 0.85); used.add(i) }
 }
-// bushes, rocks, stumps and mushrooms on the open grass, inside and out
+// inside the wall no grass stays bare for long: a third of the free cells get something small (mushrooms, stones, herbs, bones, a bush, a stump)
+const SMALL = ['odeco01', 'odeco02', 'odeco03', 'odeco04', 'odeco05', 'odeco07', 'odeco08', 'odeco10', 'odeco11', 'odeco14', 'odeco15', 'rock1', 'stump2', 'bush1', 'bush2'];
+for (let y = 3; y < GATE_ROW; y++) for (let x = 10; x < 40; x++) {
+  const i = idx(x, y);
+  if (!inside(x, y) || !ground[i] || raised[i] || used.has(i) || rnd() > 0.34) continue;
+  add(feet(pick(SMALL), x + 0.5 + jit(0.5), y + 0.8 + jit(0.3))); used.add(i);
+}
+// bushes, rocks, stumps and mushrooms on the open grass outside
 for (let n = 0, g = 0; n < 3000 && g < 70; n++) {
   const x = 3 + Math.floor(rnd() * (W - 6)), y = 3 + Math.floor(rnd() * (H - 10)), i = idx(x, y);
   if (!ground[i] || raised[i] || used.has(i) || nearWall(x, y) || !has(ground, x - 1, y) || !has(ground, x + 1, y) || !has(ground, x, y + 1) || !has(ground, x, y - 1)) continue;
@@ -209,7 +217,7 @@ for (let n = 0, g = 0; n < 3000 && g < 70; n++) {
 
 // spawn points for ?at=<name>: the first is where a new game starts
 const spawn = (name, cx, cy) => add(point('spawn', at(cx, cy), [], name));
-spawn('start', 23.5, 23.6); spawn('gate', 24, 29.6); spawn('blacksmith', 13.5, 20.6); spawn('healer', 34.5, 20.6); spawn('market', 28.5, 20.6); spawn('steward', 22.6, 9.8); spawn('trainer', 22.5, 23.6);
+spawn('start', 23.5, 23.6); spawn('gate', 24, 29.6); spawn('blacksmith', 13.5, 20.6); spawn('healer', 33.5, 22.3); spawn('market', 28.5, 20.6); spawn('steward', 22.6, 9.8); spawn('trainer', 22.5, 23.6);
 spawn('beach', 3.5, 33.5); spawn('houseA', 15.5, 27.1); spawn('houseB', 29.5, 27.1);
 
 const map = {
