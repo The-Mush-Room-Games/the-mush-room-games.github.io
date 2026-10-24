@@ -1,8 +1,8 @@
 // Frame cap for 120 Hz screens (iPhone Pro Safari): the game misses most 8 ms deadlines there and stutters between 8, 17 and 25 ms frames.
 // Runs the game on every other display frame instead, a steady 60. Loaded before the GameMaker script (tools/publish.sh adds the tag);
-// the game speed is 120, so the runtime itself never waits and only this decides the rate. ?fps=120 turns the cap off.
+// game speed 60: sprite animations step once per tick, so the tick rate must be the real frame rate. When the runtime's own
+// timer asks for a short wait (under 8 ms), the skip here still lands it on the next 60 Hz slot.
 (function () {
-	if (/[?&]fps=120\b/.test(location.search)) return;
 	var raf = window.requestAnimationFrame.bind(window), last = -1e9;
 	window.requestAnimationFrame = function (cb) {
 		return raf(function tick(t) {
